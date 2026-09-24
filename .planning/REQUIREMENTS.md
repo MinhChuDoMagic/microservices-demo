@@ -241,12 +241,124 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (all) | — | Pending — awaiting roadmap |
+| COST-01 | Phase 1 | Pending |
+| COST-02 | Phase 5 | Pending |
+| COST-03 | Phase 10 | Pending |
+| COST-04 | Phase 1 | Pending |
+| COST-05 | Phase 1 | Pending |
+| COST-06 | Phase 8 | Pending |
+| COST-07 | Phase 8 | Pending |
+| COST-08 | Phase 1 | Pending |
+| COST-09 | Phase 1 | Pending |
+| LIFE-01 | Phase 2 | Pending |
+| LIFE-02 | Phase 2 | Pending |
+| LIFE-03 | Phase 2 | Pending |
+| LIFE-04 | Phase 2 | Pending |
+| LIFE-05 | Phase 1 | Pending |
+| LIFE-06 | Phase 2 | Pending |
+| LIFE-07 | Phase 1 | Pending |
+| LIFE-08 | Phase 1 | Pending |
+| LIFE-09 | Phase 1 | Pending |
+| LIFE-10 | Phase 1 | Pending |
+| NET-01 | Phase 2 | Pending |
+| NET-02 | Phase 2 | Pending |
+| NET-03 | Phase 2 | Pending |
+| NET-04 | Phase 2 | Pending |
+| NET-05 | Phase 2 | Pending |
+| NET-06 | Phase 4 | Pending |
+| NET-07 | Phase 2 | Pending |
+| EKS-01 | Phase 2 | Pending |
+| EKS-02 | Phase 2 | Pending |
+| EKS-03 | Phase 8 | Pending |
+| EKS-04 | Phase 2 | Pending |
+| EKS-05 | Phase 8 | Pending |
+| EKS-06 | Phase 8 | Pending |
+| EKS-07 | Phase 9 | Pending |
+| EKS-08 | Phase 2 | Pending |
+| OWN-01 | Phase 4 | Pending |
+| OWN-02 | Phase 2 | Pending |
+| OWN-03 | Phase 4 | Pending |
+| CD-01 | Phase 4 | Pending |
+| CD-02 | Phase 4 | Pending |
+| CD-03 | Phase 4 | Pending |
+| CD-04 | Phase 3 | Pending |
+| CD-05 | Phase 1 | Pending |
+| CD-06 | Phase 3 | Pending |
+| CD-07 | Phase 12 | Pending |
+| CD-08 | Phase 4 | Pending |
+| SVC-01 | Phase 11 | Pending |
+| SVC-02 | Phase 11 | Pending |
+| SVC-03 | Phase 6 | Pending |
+| SVC-04 | Phase 5 | Pending |
+| SVC-05 | Phase 6 | Pending |
+| SVC-06 | Phase 6 | Pending |
+| SVC-07 | Phase 11 | Pending |
+| SVC-08 | Phase 11 | Pending |
+| SVC-09 | Phase 3 | Pending |
+| SVC-10 | Phase 8 | Pending |
+| EVT-01 | Phase 5 | Pending |
+| EVT-02 | Phase 5 | Pending |
+| EVT-03 | Phase 5 | Pending |
+| EVT-04 | Phase 7 | Pending |
+| EVT-05 | Phase 7 | Pending |
+| EVT-06 | Phase 7 | Pending |
+| SAGA-01 | Phase 7 | Pending |
+| SAGA-02 | Phase 7 | Pending |
+| SAGA-03 | Phase 7 | Pending |
+| SAGA-04 | Phase 7 | Pending |
+| SAGA-05 | Phase 7 | Pending |
+| SAGA-06 | Phase 7 | Pending |
+| SAGA-07 | Phase 7 | Pending |
+| SAGA-08 | Phase 7 | Pending |
+| SAGA-09 | Phase 7 | Pending |
+| OBS-01 | Phase 5 | Pending |
+| OBS-02 | Phase 6 | Pending |
+| OBS-03 | Phase 6 | Pending |
+| OBS-04 | Phase 6 | Pending |
+| OBS-05 | Phase 5 | Pending |
+| OBS-06 | Phase 9 | Pending |
+| OBS-07 | Phase 5 | Pending |
+| OBS-08 | Phase 9 | Pending |
+| OBS-09 | Phase 9 | Pending |
+| OBS-10 | Phase 9 | Pending |
+| OBS-11 | Phase 9 | Pending |
+| OBS-12 | Phase 9 | Pending |
+| OBS-13 | Phase 9 | Pending |
+| OBS-14 | Phase 9 | Pending |
+| SEC-01 | Phase 10 | Pending |
+| SEC-02 | Phase 10 | Pending |
+| SEC-03 | Phase 10 | Pending |
+| SEC-04 | Phase 10 | Pending |
+| SEC-05 | Phase 10 | Pending |
+| SEC-06 | Phase 3 | Pending |
+| SEC-07 | Phase 3 | Pending |
+| SEC-08 | Phase 10 | Pending |
+| SEC-09 | Phase 10 | Pending |
+| SEC-10 | Phase 10 | Pending |
+| SEC-11 | Phase 10 | Pending |
+| SEC-12 | Phase 10 | Pending |
+| SEC-13 | Phase 10 | Pending |
+| TEST-01 | Phase 14 | Pending |
+| TEST-02 | Phase 14 | Pending |
+| TEST-03 | Phase 14 | Pending |
+| TEST-04 | Phase 14 | Pending |
+| TEST-05 | Phase 14 | Pending |
+| TEST-06 | Phase 14 | Pending |
+| CHAOS-01 | Phase 13 | Pending |
+| CHAOS-02 | Phase 13 | Pending |
+| CHAOS-03 | Phase 13 | Pending |
+| CHAOS-04 | Phase 12 | Pending |
+| CHAOS-05 | Phase 13 | Pending |
+| CHAOS-06 | Phase 13 | Pending |
+| CHAOS-07 | Phase 13 | Pending |
 
 **Coverage:**
 - v1 requirements: 110 total
-- Mapped to phases: 0
-- Unmapped: 110 ⚠️ (expected — roadmap not yet created)
+- Mapped to phases: 110 ✅
+- Unmapped: 0
+- Duplicated across phases: 0
+
+**Per-phase counts:** P1: 11 · P2: 16 · P3: 5 · P4: 7 · P5: 8 · P6: 6 · P7: 12 · P8: 6 · P9: 9 · P10: 12 · P11: 4 · P12: 2 · P13: 6 · P14: 6
 
 ---
 *Requirements defined: 2026-09-24*
