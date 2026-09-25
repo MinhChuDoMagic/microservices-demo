@@ -918,7 +918,20 @@ aws sns confirm-subscription --topic-arn "$TOPIC_ARN" --token "$TOKEN"  # token 
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED — dispositions below)
+
+> **All Part A questions are dispositioned.** None blocks the phase. Every `[UNVERIFIED]` figure
+> below is either zero-impact on Phase 1 or routed to an owning task.
+
+| # | Disposition | Owner |
+|---|---|---|
+| Q1 | **DEFERRED — recorded.** Absent evidence is not proof of $0. Impact negligible (cents at worst). | `COSTS.md` deferred-observation row, plan 01-03 task 4; resolves on the first billing cycle |
+| Q2 | **DEFERRED — recorded.** Zero impact on this phase: one action-free COST budget is $0.00 under either pricing model. Flagged only to stop the stale `$0.02/budget-day` figure propagating into later phases. | `COSTS.md`, plan 01-03 |
+| Q3 | **RESOLVED — question sidestepped.** Adopted `frequency = "IMMEDIATE"` per finding F-04, which removes the DAILY/SNS incompatibility entirely and improves detection latency. | Plan 01-06 |
+| Q4 | **OUT OF PHASE.** EBS gp3 baseline is a Phase 2+ concern; no Phase 1 resource provisions IOPS or throughput. | Deferred to Phase 2 |
+| Q5 | **RESOLVED — owned.** `aws ce get-anomaly-monitors` preflight runs before the monitor is declared; an existing AWS-managed SERVICE monitor is handled by `import` rather than `create` (finding F-05). | Plan 01-06 |
+| Q6 | **RESOLVED — moot at the pin.** The correct `threshold_expression` syntax for the pinned `hashicorp/aws = 6.66.0` is given in Part A; the exact removal version matters only if the pin is lowered. | Recorded in `VERSIONS.md`, plan 01-01 |
+| Q7 | **OUT OF PHASE.** No Route 53 hosted zone is created in Phase 1. Revisit in Phase 11. | Deferred to Phase 11 |
 
 **Q1 — Is Cost Anomaly Detection genuinely free? `[UNVERIFIED]`**
 No offer code for Cost Anomaly Detection exists in the Price List index (`AWSBudgets` and `AWSCostExplorer` are
@@ -2125,7 +2138,26 @@ Design notes:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED — dispositions below)
+
+> **All Part B questions are dispositioned.** Q4 is **WITHDRAWN as factually stale** — see below.
+
+| # | Disposition | Owner |
+|---|---|---|
+| 1 | **RESOLVED — ruled.** Repo-root `backend.hcl` with an absolute path from the Makefile; D-16's `../backend.hcl` wording is treated as clarified, not changed. | Plan 01-04 checkpoint |
+| 2 | **RESOLVED — ruled.** `noncurrent_days = 30` with `newer_noncurrent_versions = 10`. | Plan 01-04 checkpoint |
+| 3 | **RESOLVED — ruled.** Gitignored `.aws-account-id` pin file, written by the first successful bootstrap. Rejected `allowed_account_ids` because it would commit the account ID, which D-16/D-17 explicitly avoid. | Plan 01-03 / 01-04 |
+| 4 | **WITHDRAWN — premise is false.** See below. | — |
+| 5 | **RESOLVED — ruled.** Method 1 (`list-object-versions`, post-hoc, race-free) is the committed SC2 evidence artifact. | Plan 01-04 task 3 |
+| 6 | **RESOLVED — confirmed.** "Zero log groups in Phase 1" satisfies D-23; it establishes a convention with no Phase 1 instance (finding F-11). Carried as a documented convention plus a guard, not a resource task. | Plan 01-01 |
+
+> **⚠ Q4 below is WITHDRAWN.** Its premise — *"PROJECT.md still says 'S3 + DynamoDB state locking'"* —
+> was **not true** and was disproved by direct measurement during plan verification. `PROJECT.md`
+> already specifies native `use_lockfile` locking (line 21) and already records the DynamoDB
+> deprecation (line 136); there is no Out-of-Scope lock-table row. **No amendment task is required.**
+> See finding **F-09 (WITHDRAWN)** for the full correction and for the `S3 + DynamoDB` grep trap on
+> the unrelated VPC gateway-endpoints bullet. The text is retained below only because a plan task was
+> originally authored against it.
 
 1. **Where does `backend.hcl` live — repo root or `layers/`?** D-16 writes `-backend-config=../backend.hcl`, which implies `layers/backend.hcl`. This slice recommends the **repo root** with an absolute path from the Makefile, which contradicts the literal text of D-16. *Recommendation: adopt repo-root + absolute path, and have the planner note the D-16 wording as clarified rather than changed.* Needs a one-line ruling before the plan is written.
 
@@ -3887,7 +3919,21 @@ RESULT: DIRTY (exit 1) — report written to .teardown-report.json
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED — dispositions below)
+
+> **All Part C questions are dispositioned.** Q1 was the phase's one blocking question and is owned.
+
+| # | Disposition | Owner |
+|---|---|---|
+| 1 | **RESOLVED — owned (was BLOCKING).** `checkpoint:decision` running `gh api repos/OWNER/REPO --jq .created_at`, sequenced ahead of both IAM role tasks (finding F-01). | Plan 01-07 task 1 |
+| 2 | **RESOLVED — owned.** Fork PRs cannot obtain `id-token: write`. The AWS job is guarded on the head repo not being a fork, with a credential-free `fmt`/`validate` fallback job and a maintainer-push route; the guard is commented so it is not deleted as dead logic, and confirmed empirically on one fork PR. | Plan 01-10 task 1 |
+| 3 | **RESOLVED — loud by design.** If the tag layer returns `AccessDenied`, the sweep's exit-2 contract surfaces it as a script/credential error rather than a false "clean". An explicit `tag:GetResources` allow is added if the first run demands it. | Plans 01-05 / 01-07 |
+| 4 | **RESOLVED — ruled.** SSE-S3 (the AWS default since Jan 2023), so no `kms:*` grants are needed on the plan role. | Plan 01-04 |
+| 5 | **DEFERRED — recorded as `[UNVERIFIED]`.** Low impact: the blind-spot layer is authoritative by design. Consumed directly by plan 01-06, which asserts budgets and the anomaly monitor from `terraform state` rather than from the tagging API precisely because this coverage is unverified. | Plan 01-06 |
+| 6 | **RESOLVED — moot.** The manual `--pagination-token` loop given in Part C works regardless. | Plan 01-05 |
+| 7 | **RESOLVED — owned.** Route 53, ACM, and ECR omissions are recorded explicitly in `verify-teardown.sh`'s header comment rather than left implicit; revisited in Phase 3 (ECR) and Phase 11 (Route 53/CloudFront). | Plan 01-05 / 01-08 |
+| 8 | **RESOLVED — adopted.** `elb describe-load-balancers` added as a deliberate extension of D-07's list, closing a ~$16/mo Classic ELB blind spot. | Plan 01-08 |
+| 9 | **RESOLVED — moot at the pin.** `thumbprint_list` is omitted entirely at `= 6.66.0` (finding F-06); the exact version that made it optional matters only if the pin is lowered. | `VERSIONS.md`, plan 01-01 |
 
 1. **Was the GitHub repository created on or after 2026-07-15?** Determines whether `sub` uses the
    legacy or immutable format. **Blocking for the OIDC tasks.** Resolve with
