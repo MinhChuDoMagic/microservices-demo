@@ -135,14 +135,33 @@ the Budget and the anomaly monitor. The apply role would be unable to apply L0.
 actions (`aws-portal:ModifyPaymentMethods`, `aws-portal:ModifyBilling`,
 `account:CloseAccount`, `organizations:*`) and explicitly **exclude** `budgets:*` and `ce:*`.
 
-### F-09 — `PROJECT.md` still mandates DynamoDB state locking
+### F-09 — WITHDRAWN (stale): `PROJECT.md` already specifies S3 native locking
 
-`PROJECT.md` records a requirement for "S3 + DynamoDB state locking". Success criterion 2
-requires **no DynamoDB table anywhere**. Without an explicit amendment task, the phase ships
-in documented violation of its own project constraints.
+> **Corrected 2026-09-24 after live measurement during plan verification.** This finding as
+> originally written was **wrong** and has been withdrawn. It is kept here rather than deleted
+> because a downstream plan task was authored against its false premise.
 
-**Required planning response:** a task that amends the `PROJECT.md` constraint to S3 native
-locking, referencing the `use_lockfile` verification in Part B.
+The original claim was that `PROJECT.md` still mandates "S3 + DynamoDB state locking" and
+needed an amendment task. Direct measurement shows the opposite:
+
+- `PROJECT.md` line 21 already reads *"remote state in S3 using native `use_lockfile` locking
+  plus bucket versioning"*.
+- `PROJECT.md` line 136 already records *"DynamoDB state locking is deprecated in favour of S3
+  native locking"* among the absorbed research corrections.
+- There is **no** Out-of-Scope row excluding a DynamoDB lock table; the Out of Scope section
+  contains no state-locking entry at all.
+
+**No amendment task is required.** `PROJECT.md` and success criterion 2 already agree.
+
+**Trap to avoid — this is the part that still matters.** `PROJECT.md` line 28 contains the
+string `S3 + DynamoDB` in a completely unrelated context: *"**gateway endpoints only** (S3 +
+DynamoDB, free)"*, describing free VPC **gateway endpoints**. Any verification that greps for
+`S3 \+ DynamoDB` to prove DynamoDB locking is absent **will match that line and fail**, and an
+executor driven to make it pass would mutate a correct VPC requirement. Any check in this area
+must anchor its pattern on state-locking context, never on the bare product-name pair.
+
+**Required planning response:** assert that the native-locking constraint is *present*, rather
+than replacing text that does not exist.
 
 ### F-10 — `prevent_destroy` cannot be variable-driven, so `make nuke-bootstrap` is three problems
 
