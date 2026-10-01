@@ -5,16 +5,15 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-10-01T07:45:30.764Z"
-last_activity: 2026-10-01
-last_activity_desc: Phase 01 execution started
-state_head: 01823fbcd56dca308b6a24ea65cb325ec0e7746b
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-10-01T08:22:42.621Z"
+last_activity: Completed 01-02-PLAN.md
+state_head: 3edc162638186ba2f8432d20397529163214caa8
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 10
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -29,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-09-24)
 ## Current Position
 
 Phase: 01 (Account, L0 Bootstrap & Teardown Harness) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
-Last activity: 2026-10-01 — Phase 01 execution started
+Last activity: Completed 01-02-PLAN.md
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -60,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 20 min | 3 tasks | 24 files |
+| Phase 01 P02 | 29 min | 3 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -76,6 +76,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Exact Terraform and AWS provider pins with committed checksums — Keep every layer reproducible across machines.
 - [Phase 01]: Literal per-layer Layer tags with four shared default tags — The teardown sweep uses Layer to separate immortal bootstrap resources from ephemeral resources.
 - [Phase 01]: Generated root backend config with per-layer state keys — Keep account-specific bucket data and local state out of Git.
+- [Phase 01]: Preserve CloudFront empty-account fixture without DistributionList.Items — The required raw empty response contains no distribution entry, so the fixture README records this as the one-sided empty-shape exception.
 
 ### Pending Todos
 
@@ -97,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-01T07:45:30.738Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-10-01T08:21:39.570Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None

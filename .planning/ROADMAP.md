@@ -64,12 +64,12 @@ order). Two deviations are documented in "Deviations from Research" below.
   4. Operator can attribute every bootstrap resource's spend by layer in Cost Explorer via `default_tags`, and confirm idle cost sits at or below $5/month against a real billing period
   5. GitHub Actions can assume an AWS role via OIDC with a trust policy scoped to this repository and branch, and no long-lived access key exists anywhere in the account or in GitHub secrets
 
-**Plans**: 1/10 plans executed
+**Plans**: 2/10 plans executed
 
 Plans:
 
 - [x] 01-01-PLAN.md — Repo skeleton, exact version pinning, four-layer Terraform contract, Makefile entry point and `make doctor`
-- [ ] 01-02-PLAN.md — Wave-0 validation harness: bats, a stubbed `aws` replaying per-class fixtures, and the four assertion suites
+- [x] 01-02-PLAN.md — Wave-0 validation harness: bats, a stubbed `aws` replaying per-class fixtures, and the four assertion suites
 - [ ] 01-03-PLAN.md — Account prerequisites runbook, verified us-east-1 pricing in `COSTS.md`, and the console-only setup steps
 - [ ] 01-04-PLAN.md — **Tracer**: bootstrap state bucket, S3-native locking, baseline inventory and the teardown sweep spine end-to-end
 - [ ] 01-05-PLAN.md — Sweep expansion A: instance, snapshot, address and network-interface classes with fixture-proven exclusions
@@ -426,7 +426,7 @@ Three smaller placement judgements worth naming:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Account, L0 Bootstrap & Teardown Harness | 1/10 | In Progress|  |
+| 1. Account, L0 Bootstrap & Teardown Harness | 2/10 | In Progress|  |
 | 2. Ephemeral Infrastructure & Drain Scripts | 0/TBD | Not started | - |
 | 3. Service Scaffolding & CI Pipeline | 0/TBD | Not started | - |
 | 4. GitOps Seam & Walking Skeleton | 0/TBD | Not started | - |
