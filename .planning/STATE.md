@@ -1,12 +1,20 @@
 ---
-gsd_state_version: '1.0'
-status: planning
+gsd_state_version: "1.0"
+milestone: v1.0
+milestone_name: Practice Platform
+current_phase: 01
+current_phase_name: Account, L0 Bootstrap & Teardown Harness
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-10-01T07:45:30.764Z"
+last_activity: 2026-10-01
+last_activity_desc: Phase 01 execution started
+state_head: 01823fbcd56dca308b6a24ea65cb325ec0e7746b
 progress:
   total_phases: 14
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 10
+  completed_plans: 1
 ---
 
 # Project State
@@ -16,20 +24,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-24)
 
 **Core value:** Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-to-end in a system that can be stood up and completely destroyed on the same day for a few dollars — if teardown or rebuild breaks, the entire practice loop dies with it.
-**Current focus:** Phase 1 — Account, L0 Bootstrap & Teardown Harness
+**Current focus:** Phase 01 — Account, L0 Bootstrap & Teardown Harness
 
 ## Current Position
 
-Phase: 1 of 14 (Account, L0 Bootstrap & Teardown Harness)
-Plan: 0 of 10 in current phase
+Phase: 01 (Account, L0 Bootstrap & Teardown Harness) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
-Last activity: 2026-09-24 — Phase 1 planned: 10 plans across 7 waves, verified (0 blockers, 0 warnings)
+Last activity: 2026-10-01 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: —
 - Total execution time: 0 hours
@@ -41,10 +50,16 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: —
 - Trend: —
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 20 min | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -58,6 +73,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Minimal Prometheus + Tempo land in Phase 5, before the second service — a distributed saga cannot be debugged without traces
 - [Roadmap]: Security and policy deliberately late (Phase 10) — added early, every bug looks like a policy bug
 - [Roadmap]: `catalog` and `cart` placed in Phase 11, closing a coverage gap in the research build order (they were never explicitly placed, yet Phase 12's canary presupposes `catalog`)
+- [Phase 01]: Exact Terraform and AWS provider pins with committed checksums — Keep every layer reproducible across machines.
+- [Phase 01]: Literal per-layer Layer tags with four shared default tags — The teardown sweep uses Layer to separate immortal bootstrap resources from ephemeral resources.
+- [Phase 01]: Generated root backend config with per-layer state keys — Keep account-specific bucket data and local state out of Git.
 
 ### Pending Todos
 
@@ -79,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-24
-Stopped at: ROADMAP.md and STATE.md created; REQUIREMENTS.md traceability populated
+Last session: 2026-10-01T07:45:30.738Z
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None
