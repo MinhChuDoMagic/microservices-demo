@@ -13,6 +13,13 @@ Last verified against upstream registries: **2026-09-25**
 | `terraform-aws-modules/eks` | 21.26.0 | `version = "21.26.0"` | `layers/10-infra/eks.tf` (Phase 2) | [Terraform Registry](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/21.26.0) |
 | `RaJiska/fck-nat` | 1.6.1 | `version = "1.6.1"` | `layers/10-infra/nat.tf` (Phase 2) | [Terraform Registry](https://registry.terraform.io/modules/RaJiska/fck-nat/aws/1.6.1) |
 
+## Local tooling (not pinned in code)
+
+| Tool | Installed version | Purpose |
+|---|---|---|
+| `bats-core` | 1.14.0 | Shell test suite |
+| `shellcheck` | 0.11.0 | Shell script linting |
+
 ## Constraint floors
 
 These are informational; do not relax the exact pins above.
