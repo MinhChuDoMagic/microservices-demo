@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-10-01T08:24:22.701Z",
+  "phase": "01",
+  "phase_name": "Account, L0 Bootstrap & Teardown Harness",
+  "phase_dir": "01-account-l0-bootstrap-teardown-harness",
+  "plan": 3,
+  "task": 1,
+  "total_tasks": 4,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Plan 01-01: Repository guardrails and Terraform layer skeleton", "status": "done", "commit": "d5707cf"},
+    {"id": 2, "name": "Plan 01-02 task 1: AWS stub harness self-tests", "status": "done", "commit": "ca1815a"},
+    {"id": 3, "name": "Plan 01-02 task 2: Per-class AWS response fixtures", "status": "done", "commit": "a0b380b"},
+    {"id": 4, "name": "Plan 01-02 task 3: Teardown, OIDC, and static assertion suites", "status": "done", "commit": "8ff44cb"}
+  ],
+  "remaining_tasks": [
+    {"id": 1, "name": "Plan 01-03 task 1: Confirm the permanent AWS account trust anchor", "status": "not_started"},
+    {"id": 2, "name": "Plan 01-03 task 2: Author account setup runbook", "status": "not_started"},
+    {"id": 3, "name": "Plan 01-03 task 3: Verify us-east-1 pricing and idle cost model", "status": "not_started"},
+    {"id": 4, "name": "Plan 01-03 task 4: Complete manual account prerequisites and validation", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Plan 01-03 task 1 requires option A/B, the 12-digit account ID, and confirmation of any resources that must survive teardown.", "type": "human_action", "workaround": "None; this is a blocking decision checkpoint."},
+    {"description": "AWS unit pricing remains unverified; plan 01-03 owns the research and pricing artifact.", "type": "external", "workaround": "Use authoritative sources and record provenance for every price."}
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "Choose the existing standalone account (A) or a fresh account (B), provide the 12-digit AWS account ID, and confirm the account is effectively empty or enumerate required survivors.", "context": "Blocking plan 01-03 task 1 decision checkpoint; the account ID anchors state bucket names, role ARNs, and budget scope.", "blocking": true}
+  ],
+  "decisions": [
+    {"decision": "Exact Terraform and AWS provider pins with committed checksums", "rationale": "Keep every layer reproducible across machines.", "phase": "01"},
+    {"decision": "Literal per-layer Layer tags with four shared default tags", "rationale": "The teardown sweep separates immortal bootstrap resources from ephemeral resources.", "phase": "01"},
+    {"decision": "Generated root backend config with per-layer state keys", "rationale": "Keep account-specific bucket data and local state out of Git.", "phase": "01"},
+    {"decision": "Preserve CloudFront empty-account fixture without DistributionList.Items", "rationale": "The required raw response contains no distribution entry, so the README documents the one-sided empty-shape exception.", "phase": "01"}
+  ],
+  "uncommitted_files": [
+    " M .planning/config.json",
+    "?? .planning/milestone.lock",
+    "?? .planning/state.json"
+  ],
+  "next_action": "Resume plan 01-03 task 1 and collect the account option, 12-digit ID, and survivor confirmation before proceeding.",
+  "context_notes": "Plan 01-02 is complete. Task commits: ca1815a, a0b380b, 8ff44cb. Summary: 3edc162. GSD metadata: f79572f. Structured handoff consumption: 39c7763. Roadmap and STATE.md show 2/10 summaries and plan 3 ready. Plan 01-02 gates passed: Bats 32 cases (12 pass, 20 expected skips), ShellCheck, JSON, skip-reason, and case-count checks. Requirements LIFE-05, LIFE-10, and CD-05 remain shared and blocked. The user-authorized git.allow_default_branch_commits=true override remains enabled for this execution run; do not reset until phase work is complete. Preserve the three measured uncommitted files. No AWS resources were created and no background jobs remain."
+}
