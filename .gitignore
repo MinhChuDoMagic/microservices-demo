@@ -1,0 +1,16 @@
+# Generated backend config contains the AWS account ID.
+backend.hcl
+.aws-account-id
+
+# Terraform working dirs and local state.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Variables carrying alert email and other operator-specific values.
+*.tfvars
+!*.tfvars.example
+
+# Teardown report.
+.teardown-report.json
