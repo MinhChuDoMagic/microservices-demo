@@ -1,0 +1,19 @@
+{
+  "Addresses": [
+    {
+      "AllocationId": "eipalloc-00000000000000001",
+      "PublicIp": "198.51.100.10",
+      "Domain": "vpc",
+      "AssociationId": "eipassoc-00000000000000001",
+      "InstanceId": "i-00000000000000005",
+      "NetworkInterfaceId": "eni-00000000000000005",
+      "Tags": []
+    },
+    {
+      "AllocationId": "eipalloc-00000000000000002",
+      "PublicIp": "198.51.100.11",
+      "Domain": "vpc",
+      "Tags": []
+    }
+  ]
+}

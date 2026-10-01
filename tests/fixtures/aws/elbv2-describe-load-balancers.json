@@ -1,0 +1,20 @@
+{
+  "LoadBalancers": [
+    {
+      "LoadBalancerName": "k8s-demo-ingress-1a2b3c4d",
+      "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/k8s-demo-ingress-1a2b3c4d/1234567890abcdef",
+      "State": {"Code": "active"},
+      "Type": "application",
+      "VpcId": "vpc-00000000000000004",
+      "CreatedTime": "2026-10-01T06:00:00Z"
+    },
+    {
+      "LoadBalancerName": "baseline-allowed-alb",
+      "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/baseline-allowed-alb/abcdef0123456789",
+      "State": {"Code": "active"},
+      "Type": "application",
+      "VpcId": "vpc-00000000000000005",
+      "CreatedTime": "2026-09-01T06:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "Reservations": [
+    {
+      "Instances": [
+        {
+          "InstanceId": "i-00000000000000001",
+          "InstanceType": "t4g.nano",
+          "State": {"Code": 48, "Name": "terminated"},
+          "Placement": {"AvailabilityZone": "us-east-1a"},
+          "LaunchTime": "2026-09-30T10:00:00Z",
+          "Tags": []
+        },
+        {
+          "InstanceId": "i-00000000000000002",
+          "InstanceType": "t4g.nano",
+          "State": {"Code": 32, "Name": "shutting-down"},
+          "Placement": {"AvailabilityZone": "us-east-1a"},
+          "LaunchTime": "2026-09-30T11:00:00Z",
+          "Tags": []
+        },
+        {
+          "InstanceId": "i-00000000000000003",
+          "InstanceType": "t4g.nano",
+          "State": {"Code": 80, "Name": "stopped"},
+          "Placement": {"AvailabilityZone": "us-east-1a"},
+          "LaunchTime": "2026-09-30T12:00:00Z",
+          "Tags": []
+        },
+        {
+          "InstanceId": "i-00000000000000004",
+          "InstanceType": "t4g.nano",
+          "State": {"Code": 16, "Name": "running"},
+          "Placement": {"AvailabilityZone": "us-east-1b"},
+          "LaunchTime": "2026-10-01T06:00:00Z",
+          "Tags": []
+        }
+      ]
+    }
+  ]
+}

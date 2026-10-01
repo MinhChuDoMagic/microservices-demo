@@ -1,0 +1,24 @@
+{
+  "logGroups": [
+    {
+      "logGroupName": "/practice/baseline-allowed",
+      "arn": "arn:aws:logs:us-east-1:123456789012:log-group:/practice/baseline-allowed:*",
+      "retentionInDays": 1,
+      "storedBytes": 0,
+      "creationTime": 1780000000000
+    },
+    {
+      "logGroupName": "/aws/eks/demo/unexpected",
+      "arn": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/eks/demo/unexpected:*",
+      "storedBytes": 4096,
+      "creationTime": 1780000001000
+    },
+    {
+      "logGroupName": "/practice/new-short-retention",
+      "arn": "arn:aws:logs:us-east-1:123456789012:log-group:/practice/new-short-retention:*",
+      "retentionInDays": 1,
+      "storedBytes": 0,
+      "creationTime": 1780000002000
+    }
+  ]
+}

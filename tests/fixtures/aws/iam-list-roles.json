@@ -1,0 +1,18 @@
+{
+  "Roles": [
+    {
+      "Path": "/aws-service-role/eks.amazonaws.com/",
+      "RoleName": "AWSServiceRoleForAmazonEKS",
+      "RoleId": "AROA00000000000000001",
+      "Arn": "arn:aws:iam::123456789012:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+      "CreateDate": "2026-09-01T00:00:00Z"
+    },
+    {
+      "Path": "/practice/",
+      "RoleName": "UnexpectedRole",
+      "RoleId": "AROA00000000000000002",
+      "Arn": "arn:aws:iam::123456789012:role/practice/UnexpectedRole",
+      "CreateDate": "2026-10-01T00:00:00Z"
+    }
+  ]
+}

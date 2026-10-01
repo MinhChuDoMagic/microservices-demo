@@ -1,0 +1,52 @@
+{
+  "NetworkInterfaces": [
+    {
+      "NetworkInterfaceId": "eni-00000000000000001",
+      "Status": "available",
+      "InterfaceType": "interface",
+      "RequesterManaged": true,
+      "RequesterId": "amazon-elb",
+      "Description": "AWS managed interface",
+      "VpcId": "vpc-00000000000000003",
+      "SubnetId": "subnet-00000000000000003",
+      "PrivateIpAddress": "10.0.0.10",
+      "TagSet": []
+    },
+    {
+      "NetworkInterfaceId": "eni-00000000000000002",
+      "Status": "available",
+      "InterfaceType": "vpc_endpoint",
+      "RequesterManaged": false,
+      "RequesterId": "123456789012",
+      "Description": "VPC endpoint interface",
+      "VpcId": "vpc-00000000000000003",
+      "SubnetId": "subnet-00000000000000003",
+      "PrivateIpAddress": "10.0.0.11",
+      "TagSet": []
+    },
+    {
+      "NetworkInterfaceId": "eni-00000000000000003",
+      "Status": "available",
+      "InterfaceType": "nat_gateway",
+      "RequesterManaged": false,
+      "RequesterId": "123456789012",
+      "Description": "NAT gateway interface",
+      "VpcId": "vpc-00000000000000003",
+      "SubnetId": "subnet-00000000000000003",
+      "PrivateIpAddress": "10.0.0.12",
+      "TagSet": []
+    },
+    {
+      "NetworkInterfaceId": "eni-00000000000000004",
+      "Status": "available",
+      "InterfaceType": "interface",
+      "RequesterManaged": false,
+      "RequesterId": "123456789012",
+      "Description": "manual untagged interface",
+      "VpcId": "vpc-00000000000000003",
+      "SubnetId": "subnet-00000000000000003",
+      "PrivateIpAddress": "10.0.0.13",
+      "TagSet": []
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "SecurityGroups": [
+    {
+      "GroupId": "sg-00000000000000001",
+      "GroupName": "default",
+      "Description": "default VPC security group",
+      "VpcId": "vpc-00000000000000001",
+      "OwnerId": "123456789012",
+      "Tags": []
+    },
+    {
+      "GroupId": "sg-00000000000000002",
+      "GroupName": "k8s-default-demo-1a2b3c4d",
+      "Description": "managed by the Kubernetes load balancer controller",
+      "VpcId": "vpc-00000000000000002",
+      "OwnerId": "123456789012",
+      "Tags": [
+        {"Key": "elbv2.k8s.aws/cluster", "Value": "demo"}
+      ]
+    }
+  ]
+}

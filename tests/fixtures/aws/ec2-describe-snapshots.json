@@ -1,0 +1,26 @@
+{
+  "Snapshots": [
+    {
+      "SnapshotId": "snap-00000000000000001",
+      "VolumeId": "vol-00000000000000011",
+      "State": "completed",
+      "StartTime": "2026-09-30T12:00:00Z",
+      "OwnerId": "123456789012",
+      "Description": "Created by CreateImage(i-00000000000000001) for ami-00000000000000001",
+      "VolumeSize": 8,
+      "Encrypted": true,
+      "Tags": []
+    },
+    {
+      "SnapshotId": "snap-00000000000000002",
+      "VolumeId": "vol-00000000000000012",
+      "State": "completed",
+      "StartTime": "2026-10-01T06:00:00Z",
+      "OwnerId": "123456789012",
+      "Description": "manual test snapshot",
+      "VolumeSize": 1,
+      "Encrypted": true,
+      "Tags": []
+    }
+  ]
+}

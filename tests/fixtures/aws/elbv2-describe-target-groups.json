@@ -1,0 +1,20 @@
+{
+  "TargetGroups": [
+    {
+      "TargetGroupName": "orphan-manual-target",
+      "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/orphan-manual-target/0123456789abcdef",
+      "Protocol": "HTTP",
+      "VpcId": "vpc-00000000000000004",
+      "LoadBalancerArns": []
+    },
+    {
+      "TargetGroupName": "baseline-allowed-target",
+      "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/baseline-allowed-target/abcdef0123456789",
+      "Protocol": "HTTP",
+      "VpcId": "vpc-00000000000000005",
+      "LoadBalancerArns": [
+        "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/baseline-allowed-alb/abcdef0123456789"
+      ]
+    }
+  ]
+}
