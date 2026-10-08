@@ -58,7 +58,9 @@ Phase 2 provisions anything.
   — **Amendment:** the user explicitly replaced the prior standalone-account decision with the
   dedicated member account. Before account-dependent operations, the runbook must verify that the
   management account has enabled Cost Explorer and permits linked-account access, and that the
-  member's IAM billing access is enabled. No account ID is committed.
+  member's IAM billing access is enabled. AWS Organizations-created member accounts have no root
+  credentials by default; centrally managed credential-less members are not required to report
+  `AccountMFAEnabled=1`. If root credentials exist, MFA is required. No account ID is committed.
 - **D-04:** The newly created member account is **confirmed effectively empty** — nothing running,
   no resources that must survive the sweep, and near-zero project-account spend. The blunt,
   account-wide sweep in D-07/D-08 remains safe, and the Budget is measured against this member

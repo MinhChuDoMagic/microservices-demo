@@ -23,25 +23,30 @@ git check-ignore -q .aws-account-id
 If the IDs differ, stop without writing the pin. `make doctor` compares this pin with the active
 caller identity before any AWS-touching Make target.
 
-## 2. Confirm root MFA and non-root administration
+## 2. Confirm centralized member-root security and non-root administration
 
-In the member account, enable MFA for root and create/use a non-root administrator identity for
-day-to-day work. Do not create access keys for root or commit long-lived credentials.
-
-Console: member account menu -> **Security credentials** for root MFA; IAM Identity Center or IAM
-for the non-root administrator, according to the account's existing access setup.
+Use IAM Identity Center for day-to-day access. AWS recommends centrally removing root credentials
+from Organizations member accounts; newly created organization accounts have no root credentials by
+default. Confirm in the management account's IAM **Root access management** view that this member's
+root credentials are centrally managed/removed. Do not create a member root password or enable root
+MFA merely to make `AccountMFAEnabled` equal `1`; in a credential-less member account that flag is
+expected to be `0`. If root credentials are present instead, enable MFA before continuing. See
+[AWS root user best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/root-user-best-practices.html)
+and [Centrally manage root access for member accounts](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#id_root-user-access-management).
 
 ```bash
-test "$(aws iam get-account-summary --query 'SummaryMap.AccountMFAEnabled' --output text)" = 1
-CALLER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
-case "$CALLER_ARN" in *:root) printf '%s\n' 'Use a non-root administrator' >&2; exit 1 ;; esac
-printf '%s\n' "$CALLER_ARN"
+aws iam get-credential-report --profile microservices-demo --query Content --output text |
+python3 -c 'import base64,csv,io,sys; rows=csv.DictReader(io.StringIO(base64.b64decode(sys.stdin.read()).decode())); root=next(row for row in rows if row["user"] == "<root_account>"); fields=("password_enabled", "access_key_1_active", "access_key_2_active", "cert_1_active", "cert_2_active"); present=any(root[key] == "true" for key in fields); assert not present or root["mfa_active"] == "true", "root credentials exist without MFA"; print({"root_credentials_present": present, "mfa_active": root["mfa_active"]})'
+CALLER_ARN="$(aws sts get-caller-identity --profile microservices-demo --query Arn --output text)"
+case "$CALLER_ARN" in *:root) printf '%s\n' 'Use the non-root IAM Identity Center administrator' >&2; exit 1 ;; esac
 ```
 
 ## 3. Activate member-account IAM access to billing pages
 
-In the **member account**, sign in as root and open Account settings -> **IAM user and role access to
-Billing information** -> **Activate IAM Access**. This is separate from IAM policy permissions:
+In the **member account**, use the management account's authorized centralized root task or the
+member's supported account-recovery process to open Account settings -> **IAM user and role access
+to Billing information** -> **Activate IAM Access**. Do not create persistent member root
+credentials if centralized root access management is in use. This is separate from IAM policy permissions:
 the administrator role must also have the required Cost Management and Billing actions. This toggle
 applies to the member account's console pages; it does not grant access to other organization
 accounts or override management-account Cost Explorer restrictions.
