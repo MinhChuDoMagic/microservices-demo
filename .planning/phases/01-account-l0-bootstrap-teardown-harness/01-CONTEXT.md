@@ -46,14 +46,23 @@ Phase 2 provisions anything.
   Latency was the cost accepted.
   — **Reversibility:** costly — the state bucket name embeds the region and `COSTS.md` is
   region-specific; changing it means a cross-region state migration and a full pricing re-verification.
-- **D-03:** The account is an **existing standalone personal AWS account** — its own payment method,
-  **not** a member of an AWS Organization, no payer above it. Planning consequences: the Cost
-  Anomaly Detection monitor is a simple account monitor, **not** `LINKED_ACCOUNT`-dimensional;
-  billing data is visible directly; no `aws_organizations_*` data sources or resources anywhere.
-- **D-04:** The account is **confirmed effectively empty** — nothing running, near-zero bill. This
-  is what keeps COST-08's *intent* satisfied despite the account not being newly created: the blunt,
-  account-wide sweep in D-07/D-08 remains safe, and the Budget is genuinely zero-spend rather than
-  "baseline plus five dollars".
+- **D-03 (amended 2026-10-08):** The practice account is a **newly created, dedicated member
+  account in the operator's existing AWS Organization**. Its account ID is the trust anchor for
+  this project; the Organization management account and payer remain outside this repository and
+  Terraform never creates or manages Organization resources. The management account controls
+  organization-level Cost Explorer enablement and may restrict member access; the member account
+  can view only its own cost and usage data. Consolidated payment and organization discounts may
+  affect the net bill, so `COSTS.md` models published list prices and does not claim to reconcile
+  the payer's final invoice. Cost Anomaly Detection uses a `DIMENSIONAL` `SERVICE` monitor in the
+  member account; `LINKED_ACCOUNT` monitors remain management-account-only.
+  — **Amendment:** the user explicitly replaced the prior standalone-account decision with the
+  dedicated member account. Before account-dependent operations, the runbook must verify that the
+  management account has enabled Cost Explorer and permits linked-account access, and that the
+  member's IAM billing access is enabled. No account ID is committed.
+- **D-04:** The newly created member account is **confirmed effectively empty** — nothing running,
+  no resources that must survive the sweep, and near-zero project-account spend. The blunt,
+  account-wide sweep in D-07/D-08 remains safe, and the Budget is measured against this member
+  account's spend rather than unrelated organization accounts.
   **Planning must include a pre-flight baseline inventory** as the first task — run the sweep
   against the account *before* anything is provisioned, and put anything pre-existing that must
   survive onto the D-09 allowlist. If that inventory turns up more than expected, escalate rather
@@ -179,9 +188,12 @@ Phase 2 provisions anything.
   without touching the budget resources.
 - **D-25:** **Two budgets, not one:** a monthly `COST` budget at the $5 idle ceiling with
   notifications at 50/80/100% of *forecasted* spend plus 100% of *actual*; and a Cost Anomaly
-  Detection monitor with an `ABSOLUTE_VALUE` threshold of **$1** at `DAILY` frequency. Per D-03 this
-  is a plain account monitor, not `LINKED_ACCOUNT`-dimensional. Rationale: COST-04 specifies both,
-  and default anomaly thresholds are tuned for enterprise spend and will never fire at this scale.
+  Detection monitor with an `ABSOLUTE_VALUE` threshold of **$1** at `DAILY` frequency. For the
+  dedicated member account, use a `DIMENSIONAL` `SERVICE` monitor; do not configure a
+  `LINKED_ACCOUNT` monitor, which is management-account-only. Cost Explorer enablement may
+  automatically create the AWS-managed service monitor, so implementation must inspect existing
+  monitors and import rather than collide. Rationale: COST-04 specifies both, and default anomaly
+  thresholds are tuned for enterprise spend and will never fire at this scale.
 - **D-26:** OIDC trust is scoped by **explicit `sub` claim values, never a wildcard**:
   `repo:<owner>/<repo>:ref:refs/heads/main` and `repo:<owner>/<repo>:pull_request`, with
   `aud = sts.amazonaws.com` asserted via `StringEquals`. Owner and repo come from variables.
