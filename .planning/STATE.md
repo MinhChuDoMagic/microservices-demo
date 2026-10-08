@@ -5,10 +5,10 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Session resumed; plan 01-03 account decision checkpoint pending
-last_updated: "2026-10-08T06:52:29.451Z"
+stopped_at: "Plan 01-03 task 3 blocked: local AWS CLI has no credentials"
+last_updated: "2026-10-08T07:41:57.560Z"
 last_activity: Completed 01-02-PLAN.md
-state_head: 377619474df43c12cc33c18240fb45ba9ddff41a
+state_head: 0d74d51975a47ef3d4ba4409b6288cdb95d34815
 progress:
   total_phases: 14
   completed_phases: 0
@@ -77,6 +77,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Literal per-layer Layer tags with four shared default tags — The teardown sweep uses Layer to separate immortal bootstrap resources from ephemeral resources.
 - [Phase 01]: Generated root backend config with per-layer state keys — Keep account-specific bucket data and local state out of Git.
 - [Phase 01]: Preserve CloudFront empty-account fixture without DistributionList.Items — The required raw empty response contains no distribution entry, so the fixture README records this as the one-sided empty-shape exception.
+- [Phase 01]: Use a dedicated Organizations member account as the project trust anchor — The user explicitly approved amending D-03; the management account remains outside Terraform, controls Cost Explorer access and pays the consolidated bill, and the project member account has no surviving resources.
 
 ### Pending Todos
 
@@ -98,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T06:52:29.420Z
-Stopped at: Session resumed; plan 01-03 account decision checkpoint pending
+Last session: 2026-10-08T07:41:57.535Z
+Stopped at: Plan 01-03 task 3 blocked: local AWS CLI has no credentials
 Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/.continue-here.md
