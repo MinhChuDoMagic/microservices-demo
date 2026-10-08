@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T08:05:20.602Z",
+  "timestamp": "2026-10-08T08:45:32.607Z",
   "phase": "01",
   "phase_name": "Account, L0 Bootstrap & Teardown Harness",
   "phase_dir": "01-account-l0-bootstrap-teardown-harness",
@@ -17,11 +17,11 @@
     {"id": 4, "name": "Plan 01-03 task 4: Author verified COSTS.md", "status": "not_started"}
   ],
   "blockers": [
-    {"description": "Root MFA is disabled and member IAM access to Billing console pages is not confirmed; both require member-account console actions.", "type": "human_action", "workaround": "User enables root MFA and activates member IAM access in Account settings, then verify with read-only checks."}
+    {"description": "Root MFA remains disabled in the selected member account (AccountMFAEnabled=0).", "type": "human_action", "workaround": "User enables MFA for the member account root user, then verify with the read-only IAM account-summary check."}
   ],
   "async_jobs": [],
   "human_actions_pending": [
-    {"action": "Enable root MFA in the member account and activate IAM user/role access to Billing Information; confirm the Cost Explorer page loads as the non-root administrator.", "context": "Plan 01-03 task 3. Root MFA API check returned 0; Activate IAM Access is a root-only console setting.", "blocking": true}
+    {"action": "Enable root MFA for the selected member account; the non-root administrator and AWS profile should remain unchanged.", "context": "Plan 01-03 task 3. Read-only IAM account summary returned AccountMFAEnabled=0. User reports member Billing IAM access is enabled, and member Cost Explorer reads succeed.", "blocking": true}
   ],
   "decisions": [
     {"decision": "Use a newly created, dedicated AWS Organizations member account as the project trust anchor", "rationale": "The user explicitly approved amending D-03; the management account/payer remains outside Terraform and the project.", "phase": "01"},
@@ -29,10 +29,11 @@
     {"decision": "Cost Explorer and cost-allocation tag management are controlled by the management account", "rationale": "Organization Cost Explorer is enabled by the management account; only management accounts can manage cost-allocation tags.", "phase": "01"}
   ],
   "uncommitted_files": [
+    " M .planning/STATE.md",
     " M .planning/config.json",
     "?? .planning/milestone.lock",
     "?? .planning/state.json"
   ],
-  "next_action": "Complete root MFA and member IAM access to Billing in the console; then verify root MFA and member console access before continuing plan 01-03 task 3.",
-  "context_notes": "Plan 01-03 task 1 selected the dedicated Organizations member account, no resources must survive, and user explicitly amended D-03. Task 2's account runbook/context changes are committed as 0d74d51; member-account checkpoint correction is committed as 643e01a. The microservices-demo AWS profile STS identity matches the checkpoint and the ignored .aws-account-id pin is written and verified. ce get-cost-and-usage succeeded with estimated $0 totals. iam get-account-summary reports root MFA disabled (0). ce list-cost-allocation-tags was denied because it is management-account-only; this is expected. No resources were created and no console settings were changed. Preserve the measured config, milestone.lock, and state.json artifacts."
+  "next_action": "Enable root MFA for the selected member account, then verify AccountMFAEnabled=1 before continuing plan 01-03 task 3.",
+  "context_notes": "Plan 01-03 task 1 selected the dedicated Organizations member account, no resources must survive, and user explicitly amended D-03. Task 2's account runbook/context changes are committed as 0d74d51; member-account checkpoint correction is committed as 643e01a. The microservices-demo AWS profile STS identity matches the checkpoint, the ignored .aws-account-id pin is written, and ce get-cost-and-usage succeeds with estimated $0 totals. The user reports member Billing IAM access is enabled; the console toggle has no API readback. iam get-account-summary reports root MFA disabled (0). ce list-cost-allocation-tags denial is expected because the API is management-account-only. No resources were created. Preserve the measured modified STATE/config and generated milestone.lock/state.json files."
 }
