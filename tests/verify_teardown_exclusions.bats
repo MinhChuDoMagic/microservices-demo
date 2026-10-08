@@ -102,21 +102,21 @@ assert_dirty_report() {
 }
 
 @test "reports unassociated addresses but excludes associated addresses" {
-  require_sweep_class check_elastic_ips
   run_sweep
   assert_dirty_report
   assert_report_has elastic_ips eipalloc-00000000000000002
   assert_report_lacks elastic_ips eipalloc-00000000000000001
+  jq -e '.orphans.elastic_ips[] | select(.id == "eipalloc-00000000000000002") | .reason | test("^public IPv4 address bills hourly whether attached or idle"; "i")' "$REPORT" >/dev/null
 }
 
 @test "reports a plain detached interface and excludes managed interfaces" {
-  require_sweep_class check_enis
   run_sweep
   assert_dirty_report
   assert_report_has enis eni-00000000000000004
   assert_report_lacks enis eni-00000000000000001
   assert_report_lacks enis eni-00000000000000002
   assert_report_lacks enis eni-00000000000000003
+  jq -e '.orphans.enis[] | select(.id == "eni-00000000000000004") | .reason | contains("manual untagged interface")' "$REPORT" >/dev/null
   grep -Fq -- 'Name=status,Values=available' "$STUB_AWS_CALL_LOG"
 }
 
