@@ -49,3 +49,10 @@ load 'helpers/load'
     [ -z "$matches" ]
   done
 }
+
+@test "PROJECT.md requires native S3 locking and has no active lock-table state requirement" {
+  project_file="$BATS_TEST_DIRNAME/../.planning/PROJECT.md"
+  grep -Fq 'remote state in S3 using native `use_lockfile` locking plus bucket versioning' "$project_file"
+  matches="$(grep -niE '(state|terraform|remote.state|backend)[^.]{0,60}lock table|lock table[^.]{0,60}(state|terraform|backend)' "$project_file" | grep -vi 'deprecated' || true)"
+  [ -z "$matches" ]
+}
