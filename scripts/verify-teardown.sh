@@ -324,6 +324,82 @@ check_snapshots() {
     record snapshots "$region" "$id" "$arn" "$reason" "$tags" blind-spot
   done < <(jq -c '(if type == "array" then .[] else .Snapshots[]? end)' <<< "$response")
 }
+check_elastic_ips() {
+  local region="$1"
+  local scope_prefix="${2:-}"
+  local response
+  local address
+  local id
+  local public_ip
+  local raw_tags
+  local tags
+  local arn
+  local reason
+
+  if ! response="$(aws_json "${scope_prefix}elastic_ips:$region" ec2 describe-addresses \
+    --region "$region" --output json \
+    --query 'Addresses[].{id:AllocationId,ip:PublicIp,assoc:AssociationId,instance:InstanceId,eni:NetworkInterfaceId,tags:Tags}')"; then
+    HARD_ERROR=1
+    return 1
+  fi
+
+  while IFS= read -r address; do
+    [[ -n "$address" ]] || continue
+    id="$(jq -r '.id // .AllocationId // empty' <<< "$address")"
+    public_ip="$(jq -r '.ip // .PublicIp // empty' <<< "$address")"
+    raw_tags="$(jq -c '.tags // .Tags // []' <<< "$address")"
+    arn="arn:aws:ec2:${region}:${ACCOUNT_ID}:elastic-ip/${id}"
+    if is_immortal "$id" "$arn" "$raw_tags"; then
+      continue
+    fi
+    tags="$(jq -c 'reduce (. // [])[] as $tag ({}; .[$tag.Key]=$tag.Value)' <<< "$raw_tags")"
+    reason="public IPv4 address bills hourly whether attached or idle; unassociated Elastic IP (${public_ip})"
+    record elastic_ips "$region" "$id" "$arn" "$reason" "$tags" blind-spot
+  done < <(jq -c '(if type == "array" then .[] else .Addresses[]? end) | select((.assoc // .AssociationId // null) == null)' <<< "$response")
+}
+
+check_enis() {
+  local region="$1"
+  local scope_prefix="${2:-}"
+  local response
+  local interface
+  local id
+  local interface_type
+  local requester_managed
+  local description
+  local raw_tags
+  local tags
+  local arn
+  local reason
+
+  if ! response="$(aws_json "${scope_prefix}enis:$region" ec2 describe-network-interfaces \
+    --region "$region" --filters 'Name=status,Values=available' \
+    --query 'NetworkInterfaces[].{id:NetworkInterfaceId,type:InterfaceType,managed:RequesterManaged,requester:RequesterId,desc:Description,tags:TagSet}' \
+    --output json)"; then
+    HARD_ERROR=1
+    return 1
+  fi
+
+  while IFS= read -r interface; do
+    [[ -n "$interface" ]] || continue
+    id="$(jq -r '.id // .NetworkInterfaceId // empty' <<< "$interface")"
+    interface_type="$(jq -r '.type // .InterfaceType // "unknown"' <<< "$interface")"
+    requester_managed="$(jq -r '(.managed // .RequesterManaged // false) == true' <<< "$interface")"
+    description="$(jq -r '.desc // .Description // "no description"' <<< "$interface")"
+    raw_tags="$(jq -c '.tags // .TagSet // []' <<< "$interface")"
+    arn="arn:aws:ec2:${region}:${ACCOUNT_ID}:network-interface/${id}"
+    if is_immortal "$id" "$arn" "$raw_tags"; then
+      continue
+    fi
+    # Detached service-managed interfaces must be removed with their parent, not directly.
+    if [[ "$requester_managed" == "true" || "$interface_type" != "interface" ]]; then
+      continue
+    fi
+    tags="$(jq -c 'reduce (. // [])[] as $tag ({}; .[$tag.Key]=$tag.Value)' <<< "$raw_tags")"
+    reason="detached ENI (${description})"
+    record enis "$region" "$id" "$arn" "$reason" "$tags" blind-spot
+  done < <(jq -c '(if type == "array" then .[] else .NetworkInterfaces[]? end)' <<< "$response")
+}
 write_report() {
   local exit_code="$1"
   local verdict
@@ -422,6 +498,12 @@ main() {
     HARD_ERROR=1
   fi
   if ! check_snapshots "$HOME_REGION"; then
+    HARD_ERROR=1
+  fi
+  if ! check_elastic_ips "$HOME_REGION"; then
+    HARD_ERROR=1
+  fi
+  if ! check_enis "$HOME_REGION"; then
     HARD_ERROR=1
   fi
 
