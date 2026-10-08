@@ -21,7 +21,7 @@ Requirements for Milestone 1. Each maps to a roadmap phase.
 - [ ] **COST-06**: Karpenter `NodePool.spec.limits` caps total provisionable CPU and memory, so a runaway workload produces a bounded `NodePool limit exceeded` event rather than an unbounded bill
 - [ ] **COST-07**: An EC2 instance-type allowlist prevents a resource-request typo from summoning an oversized instance
 - [ ] **COST-08**: The project runs in a dedicated AWS account, isolating spend and making a blunt sweep script safe
-- [ ] **COST-09**: `COSTS.md` records measured `make up` and `make down` wall-clock times and real observed costs per session profile
+- [x] **COST-09**: `COSTS.md` records measured `make up` and `make down` wall-clock times and real observed costs per session profile
 
 ### Lifecycle
 
@@ -249,7 +249,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | COST-06 | Phase 8 | Pending |
 | COST-07 | Phase 8 | Pending |
 | COST-08 | Phase 1 | Pending |
-| COST-09 | Phase 1 | Pending |
+| COST-09 | Phase 1 | Complete |
 | LIFE-01 | Phase 2 | Pending |
 | LIFE-02 | Phase 2 | Pending |
 | LIFE-03 | Phase 2 | Pending |
@@ -353,6 +353,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CHAOS-07 | Phase 13 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 110 total
 - Mapped to phases: 110 ✅
 - Unmapped: 0
