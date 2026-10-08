@@ -16,7 +16,7 @@ stub_aws_start() {
 #!/usr/bin/env bash
 set -u
 
-printf '%q ' "$@" >> "$STUB_AWS_CALL_LOG"
+printf '%s ' "$@" >> "$STUB_AWS_CALL_LOG"
 printf '\n' >> "$STUB_AWS_CALL_LOG"
 
 service=""

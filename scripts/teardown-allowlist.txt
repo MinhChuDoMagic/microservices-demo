@@ -1,0 +1,4 @@
+# Baseline inventory confirmed the dedicated member account has no resources that must survive.
+# Strip comments and blank lines; entries match one exact identifier, ARN, or name.
+# Add only a reviewed pre-existing survivor or a genuinely immortal resource, with an inline reason.
+# Deliberate growth is the point of an allowlist; never use it as a blanket ignore.
