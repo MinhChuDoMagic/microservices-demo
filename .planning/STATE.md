@@ -5,15 +5,15 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-04-PLAN.md; user paused before 01-05
-last_updated: "2026-10-08T09:53:09.354Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-10-08T10:25:25.693Z"
 last_activity: 2026-10-08
-state_head: 0f92a1e1adf27f6a15a48461f267ef458bf68926
+state_head: d858938314be18ea2e9adf79d937fb72496faf36
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 10
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-24)
 ## Current Position
 
 Phase: 01 (Account, L0 Bootstrap & Teardown Harness) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 Status: Ready to execute
 Last activity: 2026-10-08
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 29 min | 3 tasks | 21 files |
 | Phase 01 P03 | 1h 14m | 4 tasks | 8 files |
 | Phase 01 P04 | 48 min | 3 tasks | 10 files |
+| Phase 01 P05 | 23 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Expire noncurrent state versions after 30 days while retaining the newest 10 — The checkpoint adopted option A and confirmed this bounded recovery window.
 - [Phase 01]: Force-copy only when remote state is absent — When bucket and state object exist, reconfigure; a fresh checkout must never overwrite good remote state with stale local state.
 - [Phase 01]: Keep the baseline teardown allowlist empty — The user confirmed the member account had no resources that must survive, and the pre-apply sweep found none.
+- [Phase 01]: Keep all report schema classes explicit — Later-plan classes retain zero-count slots through a deliberate placeholder; unknown schema keys fail closed.
+- [Phase 01]: Defensively filter raw EC2 instance fixtures — Keep the required server-side state filter and repeat it locally because fixture replay does not apply AWS CLI projections.
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T09:53:09.320Z
-Stopped at: Completed 01-04-PLAN.md; user paused before 01-05
-Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/.continue-here.md
+Last session: 2026-10-08T10:24:47.724Z
+Stopped at: Completed 01-05-PLAN.md
+Resume file: None

@@ -64,7 +64,7 @@ order). Two deviations are documented in "Deviations from Research" below.
   4. Operator can attribute every bootstrap resource's spend by layer in Cost Explorer via `default_tags`, and confirm idle cost sits at or below $5/month against a real billing period
   5. GitHub Actions can assume an AWS role via OIDC with a trust policy scoped to this repository and branch, and no long-lived access key exists anywhere in the account or in GitHub secrets
 
-**Plans**: 4/10 plans executed
+**Plans**: 5/10 plans executed
 
 Plans:
 
@@ -72,7 +72,7 @@ Plans:
 - [x] 01-02-PLAN.md — Wave-0 validation harness: bats, a stubbed `aws` replaying per-class fixtures, and the four assertion suites
 - [x] 01-03-PLAN.md — Account prerequisites runbook, verified us-east-1 pricing in `COSTS.md`, and the console-only setup steps
 - [x] 01-04-PLAN.md — **Tracer**: bootstrap state bucket, S3-native locking, baseline inventory and the teardown sweep spine end-to-end
-- [ ] 01-05-PLAN.md — Sweep expansion A: instance, snapshot, address and network-interface classes with fixture-proven exclusions
+- [x] 01-05-PLAN.md — Sweep expansion A: instance, snapshot, address and network-interface classes with fixture-proven exclusions
 - [ ] 01-06-PLAN.md — Cost guardrails: SNS topic and policy, monthly ceiling plus daily tripwire budgets, anomaly monitor, tag activation
 - [ ] 01-07-PLAN.md — GitHub OIDC provider and the two branch-scoped CI roles, gated on the repository's subject-claim format
 - [ ] 01-08-PLAN.md — Sweep expansion B: load balancer, target group, security group and log classes, tag layer, three region tiers
@@ -426,7 +426,7 @@ Three smaller placement judgements worth naming:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Account, L0 Bootstrap & Teardown Harness | 4/10 | In Progress|  |
+| 1. Account, L0 Bootstrap & Teardown Harness | 5/10 | In Progress|  |
 | 2. Ephemeral Infrastructure & Drain Scripts | 0/TBD | Not started | - |
 | 3. Service Scaffolding & CI Pipeline | 0/TBD | Not started | - |
 | 4. GitOps Seam & Walking Skeleton | 0/TBD | Not started | - |
