@@ -1,39 +1,42 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T08:45:32.607Z",
+  "timestamp": "2026-10-08T09:53:15.748Z",
   "phase": "01",
   "phase_name": "Account, L0 Bootstrap & Teardown Harness",
   "phase_dir": "01-account-l0-bootstrap-teardown-harness",
-  "plan": 3,
-  "task": 3,
-  "total_tasks": 4,
+  "plan": 5,
+  "task": 1,
+  "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Plan 01-03 task 1: Account trust-anchor decision", "status": "done"},
-    {"id": 2, "name": "Plan 01-03 task 2: Account setup runbook and D-03 amendment", "status": "done", "commit": "0d74d51"}
+    {"id": 1, "name": "Plan 01-01: Repository guardrails and Terraform layer skeleton", "status": "done", "commit": "d5707cf"},
+    {"id": 2, "name": "Plan 01-02: AWS fixture harness and Bats suites", "status": "done", "commit": "3edc162"},
+    {"id": 3, "name": "Plan 01-03: Account runbook and verified cost model", "status": "done", "commit": "693eb4e"},
+    {"id": 4, "name": "Plan 01-04: Remote state bootstrap and EBS teardown tracer", "status": "done", "commit": "0f92a1e"}
   ],
   "remaining_tasks": [
-    {"id": 3, "name": "Plan 01-03 task 3: Complete console prerequisites and verify", "status": "blocked"},
-    {"id": 4, "name": "Plan 01-03 task 4: Author verified COSTS.md", "status": "not_started"}
+    {"id": 1, "name": "Plan 01-05 task 1: Add EC2 instance and snapshot checks", "status": "not_started"},
+    {"id": 2, "name": "Plan 01-05 task 2: Add Elastic IP and ENI checks", "status": "not_started"},
+    {"id": 3, "name": "Plan 01-05 task 3: Expand report coverage and verify error ordering", "status": "not_started"}
   ],
-  "blockers": [
-    {"description": "Root MFA remains disabled in the selected member account (AccountMFAEnabled=0).", "type": "human_action", "workaround": "User enables MFA for the member account root user, then verify with the read-only IAM account-summary check."}
-  ],
+  "blockers": [],
   "async_jobs": [],
-  "human_actions_pending": [
-    {"action": "Enable root MFA for the selected member account; the non-root administrator and AWS profile should remain unchanged.", "context": "Plan 01-03 task 3. Read-only IAM account summary returned AccountMFAEnabled=0. User reports member Billing IAM access is enabled, and member Cost Explorer reads succeed.", "blocking": true}
-  ],
+  "human_actions_pending": [],
   "decisions": [
     {"decision": "Use a newly created, dedicated AWS Organizations member account as the project trust anchor", "rationale": "The user explicitly approved amending D-03; the management account/payer remains outside Terraform and the project.", "phase": "01"},
     {"decision": "Use a DIMENSIONAL SERVICE Cost Anomaly Detection monitor in the member account", "rationale": "AWS supports service monitors in member accounts; linked-account monitors are management-account-only.", "phase": "01"},
-    {"decision": "Cost Explorer and cost-allocation tag management are controlled by the management account", "rationale": "Organization Cost Explorer is enabled by the management account; only management accounts can manage cost-allocation tags.", "phase": "01"}
+    {"decision": "Cost Explorer and cost-allocation tag management are controlled by the management account", "rationale": "Organization Cost Explorer is enabled by the management account; only management accounts can manage cost-allocation tags.", "phase": "01"},
+    {"decision": "Use a generated repo-root backend.hcl and retain 30 days plus the newest 10 noncurrent state versions", "rationale": "The user selected plan 01-04 option A; force-copy is allowed only when the remote state object is absent.", "phase": "01"},
+    {"decision": "Credential-less Organizations member roots do not require AccountMFAEnabled=1", "rationale": "The credential report found no root password, access keys, or signing certificates; require MFA if root credentials exist.", "phase": "01"}
   ],
   "uncommitted_files": [
+    " M .planning/HANDOFF.json",
     " M .planning/STATE.md",
     " M .planning/config.json",
+    " M .planning/phases/01-account-l0-bootstrap-teardown-harness/.continue-here.md",
     "?? .planning/milestone.lock",
     "?? .planning/state.json"
   ],
-  "next_action": "Enable root MFA for the selected member account, then verify AccountMFAEnabled=1 before continuing plan 01-03 task 3.",
-  "context_notes": "Plan 01-03 task 1 selected the dedicated Organizations member account, no resources must survive, and user explicitly amended D-03. Task 2's account runbook/context changes are committed as 0d74d51; member-account checkpoint correction is committed as 643e01a. The microservices-demo AWS profile STS identity matches the checkpoint, the ignored .aws-account-id pin is written, and ce get-cost-and-usage succeeds with estimated $0 totals. The user reports member Billing IAM access is enabled; the console toggle has no API readback. iam get-account-summary reports root MFA disabled (0). ce list-cost-allocation-tags denial is expected because the API is management-account-only. No resources were created. Preserve the measured modified STATE/config and generated milestone.lock/state.json files."
+  "next_action": "Resume plan 01-05 task 1 after reading its read_first sources; add EC2 instance and snapshot checks and enable their fixture assertions.",
+  "context_notes": "Plans 01-01 through 01-04 are complete with summaries; resume at plan 01-05 task 1. The dedicated Organizations member account is pinned locally and the microservices-demo AWS profile is verified. The L0 state bucket is live, remote state migration succeeded, versioning and native locking were verified, no DynamoDB table exists, and the baseline teardown report is clean with an empty allowlist. Plan 01-04 validation passed: make validate, ShellCheck, syntax checks, and 33 Bats cases (17 pass, 16 expected skips owned by later plans). No AWS resources beyond the approved state bucket and companions were created. The account has no root password, access keys, or certificates; centralized member-root MFA is not required without credentials. The user authorized the protected develop-branch override for this execution run; restore its default-false setting after phase execution. Preserve the listed config and generated state artifacts. ROADMAP.md still has a stale Phase 1 Research flag despite COSTS.md and STATE.md resolving the pricing concern; no supported GSD mutation was found. Plan 01-07 has a future blocking OIDC subject-format checkpoint."
 }

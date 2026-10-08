@@ -5,10 +5,10 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-10-08T09:48:16.719Z"
+stopped_at: Completed 01-04-PLAN.md; user paused before 01-05
+last_updated: "2026-10-08T09:53:09.354Z"
 last_activity: 2026-10-08
-state_head: 629780c5a0a21362f80bbd8aa7eb6d826ee795bc
+state_head: 0f92a1e1adf27f6a15a48461f267ef458bf68926
 progress:
   total_phases: 14
   completed_phases: 0
@@ -92,7 +92,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- **[Phase 1] AWS unit pricing unverified.** Only EKS and interface-endpoint rates were fetched from authoritative sources. The whole budget model rests on the rest — validate before committing.
 - **[Phase 5/6] OQ5: OTel trace context across EventBridge.** Resolved in approach (manual `traceparent` in the envelope), unverified in practice. Three of four researchers flagged this as the most likely thing to silently break the flagship demo. Watch for the Link-vs-Parent false negative.
 - **[Phase 9] OQ2/OQ4 unresolved.** Prometheus TSDB dies nightly but burn-rate alerting needs multi-day history; platform footprint estimates (2.1 / 2.5–4 / 3.5–6.5 GiB) are unmeasured hypotheses.
 - **[Phase 5] OQ1 unresolved.** RDS viability under same-day teardown — `var.use_rds` defaults false pending measured create/delete timings.
@@ -106,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T09:48:16.689Z
-Stopped at: Completed 01-04-PLAN.md
-Resume file: None
+Last session: 2026-10-08T09:53:09.320Z
+Stopped at: Completed 01-04-PLAN.md; user paused before 01-05
+Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/.continue-here.md
