@@ -5,10 +5,10 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-10-01T08:22:42.621Z"
+stopped_at: Session resumed; plan 01-03 account decision checkpoint pending
+last_updated: "2026-10-08T06:52:29.451Z"
 last_activity: Completed 01-02-PLAN.md
-state_head: 3edc162638186ba2f8432d20397529163214caa8
+state_head: 377619474df43c12cc33c18240fb45ba9ddff41a
 progress:
   total_phases: 14
   completed_phases: 0
@@ -98,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-01T08:21:39.570Z
-Stopped at: Completed 01-02-PLAN.md
-Resume file: None
+Last session: 2026-10-08T06:52:29.420Z
+Stopped at: Session resumed; plan 01-03 account decision checkpoint pending
+Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/.continue-here.md
