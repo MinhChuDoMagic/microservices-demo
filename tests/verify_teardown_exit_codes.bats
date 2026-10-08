@@ -62,8 +62,8 @@ allow_all_reportable_fixtures() {
   for fixture in "$BATS_TEST_DIRNAME"/fixtures/aws/*; do
     ln -s "$fixture" "$fixture_overlay/$(basename "$fixture")"
   done
-  printf 'An error occurred (ExpiredToken) when calling the DescribeVolumes operation: The security token included in the request is expired\n' \
-    > "$fixture_overlay/ec2-describe-volumes.err"
+  printf 'An error occurred (ExpiredToken) when calling the DescribeSnapshots operation: The security token included in the request is expired\n' \
+    > "$fixture_overlay/ec2-describe-snapshots.err"
   STUB_AWS_FIXTURE_DIR="$fixture_overlay"
   export STUB_AWS_FIXTURE_DIR
 
@@ -71,6 +71,20 @@ allow_all_reportable_fixtures() {
 
   [ "$status" -eq 2 ]
   [[ "$output" != *"account is CLEAN"* ]]
-  jq -e '.verdict == "error" and .exit_code == 2 and (.errors | length > 0)' \
+  jq -e '.verdict == "error" and .exit_code == 2 and (.errors | length > 0) and .summary.total_orphans > 0' \
+    "$REPORT" >/dev/null
+}
+
+@test "a schema class without a registered check fails closed and names the class" {
+  require_sweep
+  modified_script="$BATS_TEST_TMPDIR/verify-teardown-missing-check.sh"
+  awk '{ if ($0 == "tagged\047") print "coverage_probe"; print }' \
+    "$BATS_TEST_DIRNAME/../scripts/verify-teardown.sh" > "$modified_script"
+
+  run bash "$modified_script"
+
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"coverage_probe"* ]]
+  jq -e '.verdict == "error" and .exit_code == 2 and any(.errors[]; .scope == "class_coverage" and (.message | contains("coverage_probe")))' \
     "$REPORT" >/dev/null
 }

@@ -26,6 +26,22 @@ cloudfront
 s3_buckets
 tagged'
 
+readonly CHECK_REGISTRY='ebs_volumes check_ebs_volumes
+security_groups check_unwired_class
+load_balancers check_unwired_class
+target_groups check_unwired_class
+ec2_instances check_ec2_instances
+snapshots check_snapshots
+elastic_ips check_elastic_ips
+enis check_enis
+log_groups check_unwired_class
+eks_clusters check_unwired_class
+rds_instances check_unwired_class
+iam check_unwired_class
+cloudfront check_unwired_class
+s3_buckets check_unwired_class
+tagged check_unwired_class'
+
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/verify-teardown.XXXXXX")"
 FINDINGS="$WORK_DIR/findings.ndjson"
 ERRORS="$WORK_DIR/errors.ndjson"
@@ -400,6 +416,59 @@ check_enis() {
     record enis "$region" "$id" "$arn" "$reason" "$tags" blind-spot
   done < <(jq -c '(if type == "array" then .[] else .NetworkInterfaces[]? end)' <<< "$response")
 }
+# Later-phase classes stay registered so their schema slots are intentional until their checks land.
+check_unwired_class() {
+  return 0
+}
+
+assert_class_coverage() {
+  local class
+  local registered_class
+  local registered_function
+  local check_function
+  local registered_count
+
+  while IFS= read -r class; do
+    [[ -n "$class" ]] || continue
+    registered_count=0
+    check_function=""
+    while IFS=' ' read -r registered_class registered_function; do
+      [[ -n "$registered_class" ]] || continue
+      if [[ "$registered_class" == "$class" ]]; then
+        registered_count=$((registered_count + 1))
+        check_function="$registered_function"
+      fi
+    done <<< "$CHECK_REGISTRY"
+    if (( registered_count != 1 )); then
+      fail_hard class_coverage "report class '$class' has $registered_count registered checks"
+      return 1
+    fi
+    if ! declare -F "$check_function" >/dev/null; then
+      fail_hard class_coverage "report class '$class' references missing function '$check_function'"
+      return 1
+    fi
+  done <<< "$CLASS_KEYS"
+
+  while IFS=' ' read -r registered_class registered_function; do
+    [[ -n "$registered_class" ]] || continue
+    if ! printf '%s\n' "$CLASS_KEYS" | grep -Fxq "$registered_class"; then
+      fail_hard class_coverage "registered check '$registered_class' is absent from the report schema"
+      return 1
+    fi
+  done <<< "$CHECK_REGISTRY"
+}
+
+usual_cause() {
+  case "$1" in
+    ebs_volumes) printf '%s' 'node group deletion left detached EBS volumes' ;;
+    ec2_instances) printf '%s' 'stopped or unterminated EC2 instance' ;;
+    snapshots) printf '%s' 'manual or AMI-backed snapshots retained' ;;
+    elastic_ips) printf '%s' 'unassociated public IPv4 allocation retained' ;;
+    enis) printf '%s' 'parent teardown left a detached interface' ;;
+    *) printf '%s' 'resource retained after parent teardown' ;;
+  esac
+}
+
 write_report() {
   local exit_code="$1"
   local verdict
@@ -456,6 +525,8 @@ print_table() {
   local id
   local reason
   local total
+  local class_count
+  local cause
 
   total="$(jq -r '.summary.total_orphans' "$REPORT")"
   if [[ "$total" -eq 0 ]]; then
@@ -466,7 +537,9 @@ print_table() {
       [[ -n "$class" ]] || continue
       rows="$(jq -r --arg class "$class" '.orphans[$class][]? | [.region,.id,.reason] | @tsv' "$REPORT")"
       [[ -n "$rows" ]] || continue
-      printf '\n  %s (usual cause: detached resource retained after parent teardown)\n' "$class"
+      class_count="$(jq -r --arg class "$class" '.summary.by_class[$class]' "$REPORT")"
+      cause="$(usual_cause "$class")"
+      printf '\n  %s (%s)  usual cause: %s\n' "$class" "$class_count" "$cause"
       while IFS=$'\t' read -r region id reason; do
         printf '    %-12s %-32s %s\n' "$region" "$id" "$reason"
       done <<< "$rows"
@@ -491,6 +564,12 @@ main() {
     exit "$EXIT_ERROR"
   fi
 
+  if ! assert_class_coverage; then
+    write_report "$EXIT_ERROR"
+    print_table
+    exit "$EXIT_ERROR"
+  fi
+
   if ! check_ebs_volumes "$HOME_REGION"; then
     HARD_ERROR=1
   fi
@@ -506,7 +585,9 @@ main() {
   if ! check_enis "$HOME_REGION"; then
     HARD_ERROR=1
   fi
+  check_unwired_class "$HOME_REGION" ""
 
+  # Errors outrank findings: after mid-sweep credential expiry, counts are only a lower bound.
   if (( HARD_ERROR )); then
     exit_code="$EXIT_ERROR"
   elif [[ -s "$FINDINGS" ]]; then

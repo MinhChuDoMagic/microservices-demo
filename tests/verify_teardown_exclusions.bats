@@ -120,6 +120,18 @@ assert_dirty_report() {
   grep -Fq -- 'Name=status,Values=available' "$STUB_AWS_CALL_LOG"
 }
 
+@test "summarizes wired classes and prints their usual causes" {
+  run_sweep
+  assert_dirty_report
+  jq -e '.summary.by_class | .ebs_volumes == 1 and .ec2_instances == 2 and .snapshots == 1 and .elastic_ips == 1 and .enis == 1 and .security_groups == 0 and .load_balancers == 0 and .target_groups == 0 and .log_groups == 0 and .eks_clusters == 0 and .rds_instances == 0 and .iam == 0 and .cloudfront == 0 and .s3_buckets == 0 and .tagged == 0' "$REPORT" >/dev/null
+  jq -e '[.orphans[] | .[]] | all(.[]; (.reason | length) > 0 and .discovered_by == "blind-spot")' "$REPORT" >/dev/null
+  [[ "$output" == *"usual cause: node group deletion left detached EBS volumes"* ]]
+  [[ "$output" == *"usual cause: stopped or unterminated EC2 instance"* ]]
+  [[ "$output" == *"usual cause: manual or AMI-backed snapshots retained"* ]]
+  [[ "$output" == *"usual cause: unassociated public IPv4 allocation retained"* ]]
+  [[ "$output" == *"usual cause: parent teardown left a detached interface"* ]]
+}
+
 @test "reports non-allowlisted log groups and excludes the baseline group" {
   require_sweep_class check_log_groups
   run_sweep
