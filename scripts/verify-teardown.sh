@@ -230,6 +230,100 @@ check_ebs_volumes() {
   done < <(jq -c '(if type == "array" then .[] else .Volumes[]? end) | select((.status // .State) == "available")' <<< "$response")
 }
 
+check_ec2_instances() {
+  local region="$1"
+  local scope_prefix="${2:-}"
+  local response
+  local instance
+  local id
+  local state
+  local instance_type
+  local raw_tags
+  local tags
+  local arn
+  local reason
+
+  if ! response="$(aws_json "${scope_prefix}ec2_instances:$region" ec2 describe-instances \
+    --region "$region" --filters 'Name=instance-state-name,Values=pending,running,stopping,stopped' \
+    --query 'Reservations[].Instances[].{id:InstanceId,type:InstanceType,state:State.Name,tags:Tags}' \
+    --output json)"; then
+    HARD_ERROR=1
+    return 1
+  fi
+
+  while IFS= read -r instance; do
+    [[ -n "$instance" ]] || continue
+    id="$(jq -r '.id // .InstanceId // empty' <<< "$instance")"
+    state="$(jq -r '.state // .State.Name // empty' <<< "$instance")"
+    instance_type="$(jq -r '.type // .InstanceType // "unknown"' <<< "$instance")"
+    raw_tags="$(jq -c '.tags // .Tags // []' <<< "$instance")"
+    arn="arn:aws:ec2:${region}:${ACCOUNT_ID}:instance/${id}"
+    if is_immortal "$id" "$arn" "$raw_tags"; then
+      continue
+    fi
+    tags="$(jq -c 'reduce (. // [])[] as $tag ({}; .[$tag.Key]=$tag.Value)' <<< "$raw_tags")"
+    if [[ "$state" == "stopped" ]]; then
+      reason="stopped instance; root EBS volume continues billing"
+    else
+      reason="${state} EC2 instance (${instance_type})"
+    fi
+    record ec2_instances "$region" "$id" "$arn" "$reason" "$tags" blind-spot
+  done < <(jq -c '
+    (if type == "array" then .[] else .Reservations[]?.Instances[]? end)
+    | select((.state // .State.Name // "") as $state
+      | (["pending", "running", "stopping", "stopped"] | index($state)) != null)
+  ' <<< "$response")
+}
+
+check_snapshots() {
+  local region="$1"
+  local scope_prefix="${2:-}"
+  local response
+  local images_response
+  local image_snapshot_ids
+  local snapshot
+  local id
+  local description
+  local size
+  local raw_tags
+  local tags
+  local arn
+  local reason
+
+  # --owner-ids self is load-bearing: without it, this call enumerates every public snapshot on AWS.
+  if ! response="$(aws_json "${scope_prefix}snapshots:$region" ec2 describe-snapshots \
+    --region "$region" --owner-ids self --output json \
+    --query 'Snapshots[].{id:SnapshotId,size:VolumeSize,desc:Description,tags:Tags}')"; then
+    HARD_ERROR=1
+    return 1
+  fi
+  if ! images_response="$(aws_json "${scope_prefix}snapshot_images:$region" ec2 describe-images \
+    --region "$region" --owners self --output json \
+    --query 'Images[].BlockDeviceMappings[].Ebs.SnapshotId')"; then
+    HARD_ERROR=1
+    return 1
+  fi
+  image_snapshot_ids="$(jq -c '[ (if type == "array" then .[] else .Images[]?.BlockDeviceMappings[]?.Ebs.SnapshotId? end) | select(type == "string") ] | unique' <<< "$images_response")"
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    id="$(jq -r '.id // .SnapshotId // empty' <<< "$snapshot")"
+    description="$(jq -r '.desc // .Description // empty' <<< "$snapshot")"
+    size="$(jq -r '.size // .VolumeSize // 0' <<< "$snapshot")"
+    raw_tags="$(jq -c '.tags // .Tags // []' <<< "$snapshot")"
+    arn="arn:aws:ec2:${region}:${ACCOUNT_ID}:snapshot/${id}"
+    if is_immortal "$id" "$arn" "$raw_tags"; then
+      continue
+    fi
+    if [[ "$description" == "Created by CreateImage("* ]] \
+      && jq -e --arg id "$id" 'index($id) != null' <<< "$image_snapshot_ids" >/dev/null; then
+      continue
+    fi
+    tags="$(jq -c 'reduce (. // [])[] as $tag ({}; .[$tag.Key]=$tag.Value)' <<< "$raw_tags")"
+    reason="manual EBS snapshot (${size} GiB): ${description}"
+    record snapshots "$region" "$id" "$arn" "$reason" "$tags" blind-spot
+  done < <(jq -c '(if type == "array" then .[] else .Snapshots[]? end)' <<< "$response")
+}
 write_report() {
   local exit_code="$1"
   local verdict
@@ -322,6 +416,12 @@ main() {
   fi
 
   if ! check_ebs_volumes "$HOME_REGION"; then
+    HARD_ERROR=1
+  fi
+  if ! check_ec2_instances "$HOME_REGION"; then
+    HARD_ERROR=1
+  fi
+  if ! check_snapshots "$HOME_REGION"; then
     HARD_ERROR=1
   fi
 
