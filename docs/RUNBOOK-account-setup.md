@@ -47,11 +47,15 @@ applies to the member account's console pages; it does not grant access to other
 accounts or override management-account Cost Explorer restrictions.
 
 ```bash
-aws ce list-cost-allocation-tags --status Active --output table
+aws ce get-cost-and-usage \
+  --time-period "Start=$(date -u -v-2d +%F),End=$(date -u +%F)" \
+  --granularity DAILY --metrics UnblendedCost
 ```
 
-If this call is denied, verify both the role policy and the member account's **Activate IAM Access**
-setting. Cost Explorer must also be enabled for the organization as described in step 4.
+This confirms member-account Cost Explorer data access, but it does not directly test the
+console-only toggle. Verify **Activate IAM Access** by signing into the Billing and Cost Management
+console as the non-root administrator and confirming the Cost Explorer page loads. If the CLI query
+is denied, verify the role policy and management-account member-access setting in step 4.
 
 ## 4. Enable Cost Explorer for the organization and verify member visibility
 
