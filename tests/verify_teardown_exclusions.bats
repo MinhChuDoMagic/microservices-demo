@@ -74,18 +74,17 @@ assert_dirty_report() {
 }
 
 @test "reports running and stopped instances but excludes terminated states" {
-  require_sweep_class check_ec2_instances
   run_sweep
   assert_dirty_report
   assert_report_has ec2_instances i-00000000000000003
   assert_report_has ec2_instances i-00000000000000004
   assert_report_lacks ec2_instances i-00000000000000001
   assert_report_lacks ec2_instances i-00000000000000002
+  jq -e '.orphans.ec2_instances[] | select(.id == "i-00000000000000003") | .reason | test("^stopped instance; root EBS volume continues billing$"; "i")' "$REPORT" >/dev/null
   grep -Fq -- 'Name=instance-state-name,Values=pending,running,stopping,stopped' "$STUB_AWS_CALL_LOG"
 }
 
 @test "reports detached available volumes but excludes in-use volumes" {
-  require_sweep_class check_ebs_volumes
   run_sweep
   assert_dirty_report
   assert_report_has ebs_volumes vol-00000000000000002
@@ -94,12 +93,12 @@ assert_dirty_report() {
 }
 
 @test "reports manual snapshots but excludes image-backed snapshots" {
-  require_sweep_class check_snapshots
   run_sweep
   assert_dirty_report
   assert_report_has snapshots snap-00000000000000002
   assert_report_lacks snapshots snap-00000000000000001
   grep -Fq -- '--owner-ids self' "$STUB_AWS_CALL_LOG"
+  grep -Fq -- '--owners self' "$STUB_AWS_CALL_LOG"
 }
 
 @test "reports unassociated addresses but excludes associated addresses" {

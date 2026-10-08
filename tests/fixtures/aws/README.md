@@ -24,5 +24,8 @@ it cannot also provide a reportable distribution without ceasing to represent th
 It pins the absent-`Items` normalization case; the non-empty result behavior is specified above and
 must be exercised by a future non-empty response test if the sweep implementation needs that branch.
 
+`ec2-describe-images.json` supplies the self-owned AMI cross-reference used by the snapshot check;
+its root-volume snapshot is the image-backed snapshot excluded from `ec2-describe-snapshots.json`.
+
 The expired-credential fixture is `sts-get-caller-identity-expired.err`. It contains the AWS CLI
 error text used to drive the hard-error/exit-2 path; it is stderr, not JSON.

@@ -1,0 +1,13 @@
+{
+  "Images": [
+    {
+      "ImageId": "ami-00000000000000001",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {"SnapshotId": "snap-00000000000000001"}
+        }
+      ]
+    }
+  ]
+}
