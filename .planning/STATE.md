@@ -5,15 +5,15 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-10-08T08:59:50.558Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-10-08T09:48:16.719Z"
 last_activity: 2026-10-08
-state_head: bead578f765b38ac51c43d019fff923415a51d95
+state_head: 629780c5a0a21362f80bbd8aa7eb6d826ee795bc
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 10
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-24)
 ## Current Position
 
 Phase: 01 (Account, L0 Bootstrap & Teardown Harness) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
 Last activity: 2026-10-08
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 20 min | 3 tasks | 24 files |
 | Phase 01 P02 | 29 min | 3 tasks | 21 files |
 | Phase 01 P03 | 1h 14m | 4 tasks | 8 files |
+| Phase 01 P04 | 48 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,10 @@ Recent decisions affecting current work:
 - [Phase 01]: Preserve CloudFront empty-account fixture without DistributionList.Items — The required raw empty response contains no distribution entry, so the fixture README records this as the one-sided empty-shape exception.
 - [Phase 01]: Use a dedicated Organizations member account as the project trust anchor — The user explicitly approved amending D-03; the management account remains outside Terraform, controls Cost Explorer access and pays the consolidated bill, and the project member account has no surviving resources.
 - [Phase 01]: Credential-less Organizations member root accounts do not require AccountMFAEnabled=1 — AWS centrally managed member roots have no root credentials; the credential report confirms no password, access keys, or certificates. If credentials exist, root MFA remains required.
+- [Phase 01]: Generate repo-root backend.hcl and pass it by absolute path — The checkpoint adopted option A; the root location avoids -chdir-relative path ambiguity while per-layer state keys remain CLI arguments.
+- [Phase 01]: Expire noncurrent state versions after 30 days while retaining the newest 10 — The checkpoint adopted option A and confirmed this bounded recovery window.
+- [Phase 01]: Force-copy only when remote state is absent — When bucket and state object exist, reconfigure; a fresh checkout must never overwrite good remote state with stale local state.
+- [Phase 01]: Keep the baseline teardown allowlist empty — The user confirmed the member account had no resources that must survive, and the pre-apply sweep found none.
 
 ### Pending Todos
 
@@ -101,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T08:59:04.948Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-10-08T09:48:16.689Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

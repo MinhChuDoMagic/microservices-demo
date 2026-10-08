@@ -31,8 +31,8 @@ Requirements for Milestone 1. Each maps to a roadmap phase.
 - [ ] **LIFE-04**: Each drain step polls to an AWS-API-confirmed terminal state rather than firing and forgetting, because `kubectl delete ingress` returns before the ALB is gone
 - [ ] **LIFE-05**: `scripts/verify-teardown.sh` exits non-zero when any orphaned resource survives, checking ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
 - [ ] **LIFE-06**: Operator can complete two consecutive clean up/down round-trips on an empty cluster with zero orphans before any application code is written
-- [ ] **LIFE-07**: Terraform state is split into four lifetime-aligned layers — `00-bootstrap` (never destroyed), `10-infra`, `20-data`, `30-gitops`
-- [ ] **LIFE-08**: Remote state lives in a versioned S3 bucket using native `use_lockfile` locking, with no DynamoDB lock table
+- [x] **LIFE-07**: Terraform state is split into four lifetime-aligned layers — `00-bootstrap` (never destroyed), `10-infra`, `20-data`, `30-gitops`
+- [x] **LIFE-08**: Remote state lives in a versioned S3 bucket using native `use_lockfile` locking, with no DynamoDB lock table
 - [ ] **LIFE-09**: Slow-to-delete and near-free resources (CloudFront, ECR, S3) live in `00-bootstrap` and never enter the daily loop
 - [ ] **LIFE-10**: A rebuild weeks later produces an identical stack, with all provider and module versions pinned in `VERSIONS.md`
 
@@ -256,8 +256,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | LIFE-04 | Phase 2 | Pending |
 | LIFE-05 | Phase 1 | Pending |
 | LIFE-06 | Phase 2 | Pending |
-| LIFE-07 | Phase 1 | Pending |
-| LIFE-08 | Phase 1 | Pending |
+| LIFE-07 | Phase 1 | Complete |
+| LIFE-08 | Phase 1 | Complete |
 | LIFE-09 | Phase 1 | Pending |
 | LIFE-10 | Phase 1 | Pending |
 | NET-01 | Phase 2 | Pending |
