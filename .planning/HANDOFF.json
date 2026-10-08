@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T07:42:37.823Z",
+  "timestamp": "2026-10-08T08:05:20.602Z",
   "phase": "01",
   "phase_name": "Account, L0 Bootstrap & Teardown Harness",
   "phase_dir": "01-account-l0-bootstrap-teardown-harness",
@@ -13,15 +13,15 @@
     {"id": 2, "name": "Plan 01-03 task 2: Account setup runbook and D-03 amendment", "status": "done", "commit": "0d74d51"}
   ],
   "remaining_tasks": [
-    {"id": 3, "name": "Plan 01-03 task 3: Verify identity and complete account prerequisites", "status": "blocked"},
+    {"id": 3, "name": "Plan 01-03 task 3: Complete console prerequisites and verify", "status": "blocked"},
     {"id": 4, "name": "Plan 01-03 task 4: Author verified COSTS.md", "status": "not_started"}
   ],
   "blockers": [
-    {"description": "aws sts get-caller-identity returned NoCredentials. Authenticate the local AWS CLI before further AWS API calls, then compare the caller identity with the account selected at the checkpoint.", "type": "human_action", "workaround": "Use the operator's configured AWS credential method locally; do not send access keys, session tokens, or passwords in chat."}
+    {"description": "Root MFA is disabled and member IAM access to Billing console pages is not confirmed; both require member-account console actions.", "type": "human_action", "workaround": "User enables root MFA and activates member IAM access in Account settings, then verify with read-only checks."}
   ],
   "async_jobs": [],
   "human_actions_pending": [
-    {"action": "Authenticate AWS CLI locally to the selected member account and confirm authentication is ready without sending credentials.", "context": "Plan 01-03 task 3 must verify STS identity before writing the gitignored .aws-account-id pin; the previous attempt returned NoCredentials.", "blocking": true}
+    {"action": "Enable root MFA in the member account and activate IAM user/role access to Billing Information; confirm the Cost Explorer page loads as the non-root administrator.", "context": "Plan 01-03 task 3. Root MFA API check returned 0; Activate IAM Access is a root-only console setting.", "blocking": true}
   ],
   "decisions": [
     {"decision": "Use a newly created, dedicated AWS Organizations member account as the project trust anchor", "rationale": "The user explicitly approved amending D-03; the management account/payer remains outside Terraform and the project.", "phase": "01"},
@@ -33,6 +33,6 @@
     "?? .planning/milestone.lock",
     "?? .planning/state.json"
   ],
-  "next_action": "Authenticate AWS CLI locally; rerun STS identity and verify it matches the checkpoint account before writing .aws-account-id or proceeding.",
-  "context_notes": "Plan 01-03 task 1 is complete: user selected a newly created dedicated Organizations member account and confirmed no survivors. This explicitly amends D-03. Task 2's member-account runbook and project/context amendments are committed as 0d74d51. Official AWS documentation verified: the management account enables Cost Explorer for the Organization and may restrict member access; members see only their own cost/usage; only management accounts manage organization cost-allocation tags; AWS service monitors are available in member accounts while linked-account monitors are management-only; Cost Explorer auto-creates an AWS-managed service monitor; member accounts can create budgets. STS verification failed with NoCredentials; no account pin exists and no AWS settings/resources were changed. Account ID is intentionally omitted from tracked state/handoff docs; it was supplied in the prior user response. Preserve the measured config, milestone.lock, and state.json artifacts."
+  "next_action": "Complete root MFA and member IAM access to Billing in the console; then verify root MFA and member console access before continuing plan 01-03 task 3.",
+  "context_notes": "Plan 01-03 task 1 selected the dedicated Organizations member account, no resources must survive, and user explicitly amended D-03. Task 2's account runbook/context changes are committed as 0d74d51; member-account checkpoint correction is committed as 643e01a. The microservices-demo AWS profile STS identity matches the checkpoint and the ignored .aws-account-id pin is written and verified. ce get-cost-and-usage succeeded with estimated $0 totals. iam get-account-summary reports root MFA disabled (0). ce list-cost-allocation-tags was denied because it is management-account-only; this is expected. No resources were created and no console settings were changed. Preserve the measured config, milestone.lock, and state.json artifacts."
 }
