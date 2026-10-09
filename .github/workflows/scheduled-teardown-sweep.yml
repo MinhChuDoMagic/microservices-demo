@@ -1,0 +1,92 @@
+name: scheduled-teardown-sweep
+
+# 02:00 UTC is after a typical US-East working day, catching sessions left running overnight.
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  teardown-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    # Do not add environment: without updating the role trust policy's sub claim in the same change.
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Verify sweep tools
+        run: |
+          command -v aws
+          command -v jq
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: gha-sweep-${{ github.run_id }}
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+
+      - name: Run teardown verifier
+        id: verify
+        run: |
+          set +e
+          ./sh/verify-teardown.sh
+          verifier_exit=$?
+          set -e
+          printf 'exit_code=%s\n' "$verifier_exit" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize clean account
+        if: steps.verify.outputs.exit_code == '0'
+        run: |
+          {
+            echo '## Teardown sweep: CLEAN'
+            echo 'No teardown orphans were found.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Summarize account orphans
+        if: steps.verify.outputs.exit_code == '1'
+        run: |
+          {
+            echo '## Teardown sweep: DIRTY'
+            jq -r '"Total orphans: \(.summary.total_orphans)"' .teardown-report.json
+            jq -r '.summary.by_class | to_entries[] | select(.value > 0) | "- \(.key): \(.value)"' .teardown-report.json
+            echo 'The complete report is attached as a workflow artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Summarize verifier error
+        if: steps.verify.outputs.exit_code == '2'
+        run: |
+          {
+            echo '## Teardown sweep: UNKNOWN'
+            echo 'The verifier could not complete. The account state is UNKNOWN; do not assume clean.'
+            if [[ -f .teardown-report.json ]]; then
+              jq -r '"Verifier errors: \(.errors | length)"' .teardown-report.json
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Summarize unexpected verifier exit
+        if: steps.verify.outputs.exit_code != '0' && steps.verify.outputs.exit_code != '1' && steps.verify.outputs.exit_code != '2'
+        run: |
+          {
+            echo '## Teardown sweep: UNKNOWN'
+            echo 'The verifier returned an unexpected exit code. The account state is UNKNOWN; do not assume clean.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Upload teardown report
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: teardown-report-${{ github.run_id }}
+          path: .teardown-report.json
+          if-no-files-found: error
+          retention-days: 14

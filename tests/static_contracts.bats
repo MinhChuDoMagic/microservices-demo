@@ -188,3 +188,30 @@ log_group_retention_violations() {
     grep -Fq "$action" "$versions_file"
   done < <(printf '%s\n' "$workflow_sources" | sed -nE 's/^[[:space:]]*uses:[[:space:]]*([^@[:space:]]+)@[^[:space:]]+.*/\1/p' | sort -u)
 }
+
+@test "scheduled teardown workflow preserves the three-way verifier result" {
+  workflow="$BATS_TEST_DIRNAME/../.github/workflows/scheduled-teardown-sweep.yml"
+  versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
+
+  [ -f "$workflow" ]
+  grep -Fq "cron: '0 2 * * *'" "$workflow"
+  grep -Fq 'workflow_dispatch:' "$workflow"
+  grep -Fq 'vars.AWS_PLAN_ROLE_ARN' "$workflow"
+  grep -Fq 'vars.AWS_ACCOUNT_ID' "$workflow"
+  grep -Fq 'id-token: write' "$workflow"
+  grep -Fq 'contents: read' "$workflow"
+  grep -Fq "steps.verify.outputs.exit_code == '0'" "$workflow"
+  grep -Fq "steps.verify.outputs.exit_code == '1'" "$workflow"
+  grep -Fq "steps.verify.outputs.exit_code == '2'" "$workflow"
+  grep -Fq 'account state is UNKNOWN' "$workflow"
+  grep -Fq '.summary.by_class' "$workflow"
+  grep -Fq 'if: always()' "$workflow"
+  grep -Fq '.teardown-report.json' "$workflow"
+
+  active_workflow="$(grep -v '^[[:space:]]*#' "$workflow")"
+  matches="$(printf '%s\n' "$active_workflow" | grep -Ei 'aws[[:space:]]+ce[[:space:]]|cost-explorer' || true)"
+  [ -z "$matches" ]
+
+  grep -Fq 'actions/upload-artifact' "$versions_file"
+  grep -Fq '.github/workflows/scheduled-teardown-sweep.yml' "$versions_file"
+}
