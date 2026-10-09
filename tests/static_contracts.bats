@@ -207,6 +207,7 @@ log_group_retention_violations() {
   grep -Fq '.summary.by_class' "$workflow"
   grep -Fq 'if: always()' "$workflow"
   grep -Fq '.teardown-report.json' "$workflow"
+  grep -Fq 'include-hidden-files: true' "$workflow"
 
   active_workflow="$(grep -v '^[[:space:]]*#' "$workflow")"
   matches="$(printf '%s\n' "$active_workflow" | grep -Ei 'aws[[:space:]]+ce[[:space:]]|cost-explorer' || true)"

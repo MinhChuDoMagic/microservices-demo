@@ -89,4 +89,5 @@ jobs:
           name: teardown-report-${{ github.run_id }}
           path: .teardown-report.json
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14
