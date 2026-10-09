@@ -1,0 +1,88 @@
+locals {
+  gh_oidc_host = "token.actions.githubusercontent.com"
+
+  gh_owner_seg = var.github_owner_id == null ? var.github_owner : "${var.github_owner}@${var.github_owner_id}"
+  gh_repo_seg  = var.github_repo_id == null ? var.github_repo : "${var.github_repo}@${var.github_repo_id}"
+  gh_repo_ref  = "repo:${local.gh_owner_seg}/${local.gh_repo_seg}"
+
+  gh_sub_main = "${local.gh_repo_ref}:ref:refs/heads/main"
+  gh_sub_pr   = "${local.gh_repo_ref}:pull_request"
+}
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://${local.gh_oidc_host}"
+  client_id_list = ["sts.amazonaws.com"]
+
+  # AWS validates GitHub tokens against its trusted-root store and ignores supplied thumbprints.
+  # Do not add thumbprint rotation automation.
+}
+
+data "aws_iam_policy_document" "gha_plan_trust" {
+  statement {
+    sid     = "GitHubOIDCPullRequestOnly"
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.gh_oidc_host}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.gh_oidc_host}:sub"
+      values   = [local.gh_sub_pr]
+    }
+  }
+}
+
+resource "aws_iam_role" "gha_terraform_plan" {
+  name                 = "gha-terraform-plan"
+  assume_role_policy   = data.aws_iam_policy_document.gha_plan_trust.json
+  max_session_duration = 3600
+}
+
+resource "aws_iam_role_policy_attachment" "gha_plan_readonly" {
+  role       = aws_iam_role.gha_terraform_plan.name
+  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}
+
+data "aws_iam_policy_document" "gha_plan_state" {
+  statement {
+    sid       = "TerraformStateRead"
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:GetObjectVersion"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/*"]
+  }
+
+  statement {
+    sid       = "TerraformStateListBucket"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket", "s3:GetBucketVersioning"]
+    resources = [aws_s3_bucket.tfstate.arn]
+  }
+
+  statement {
+    sid       = "TerraformNativeS3Lock"
+    effect    = "Allow"
+    actions   = ["s3:PutObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/*.tflock"]
+  }
+}
+
+resource "aws_iam_role_policy" "gha_plan_state" {
+  name   = "terraform-state-read-lock"
+  role   = aws_iam_role.gha_terraform_plan.id
+  policy = data.aws_iam_policy_document.gha_plan_state.json
+}
+
+output "gha_plan_role_arn" {
+  description = "GitHub Actions plan role ARN; trusted only for pull requests."
+  value       = aws_iam_role.gha_terraform_plan.arn
+}
