@@ -87,6 +87,62 @@ output "gha_plan_role_arn" {
   value       = aws_iam_role.gha_terraform_plan.arn
 }
 
+data "aws_iam_policy_document" "gha_sweep_trust" {
+  statement {
+    sid     = "GitHubOIDCDevelopSweepOnly"
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.gh_oidc_host}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.gh_oidc_host}:sub"
+      values   = [local.gh_sub_develop]
+    }
+  }
+}
+
+resource "aws_iam_role" "gha_terraform_sweep" {
+  name                 = "gha-terraform-sweep"
+  assume_role_policy   = data.aws_iam_policy_document.gha_sweep_trust.json
+  max_session_duration = 3600
+}
+
+resource "aws_iam_role_policy_attachment" "gha_sweep_readonly" {
+  role       = aws_iam_role.gha_terraform_sweep.name
+  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}
+
+data "aws_iam_policy_document" "gha_sweep_state_guard" {
+  statement {
+    sid       = "DenyTerraformStateObjectReads"
+    effect    = "Deny"
+    actions   = ["s3:GetObject*"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "gha_sweep_state_guard" {
+  name   = "deny-terraform-state-object-reads"
+  role   = aws_iam_role.gha_terraform_sweep.id
+  policy = data.aws_iam_policy_document.gha_sweep_state_guard.json
+}
+
+output "gha_sweep_role_arn" {
+  description = "GitHub Actions teardown sweep role ARN; trusted only for develop."
+  value       = aws_iam_role.gha_terraform_sweep.arn
+}
+
 data "aws_iam_policy_document" "gha_apply_trust" {
   statement {
     sid     = "GitHubOIDCDevelopBranchOnly"

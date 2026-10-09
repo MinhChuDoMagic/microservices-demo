@@ -196,7 +196,7 @@ log_group_retention_violations() {
   [ -f "$workflow" ]
   grep -Fq "cron: '0 2 * * *'" "$workflow"
   grep -Fq 'workflow_dispatch:' "$workflow"
-  grep -Fq 'vars.AWS_PLAN_ROLE_ARN' "$workflow"
+  grep -Fq 'vars.AWS_SWEEP_ROLE_ARN' "$workflow"
   grep -Fq 'vars.AWS_ACCOUNT_ID' "$workflow"
   grep -Fq 'id-token: write' "$workflow"
   grep -Fq 'contents: read' "$workflow"

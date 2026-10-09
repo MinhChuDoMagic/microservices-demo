@@ -26,15 +26,15 @@ policy_block() {
   ! printf '%s\n' "$source" | grep -Eq '^[[:space:]]*thumbprint_list[[:space:]]*='
 }
 
-@test "both trust policies use exact web-identity trust and the provider ARN" {
+@test "all trust policies use exact web-identity trust and the provider ARN" {
   source="$(active_oidc_source)"
-  [ "$(printf '%s\n' "$source" | grep -Fc 'actions = ["sts:AssumeRoleWithWebIdentity"]')" -eq 2 ]
+  [ "$(printf '%s\n' "$source" | grep -Fc 'actions = ["sts:AssumeRoleWithWebIdentity"]')" -eq 3 ]
   ! printf '%s\n' "$source" | grep -Fq 'sts:AssumeRole"'
-  [ "$(printf '%s\n' "$source" | grep -Fc 'identifiers = [aws_iam_openid_connect_provider.github.arn]')" -eq 2 ]
+  [ "$(printf '%s\n' "$source" | grep -Fc 'identifiers = [aws_iam_openid_connect_provider.github.arn]')" -eq 3 ]
 }
 
 @test "both trust policies require exact audience and subject conditions" {
-  for name in gha_plan_trust gha_apply_trust; do
+  for name in gha_plan_trust gha_apply_trust gha_sweep_trust; do
     policy="$(policy_block "$name")"
     [ -n "$policy" ]
     [ "$(printf '%s\n' "$policy" | grep -Fc 'test     = "StringEquals"')" -eq 2 ]
@@ -44,14 +44,17 @@ policy_block() {
   done
 }
 
-@test "plan and apply trust subjects are disjoint" {
+@test "plan remains PR-only while apply and sweep trust the develop ref" {
   source="$(active_oidc_source)"
   plan="$(policy_block gha_plan_trust)"
   apply="$(policy_block gha_apply_trust)"
+  sweep="$(policy_block gha_sweep_trust)"
   printf '%s\n' "$plan" | grep -Fq 'values   = [local.gh_sub_pr]'
-  ! printf '%s\n' "$plan" | grep -Fq 'local.gh_sub_main'
+  ! printf '%s\n' "$plan" | grep -Fq 'local.gh_sub_develop'
   printf '%s\n' "$apply" | grep -Fq 'values   = [local.gh_sub_develop]'
   ! printf '%s\n' "$apply" | grep -Fq 'local.gh_sub_pr'
+  printf '%s\n' "$sweep" | grep -Fq 'values   = [local.gh_sub_develop]'
+  ! printf '%s\n' "$sweep" | grep -Fq 'local.gh_sub_pr'
   printf '%s\n' "$source" | grep -Eq 'gh_sub_pr[[:space:]]*=[[:space:]]*"\$\{local\.gh_repo_ref\}:pull_request"'
   printf '%s\n' "$source" | grep -Eq 'gh_sub_develop[[:space:]]*=[[:space:]]*"\$\{local\.gh_repo_ref\}:ref:refs/heads/develop"'
 }
@@ -99,4 +102,15 @@ policy_block() {
   printf '%s\n' "$source" | grep -Fq 'arn:aws:iam::aws:policy/AdministratorAccess'
   grep -Fq 'TEMPORARY (D-28). Phase 10 replaces AdministratorAccess' "$OIDC_FILE"
   printf '%s\n' "$source" | grep -Fq 'output "gha_apply_role_arn"'
+}
+
+@test "sweep role is read-only and cannot read Terraform state objects" {
+  source="$(active_oidc_source)"
+  printf '%s\n' "$source" | grep -Fq 'resource "aws_iam_role" "gha_terraform_sweep"'
+  printf '%s\n' "$source" | grep -Fq 'resource "aws_iam_role_policy_attachment" "gha_sweep_readonly"'
+  printf '%s\n' "$source" | grep -Fq 'policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"'
+  printf '%s\n' "$source" | grep -Fq 'resource "aws_iam_role_policy" "gha_sweep_state_guard"'
+  printf '%s\n' "$source" | grep -Fq 'actions   = ["s3:GetObject*"]'
+  printf '%s\n' "$source" | grep -Fq 'resources = ["${aws_s3_bucket.tfstate.arn}/*"]'
+  printf '%s\n' "$source" | grep -Fq 'output "gha_sweep_role_arn"'
 }
