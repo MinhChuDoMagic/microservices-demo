@@ -18,7 +18,7 @@ help:
 	  'unlock                 Inspect and recover a stale S3 state lock'
 
 doctor:
-	@bash scripts/doctor.sh
+	@bash sh/doctor.sh
 
 fmt:
 	@terraform fmt -recursive
@@ -112,7 +112,7 @@ _write-backend-hcl:
 
 verify-teardown: doctor
 	@set -u; \
-	if ./scripts/verify-teardown.sh; then RC=0; else RC=$$?; fi; \
+	if ./sh/verify-teardown.sh; then RC=0; else RC=$$?; fi; \
 	case "$$RC" in \
 	  0) printf '%s\n' 'clean' ;; \
 	  1) printf '%s\n' 'ORPHANS FOUND - see .teardown-report.json' >&2; exit 1 ;; \
@@ -121,7 +121,15 @@ verify-teardown: doctor
 	esac
 
 test-verify-teardown: doctor
-	@printf '%s\n' 'test-verify-teardown recipe is authored by plan 01-09'; exit 1
+	@set +e; ./sh/test-verify-teardown.sh; RC=$$?; set -e; \
+	case "$$RC" in \
+	  0) printf '%s\n' 'HARD GATE PASSED - verifier returned clean, orphan, and error outcomes.' ;; \
+	  10) printf '%s\n' 'HARD GATE BASELINE FAILURE - account was not clean before the test.' >&2; exit 1 ;; \
+	  11) printf '%s\n' 'HARD GATE ORPHAN FAILURE - created volume was not proven in the report.' >&2; exit 1 ;; \
+	  12) printf '%s\n' 'HARD GATE CLEANUP FAILURE - volume deletion or clean recheck failed.' >&2; exit 1 ;; \
+	  13) printf '%s\n' 'HARD GATE ERROR-ARM FAILURE - invalid credentials did not produce the error verdict.' >&2; exit 1 ;; \
+	  *) printf 'HARD GATE TOOL FAILURE - test exited %s.\n' "$$RC" >&2; exit 2 ;; \
+	esac
 
 unlock: doctor
 	@set -euo pipefail; \

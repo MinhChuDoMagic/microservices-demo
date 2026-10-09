@@ -29,7 +29,7 @@ Requirements for Milestone 1. Each maps to a roadmap phase.
 - [ ] **LIFE-02**: Operator can destroy every billable resource with a single `make down` completing in 15 minutes or less
 - [ ] **LIFE-03**: `make down` executes an explicit ordered sequence — disable Argo auto-sync, drain Ingresses, drain Karpenter NodePools, drain PVCs, destroy L3→L2→L1, verify — rather than a bare `terraform destroy`
 - [ ] **LIFE-04**: Each drain step polls to an AWS-API-confirmed terminal state rather than firing and forgetting, because `kubectl delete ingress` returns before the ALB is gone
-- [ ] **LIFE-05**: `scripts/verify-teardown.sh` exits non-zero when any orphaned resource survives, checking ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
+- [ ] **LIFE-05**: `sh/verify-teardown.sh` exits non-zero when any orphaned resource survives, checking ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
 - [ ] **LIFE-06**: Operator can complete two consecutive clean up/down round-trips on an empty cluster with zero orphans before any application code is written
 - [x] **LIFE-07**: Terraform state is split into four lifetime-aligned layers — `00-bootstrap` (never destroyed), `10-infra`, `20-data`, `30-gitops`
 - [x] **LIFE-08**: Remote state lives in a versioned S3 bucket using native `use_lockfile` locking, with no DynamoDB lock table

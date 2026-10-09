@@ -1,0 +1,14 @@
+{
+  "Reservations": [
+    {
+      "Instances": [
+        {
+          "InstanceId": "i-tier3-00000000000000001",
+          "InstanceType": "t4g.nano",
+          "State": {"Name": "running"},
+          "Tags": []
+        }
+      ]
+    }
+  ]
+}

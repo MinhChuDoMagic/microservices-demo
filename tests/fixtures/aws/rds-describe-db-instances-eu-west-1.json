@@ -1,0 +1,10 @@
+{
+  "DBInstances": [
+    {
+      "DBInstanceIdentifier": "practice-stray-database",
+      "DBInstanceArn": "arn:aws:rds:eu-west-1:123456789012:db:practice-stray-database",
+      "DBInstanceStatus": "available",
+      "TagList": []
+    }
+  ]
+}

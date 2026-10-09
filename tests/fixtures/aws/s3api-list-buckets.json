@@ -1,0 +1,15 @@
+{
+  "Buckets": [
+    {
+      "Name": "tfstate-123456789012-us-east-1",
+      "CreationDate": "2026-09-24T10:00:00Z"
+    },
+    {
+      "Name": "practice-unexpected-bucket",
+      "CreationDate": "2026-10-08T10:00:00Z"
+    }
+  ],
+  "Owner": {
+    "ID": "123456789012"
+  }
+}

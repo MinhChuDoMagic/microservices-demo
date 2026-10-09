@@ -3,7 +3,6 @@
     {
       "logGroupName": "/practice/baseline-allowed",
       "arn": "arn:aws:logs:us-east-1:123456789012:log-group:/practice/baseline-allowed:*",
-      "retentionInDays": 1,
       "storedBytes": 0,
       "creationTime": 1780000000000
     },
@@ -19,6 +18,12 @@
       "retentionInDays": 1,
       "storedBytes": 0,
       "creationTime": 1780000002000
+    },
+    {
+      "logGroupName": "/aws/eks/demo/bootstrap-immortal",
+      "arn": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/eks/demo/bootstrap-immortal:*",
+      "storedBytes": 0,
+      "creationTime": 1780000003000
     }
   ]
 }

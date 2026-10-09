@@ -32,6 +32,52 @@ for argument in "$@"; do
 done
 
 fixture_base="${STUB_AWS_FIXTURE_DIR}/${service}-${operation}"
+fixture_selector=""
+fixture_kind=""
+fixture_region=""
+pagination_token=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --role-name|--bucket|--resource-arn)
+      if [[ $# -gt 1 ]]; then
+        fixture_selector="$2"
+        fixture_kind="$1"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    --region)
+      if [[ $# -gt 1 ]]; then
+        fixture_region="$2"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    --pagination-token)
+      if [[ $# -gt 1 ]]; then
+        pagination_token="$2"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    *) shift ;;
+  esac
+done
+if [[ "$service:$operation" == "logs:list-tags-for-resource" && "$fixture_kind" == "--resource-arn" ]]; then
+  fixture_selector="${fixture_selector#*:log-group:}"
+  fixture_selector="${fixture_selector%:*}"
+  fixture_selector="$(printf '%s' "$fixture_selector" | tr -c '[:alnum:]_-' '_')"
+fi
+if [[ -n "$pagination_token" && ( -f "${fixture_base}-${pagination_token}.err" || -f "${fixture_base}-${pagination_token}.json" ) ]]; then
+  fixture_base="${fixture_base}-${pagination_token}"
+elif [[ -n "$fixture_selector" && ( -f "${fixture_base}-${fixture_selector}.err" || -f "${fixture_base}-${fixture_selector}.json" ) ]]; then
+  fixture_base="${fixture_base}-${fixture_selector}"
+elif [[ -n "$fixture_region" && ( -f "${fixture_base}-${fixture_region}.err" || -f "${fixture_base}-${fixture_region}.json" ) ]]; then
+  fixture_base="${fixture_base}-${fixture_region}"
+fi
 if [[ -f "${fixture_base}.err" ]]; then
   cat "${fixture_base}.err" >&2
   exit 255

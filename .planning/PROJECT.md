@@ -22,7 +22,7 @@ Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-
 - [ ] Terraform split into four lifetime-aligned layers — `00-bootstrap` (never destroyed), `10-infra`, `20-data`, `30-gitops` (daily)
 - [ ] `make up` lifecycle provisioning the full stack in ≤ 20 minutes
 - [ ] `make down` lifecycle as an explicit 7-step sequence — disable Argo auto-sync → drain Ingresses → drain Karpenter NodePools → drain PVCs → destroy L3→L2→L1 → verify — with each drain polling to an AWS-API-confirmed terminal state, completing in ≤ 15 minutes
-- [ ] `scripts/verify-teardown.sh` exiting non-zero on any orphaned resource, written before there is anything to tear down
+- [ ] `sh/verify-teardown.sh` exiting non-zero on any orphaned resource, written before there is anything to tear down
 - [ ] Session profiles with `$/session` as the primary budget unit — Profile A `core` (~$0.22/hr, the default), Profile B `full` (~$0.29–0.33/hr, occasional), Profile C `managed`
 - [ ] Idle cost ≤ ~$5/month
 - [ ] VPC across 2 AZs with `/20` private subnets, fck-nat instance (t4g.nano) for egress, and **gateway endpoints only** (S3 + DynamoDB, free); interface endpoints behind a default-off flag

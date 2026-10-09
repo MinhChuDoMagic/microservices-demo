@@ -24,8 +24,8 @@ key-files:
     - layers/00-bootstrap/backend.tf
     - layers/00-bootstrap/main.tf
     - layers/00-bootstrap/outputs.tf
-    - scripts/verify-teardown.sh
-    - scripts/teardown-allowlist.txt
+    - sh/verify-teardown.sh
+    - sh/teardown-allowlist.txt
   modified:
     - Makefile
     - layers/00-bootstrap/versions.tf
@@ -65,7 +65,7 @@ coverage:
         ref: "AWS_PROFILE=microservices-demo make verify-teardown; .teardown-report.json verdict/exit_code/class-slot assertions"
         status: pass
       - kind: other
-        ref: "ShellCheck scripts/verify-teardown.sh; bash -n; empty non-comment teardown allowlist"
+        ref: "ShellCheck sh/verify-teardown.sh; bash -n; empty non-comment teardown allowlist"
         status: pass
     human_judgment: false
   - id: D3
@@ -112,7 +112,7 @@ status: complete
 
 - `layers/00-bootstrap/main.tf`, `backend.tf`, `outputs.tf`, and `versions.tf` - account-derived S3 state bucket and partial backend.
 - `Makefile` - guarded local bootstrap/migration, three-way verifier mapping, generated backend assertion, and layer-specific `unlock` target.
-- `scripts/verify-teardown.sh` and `scripts/teardown-allowlist.txt` - verifier wrapper/report/EBS path and empty baseline inventory.
+- `sh/verify-teardown.sh` and `sh/teardown-allowlist.txt` - verifier wrapper/report/EBS path and empty baseline inventory.
 - `layers/00-bootstrap/README.md` - ownership, state-key contract, version recovery, destroy guard, and L0 lifecycle.
 - `tests/helpers/stub-aws.bash` and `tests/static_contracts.bats` - raw-response call-log assertion support and the read-only PROJECT locking guard.
 
@@ -120,7 +120,7 @@ status: complete
 
 - Used the approved repo-root `backend.hcl` and absolute backend-config path; state keys remain per-layer command-line arguments.
 - The first apply temporarily removes `backend.tf` and restores it with traps so Terraform can use a local backend; subsequent migration explicitly requests `-migrate-state -force-copy` only while the remote state object is absent.
-- The baseline sweep found no available EBS volumes or survivors, so `scripts/teardown-allowlist.txt` remains header-only.
+- The baseline sweep found no available EBS volumes or survivors, so `sh/teardown-allowlist.txt` remains header-only.
 - The local ignored `.aws-account-id` pin and generated backend file are not committed.
 
 ## Deviations from Plan
@@ -131,7 +131,7 @@ status: complete
 - **Found during:** Task 2 (sweep spine)
 - **Issue:** `mapfile` is unavailable in the system Bash 3.2, and the test shim deliberately returns raw fixture objects while the AWS CLI returns query-projected arrays.
 - **Fix:** Used a Bash-3.2-compatible indexed array loader and allowed the EBS parser to consume either raw `.Volumes[]` objects or projected arrays; the server-side availability filter remains in the CLI call.
-- **Files modified:** `scripts/verify-teardown.sh`, `tests/helpers/stub-aws.bash`
+- **Files modified:** `sh/verify-teardown.sh`, `tests/helpers/stub-aws.bash`
 - **Verification:** Focused exit/EBS Bats suites passed, including the recorded availability filter and D-10 error ordering.
 - **Committed in:** `2bb756a`
 
@@ -155,8 +155,8 @@ status: complete
 - **Found during:** Task 2 (script lint)
 - **Issue:** ShellCheck did not infer that `cleanup` and `on_err` are invoked indirectly by traps.
 - **Fix:** Added narrow SC2329 directives at the two trap handler definitions.
-- **Files modified:** `scripts/verify-teardown.sh`
-- **Verification:** `shellcheck scripts/verify-teardown.sh` passes.
+- **Files modified:** `sh/verify-teardown.sh`
+- **Verification:** `shellcheck sh/verify-teardown.sh` passes.
 - **Committed in:** `2bb756a`
 
 **5. PROJECT.md state-locking guard added to the static suite**

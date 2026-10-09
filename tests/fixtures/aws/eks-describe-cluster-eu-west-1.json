@@ -1,0 +1,9 @@
+{
+  "cluster": {
+    "name": "practice-stray-cluster",
+    "arn": "arn:aws:eks:eu-west-1:123456789012:cluster/practice-stray-cluster",
+    "status": "ACTIVE",
+    "version": "1.34",
+    "tags": {}
+  }
+}

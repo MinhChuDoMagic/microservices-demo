@@ -187,7 +187,7 @@ make down:
   4. terraform -chdir=layers/30-gitops destroy
   5. terraform -chdir=layers/20-data    destroy    # RDS is the long pole: 5-10 min
   6. terraform -chdir=layers/10-infra   destroy
-  7. ./scripts/verify-teardown.sh                  # orphan + cost-leak sweep
+  7. ./sh/verify-teardown.sh                  # orphan + cost-leak sweep
 ```
 
 ### Orphan classes — the complete list

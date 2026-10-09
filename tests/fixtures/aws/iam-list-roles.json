@@ -13,6 +13,20 @@
       "RoleId": "AROA00000000000000002",
       "Arn": "arn:aws:iam::123456789012:role/practice/UnexpectedRole",
       "CreateDate": "2026-10-01T00:00:00Z"
+    },
+    {
+      "Path": "/",
+      "RoleName": "gha-terraform-plan",
+      "RoleId": "AROA00000000000000003",
+      "Arn": "arn:aws:iam::123456789012:role/gha-terraform-plan",
+      "CreateDate": "2026-10-09T00:00:00Z"
+    },
+    {
+      "Path": "/",
+      "RoleName": "gha-terraform-apply",
+      "RoleId": "AROA00000000000000004",
+      "Arn": "arn:aws:iam::123456789012:role/gha-terraform-apply",
+      "CreateDate": "2026-10-09T00:00:00Z"
     }
   ]
 }
