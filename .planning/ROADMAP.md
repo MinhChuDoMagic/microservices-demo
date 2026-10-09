@@ -64,7 +64,7 @@ order). Two deviations are documented in "Deviations from Research" below.
   4. Operator can attribute every bootstrap resource's spend by layer in Cost Explorer via `default_tags`, and confirm idle cost sits at or below $5/month against a real billing period
   5. GitHub Actions can assume an AWS role via OIDC with a trust policy scoped to this repository and branch, and no long-lived access key exists anywhere in the account or in GitHub secrets
 
-**Plans**: 7/10 plans executed
+**Plans**: 9/10 plans executed
 
 Plans:
 
@@ -76,7 +76,7 @@ Plans:
 - [x] 01-06-PLAN.md — Cost guardrails: SNS topic and policy, monthly ceiling plus daily tripwire budgets, anomaly monitor, tag activation
 - [x] 01-07-PLAN.md — GitHub OIDC provider and the two branch-scoped CI roles, gated on the repository's subject-claim format
 - [x] 01-08-PLAN.md — Sweep expansion B: load balancer, target group, security group and log classes, tag layer, three region tiers
-- [ ] 01-09-PLAN.md — **Hard gate**: three-arm `test-verify-teardown.sh`, no-long-lived-credential proof, log-retention convention guard
+- [x] 01-09-PLAN.md — **Hard gate**: three-arm `test-verify-teardown.sh`, no-long-lived-credential proof, log-retention convention guard
 - [ ] 01-10-PLAN.md — CI workflows through the OIDC path with a negative scoping test, scheduled sweep, and the decommission escape hatch
 
 **Research flag**: 🔬 **YES — blocker.** Verify current AWS unit pricing for the chosen region against the Pricing Calculator. Only EKS ($0.10/hr) and interface endpoints ($0.01/endpoint-AZ-hr) were authoritatively verified; the entire budget model rests on the rest.
