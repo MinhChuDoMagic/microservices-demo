@@ -131,13 +131,13 @@ If the message was missed, request a new subscription; SNS does not retry confir
 Repository `MinhChuDoMagic/microservices-demo` was created on 2026-09-23. Its owner ID is `82219047`
 and repository ID is `1383184443`, so it uses immutable ID-qualified subjects. The trust policy
 subjects are `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:pull_request` for plans and
-`repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:ref:refs/heads/main` for applies. This
+`repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:ref:refs/heads/develop` for applies. This
 format is selected from the repository creation date; no claim-debugger workflow was run because
 this repository is public.
 
-Do not add a GitHub Actions `environment:` to the apply job without updating the trust policy in the
-same change. Environment claims take precedence over branch refs and would stop the main-branch
-subject from matching.
+The apply role is scoped to the repository's `develop` default branch. Do not add a GitHub Actions
+`environment:` to the apply job without updating the trust policy in the same change. Environment
+claims take precedence over branch refs and would stop the develop-branch subject from matching.
 
 ```bash
 gh api repos/OWNER/REPO \

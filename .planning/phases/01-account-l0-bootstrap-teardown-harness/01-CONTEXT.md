@@ -121,7 +121,7 @@ Phase 2 provisions anything.
   demonstration: `sh/test-verify-teardown.sh` creates one untagged 1 GiB `gp3` EBS volume,
   asserts exit code `1`, deletes the volume, asserts exit code `0`, and cleans up on trap. This is
   the evidence artifact for the Phase 1 hard gate and for success criterion 1.
-- **D-14:** `scripts/nuke.sh` (the Layer-4 force-delete remediation from `research/PITFALLS.md`) is
+- **D-14:** `sh/nuke.sh` (the Layer-4 force-delete remediation from `research/PITFALLS.md`) is
   **deferred to Phase 2**, alongside `make down`. Rationale: sequencing discipline — this phase
   verifies teardown; building remediation before the verifier inverts the phase's premise. Accepted
   cost: a wedged first `make up` in Phase 2 has no nuke available yet.
@@ -196,13 +196,15 @@ Phase 2 provisions anything.
   automatically create the AWS-managed service monitor, so implementation must inspect existing
   monitors and import rather than collide. Rationale: COST-04 specifies both, and default anomaly
   thresholds are tuned for enterprise spend and will never fire at this scale.
-- **D-26:** OIDC trust is scoped by **explicit `sub` claim values, never a wildcard**:
-  `repo:<owner>/<repo>:ref:refs/heads/main` and `repo:<owner>/<repo>:pull_request`, with
-  `aud = sts.amazonaws.com` asserted via `StringEquals`. Owner and repo come from variables.
+- **D-26 (revised during Plan 01-10):** OIDC trust is scoped by **explicit `sub` claim values, never a wildcard**:
+  `repo:<owner>/<repo>:ref:refs/heads/develop` and `repo:<owner>/<repo>:pull_request`, with
+  `aud = sts.amazonaws.com` asserted via `StringEquals`. Owner and repo come from variables. The
+  apply subject matches the repository's existing `develop` default branch; the user approved this
+  revision after confirming that GitHub has no `main` branch.
   Rationale: Pitfall 36 — a `repo:owner/*` trust policy lets any repo in the org assume the role.
 - **D-27:** **Two CI roles, not one:** `gha-terraform-plan` (read-only plus state read/lock),
   assumable only from `pull_request`; and `gha-terraform-apply` (broad), assumable only from
-  `refs/heads/main`. Satisfies CD-05's branch scoping, pre-wires Phase 3's "plan on PR, apply on
+  `refs/heads/develop`. Satisfies CD-05's branch scoping, pre-wires Phase 3's "plan on PR, apply on
   merge", and gives the scheduled sweep (D-12) a read-only identity for free.
   — **Reversibility:** costly — every GitHub Actions workflow references these role ARNs by name.
 - **D-28:** The apply role is **broad in Phase 1** — administrator-equivalent with an explicit
@@ -324,7 +326,7 @@ for the scheduled sweep.
 
 ### Reusable Assets
 None — the repository is greenfield. It contains only `README.md`, `AGENTS.md`, `.planning/`, and
-GSD tooling under `.github/`. There is no `layers/`, no `modules/`, no `scripts/`, no `Makefile`,
+GSD tooling under `.github/`. There is no `layers/`, no `modules/`, no `sh/`, no `Makefile`,
 and no CI workflow. Every file in this phase is a first-of-its-kind.
 
 ### Established Patterns
@@ -367,7 +369,7 @@ being authored, not discovered.
 <deferred>
 ## Deferred Ideas
 
-- **`scripts/nuke.sh` / `cloud-nuke` evaluation** → Phase 2, alongside `make down` (D-14).
+- **`sh/nuke.sh` / `cloud-nuke` evaluation** → Phase 2, alongside `make down` (D-14).
 - **ECR repositories** → Phase 3, into the L0 layer (D-21).
 - **Observability S3 bucket** → Phase 5, into the L0 layer (D-21).
 - **SPA bucket + CloudFront** → Phase 11, into the L0 layer (D-21).

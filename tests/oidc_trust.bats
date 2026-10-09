@@ -50,10 +50,10 @@ policy_block() {
   apply="$(policy_block gha_apply_trust)"
   printf '%s\n' "$plan" | grep -Fq 'values   = [local.gh_sub_pr]'
   ! printf '%s\n' "$plan" | grep -Fq 'local.gh_sub_main'
-  printf '%s\n' "$apply" | grep -Fq 'values   = [local.gh_sub_main]'
+  printf '%s\n' "$apply" | grep -Fq 'values   = [local.gh_sub_develop]'
   ! printf '%s\n' "$apply" | grep -Fq 'local.gh_sub_pr'
   printf '%s\n' "$source" | grep -Eq 'gh_sub_pr[[:space:]]*=[[:space:]]*"\$\{local\.gh_repo_ref\}:pull_request"'
-  printf '%s\n' "$source" | grep -Eq 'gh_sub_main[[:space:]]*=[[:space:]]*"\$\{local\.gh_repo_ref\}:ref:refs/heads/main"'
+  printf '%s\n' "$source" | grep -Eq 'gh_sub_develop[[:space:]]*=[[:space:]]*"\$\{local\.gh_repo_ref\}:ref:refs/heads/develop"'
 }
 
 @test "subject construction supports immutable IDs and contains no wildcard" {
@@ -62,7 +62,7 @@ policy_block() {
   printf '%s\n' "$source" | grep -Fq 'github_repo_id'
   printf '%s\n' "$source" | grep -Fq 'var.github_owner_id == null'
   printf '%s\n' "$source" | grep -Fq 'var.github_repo_id == null'
-  subjects="$(printf '%s\n' "$source" | grep -E 'gh_sub_(main|pr)[[:space:]]*=')"
+  subjects="$(printf '%s\n' "$source" | grep -E 'gh_sub_(develop|pr)[[:space:]]*=')"
   [[ "$subjects" != *'*'* ]]
 }
 

@@ -1,0 +1,78 @@
+name: terraform-plan
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    # Fork tokens cannot receive id-token: write; skip AWS and let the credential-free job validate.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    # Do not add environment: without updating the role trust policy's sub claim in the same change.
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3.1.2
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Validate Terraform layers
+        run: |
+          for layer in 00-bootstrap 10-infra 20-data 30-gitops; do
+            terraform -chdir="layers/$layer" init -backend=false -input=false
+            terraform -chdir="layers/$layer" validate
+          done
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: gha-plan-${{ github.run_id }}
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+
+      - name: Verify assumed role
+        run: aws sts get-caller-identity
+
+  fork-validation:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3.1.2
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Validate Terraform layers
+        run: |
+          for layer in 00-bootstrap 10-infra 20-data 30-gitops; do
+            terraform -chdir="layers/$layer" init -backend=false -input=false
+            terraform -chdir="layers/$layer" validate
+          done
+
+      - name: Explain credentialed plan fallback
+        run: |
+          {
+            echo '## Fork pull request validation'
+            echo 'This fork pull request ran `terraform fmt` and `terraform validate` only. Fork tokens cannot receive `id-token: write`, so no AWS role was assumed.'
+            echo 'A maintainer can push the same changes to a branch in this repository and open or update its pull request to run the credentialed plan.'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -147,3 +147,44 @@ log_group_retention_violations() {
   violations="$(log_group_retention_violations "$fixture_dir")"
   [ -z "$violations" ]
 }
+
+@test "Terraform OIDC workflows are scoped, pinned, and documented" {
+  workflow_dir="$BATS_TEST_DIRNAME/../.github/workflows"
+  plan_workflow="$workflow_dir/terraform-plan.yml"
+  apply_workflow="$workflow_dir/terraform-apply.yml"
+  versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
+
+  [ -f "$plan_workflow" ]
+  [ -f "$apply_workflow" ]
+
+  grep -Eq '^[[:space:]]*pull_request:[[:space:]]*$' "$plan_workflow"
+  grep -Fq 'vars.AWS_PLAN_ROLE_ARN' "$plan_workflow"
+  grep -Fq 'vars.AWS_ACCOUNT_ID' "$plan_workflow"
+  grep -Fq 'github.event.pull_request.head.repo.full_name == github.repository' "$plan_workflow"
+  grep -Fq 'github.event.pull_request.head.repo.full_name != github.repository' "$plan_workflow"
+  grep -Fq 'terraform fmt' "$plan_workflow"
+  grep -Fq 'terraform validate' "$plan_workflow"
+  grep -Eq '^[[:space:]]*push:[[:space:]]*$' "$apply_workflow"
+  grep -Fq 'branches: [develop]' "$apply_workflow"
+  grep -Fq 'vars.AWS_APPLY_ROLE_ARN' "$apply_workflow"
+  grep -Fq 'vars.AWS_ACCOUNT_ID' "$apply_workflow"
+  grep -Fq 'cancel-in-progress: false' "$apply_workflow"
+
+  for workflow in "$plan_workflow" "$apply_workflow"; do
+    grep -Fq 'contents: read' "$workflow"
+    grep -Fq 'id-token: write' "$workflow"
+    matches="$(grep -v '^[[:space:]]*#' "$workflow" | grep -E 'pull_request_target|environment:' || true)"
+    [ -z "$matches" ]
+  done
+
+  workflow_sources="$(grep -h -v '^[[:space:]]*#' "$workflow_dir"/*.yml "$workflow_dir"/*.yaml 2>/dev/null || true)"
+  matches="$(printf '%s\n' "$workflow_sources" | grep -Ei 'aws-access-key-id|aws-secret-access-key|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY' || true)"
+  [ -z "$matches" ]
+  matches="$(printf '%s\n' "$workflow_sources" | grep -E 'uses:.*@v[0-9]+$' || true)"
+  [ -z "$matches" ]
+
+  while IFS= read -r action; do
+    [ -z "$action" ] && continue
+    grep -Fq "$action" "$versions_file"
+  done < <(printf '%s\n' "$workflow_sources" | sed -nE 's/^[[:space:]]*uses:[[:space:]]*([^@[:space:]]+)@[^[:space:]]+.*/\1/p' | sort -u)
+}

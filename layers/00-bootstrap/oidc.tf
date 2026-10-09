@@ -5,8 +5,8 @@ locals {
   gh_repo_seg  = var.github_repo_id == null ? var.github_repo : "${var.github_repo}@${var.github_repo_id}"
   gh_repo_ref  = "repo:${local.gh_owner_seg}/${local.gh_repo_seg}"
 
-  gh_sub_main = "${local.gh_repo_ref}:ref:refs/heads/main"
-  gh_sub_pr   = "${local.gh_repo_ref}:pull_request"
+  gh_sub_develop = "${local.gh_repo_ref}:ref:refs/heads/develop"
+  gh_sub_pr      = "${local.gh_repo_ref}:pull_request"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -89,7 +89,7 @@ output "gha_plan_role_arn" {
 
 data "aws_iam_policy_document" "gha_apply_trust" {
   statement {
-    sid     = "GitHubOIDCMainBranchOnly"
+    sid     = "GitHubOIDCDevelopBranchOnly"
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
@@ -107,7 +107,7 @@ data "aws_iam_policy_document" "gha_apply_trust" {
     condition {
       test     = "StringEquals"
       variable = "${local.gh_oidc_host}:sub"
-      values   = [local.gh_sub_main]
+      values   = [local.gh_sub_develop]
     }
   }
 }
@@ -162,6 +162,6 @@ resource "aws_iam_role_policy" "gha_apply_guardrails" {
 # Do not add a GitHub Actions environment to the apply job without updating this subject:
 # environment claims take precedence over branch refs, regardless of the workflow trigger.
 output "gha_apply_role_arn" {
-  description = "GitHub Actions apply role ARN; trusted only for the main branch."
+  description = "GitHub Actions apply role ARN; trusted only for the develop branch."
   value       = aws_iam_role.gha_terraform_apply.arn
 }
