@@ -5,8 +5,8 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-07-PLAN.md; OIDC roles applied and verified
-last_updated: "2026-10-09T03:35:17.434Z"
+stopped_at: "01-08 Task 1 RED committed; GREEN pending because verifier editing is blocked"
+last_updated: "2026-10-09T04:04:10Z"
 last_activity: 2026-10-09
 state_head: 706ac029d0155a0d73fd20b489d2fe6b90f6e112
 progress:
@@ -116,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09T03:35:17.405Z
-Stopped at: Completed 01-07-PLAN.md; OIDC roles applied and verified
-Resume file: None
+Last session: 2026-10-09
+Stopped at: Plan 01-08 Task 1 GREEN blocked — scripts/verify-teardown.sh is excluded from Copilot file access, so it cannot be read or edited by the agent
+Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/01-08-PLAN.md
