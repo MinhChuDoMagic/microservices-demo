@@ -3,6 +3,50 @@
 # Strip full-line comments before every negative source search so rationale text cannot self-invalidate.
 load 'helpers/load'
 
+log_group_retention_violations() {
+  local terraform_root="$1"
+  local source_file
+
+  while IFS= read -r -d '' source_file; do
+    awk -v source_file="$source_file" '
+      function brace_delta(line, stripped, opened, closed) {
+        stripped = line
+        opened = gsub(/\{/, "", stripped)
+        closed = gsub(/\}/, "", stripped)
+        return opened - closed
+      }
+      {
+        line = $0
+        sub(/^[[:space:]]*#.*/, "", line)
+        if (!in_block) {
+          if (line ~ /resource[[:space:]]+"aws_cloudwatch_log_group"[[:space:]]+"[^"]+"[[:space:]]*\{/) {
+            in_block = 1
+            block_line = NR
+            depth = brace_delta(line)
+            has_retention = 0
+          }
+          next
+        }
+        if (depth == 1 && line ~ /^[[:space:]]*retention_in_days[[:space:]]*=/) {
+          has_retention = 1
+        }
+        depth += brace_delta(line)
+        if (depth <= 0) {
+          if (!has_retention) {
+            printf "%s:%d\n", source_file, block_line
+          }
+          in_block = 0
+        }
+      }
+      END {
+        if (in_block && !has_retention) {
+          printf "%s:%d\n", source_file, block_line
+        }
+      }
+    ' "$source_file"
+  done < <(find "$terraform_root" -type f -name '*.tf' -print0)
+}
+
 @test "the generated S3 backend template enables native lockfile locking" {
   grep -Fq 'use_lockfile = true' "$BATS_TEST_DIRNAME/../backend.hcl.example"
 }
@@ -69,4 +113,37 @@ load 'helpers/load'
   grep -Fq 'remote state in S3 using native `use_lockfile` locking plus bucket versioning' "$project_file"
   matches="$(grep -niE '(state|terraform|remote.state|backend)[^.]{0,60}lock table|lock table[^.]{0,60}(state|terraform|backend)' "$project_file" | grep -vi 'deprecated' || true)"
   [ -z "$matches" ]
+}
+
+@test "CloudWatch log groups in Terraform declare explicit retention" {
+  violations="$(log_group_retention_violations "$BATS_TEST_DIRNAME/../layers")"
+  [ -z "$violations" ]
+}
+
+@test "the CloudWatch retention guard catches violations and ignores comments" {
+  fixture_dir="$BATS_TEST_TMPDIR/log-retention"
+  mkdir -p "$fixture_dir"
+  fixture_file="$fixture_dir/fixture.tf"
+
+  printf '%s\n' \
+    '# resource "aws_cloudwatch_log_group" "comment_only" {' \
+    '#   name = "/aws/example"' \
+    '# }' \
+    'resource "aws_cloudwatch_log_group" "missing_retention" {' \
+    '  name = "/aws/example"' \
+    '}' > "$fixture_file"
+  violations="$(log_group_retention_violations "$fixture_dir")"
+  [[ "$violations" == *"fixture.tf:4"* ]]
+  [ "$(printf '%s\n' "$violations" | wc -l | tr -d ' ')" -eq 1 ]
+
+  printf '%s\n' \
+    '# resource "aws_cloudwatch_log_group" "comment_only" {' \
+    '#   name = "/aws/example"' \
+    '# }' \
+    'resource "aws_cloudwatch_log_group" "with_retention" {' \
+    '  name = "/aws/example"' \
+    '  retention_in_days = 1' \
+    '}' > "$fixture_file"
+  violations="$(log_group_retention_violations "$fixture_dir")"
+  [ -z "$violations" ]
 }
