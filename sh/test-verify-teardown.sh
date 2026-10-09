@@ -2,13 +2,18 @@
 set -euo pipefail
 
 readonly HOME_REGION="${AWS_REGION:-us-east-1}"
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly ROOT
 readonly SWEEP="${ROOT}/sh/verify-teardown.sh"
 readonly REPORT="${ROOT}/.teardown-report.json"
-readonly RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-readonly VOLUME_DESCRIPTION="verify-teardown-hard-gate-${RUN_ID}"
-readonly OUTPUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/verify-teardown-test.XXXXXX")"
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+readonly RUN_ID
+readonly VOLUME_TAG_KEY="TeardownHardGateRun"
+readonly VOLUME_TAG_VALUE="${RUN_ID}"
+OUTPUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/verify-teardown-test.XXXXXX")"
+readonly OUTPUT_DIR
 
 VOLUME_ID=""
 CLEANUP_DONE=0
@@ -30,7 +35,7 @@ cleanup() {
     candidate_ids="$VOLUME_ID"
   else
     candidate_ids="$(aws ec2 describe-volumes \
-      --filters "Name=description,Values=${VOLUME_DESCRIPTION}" \
+      --filters "Name=tag:${VOLUME_TAG_KEY},Values=${VOLUME_TAG_VALUE}" \
       --query 'Volumes[].VolumeId' --output text 2>/dev/null || true)"
   fi
 
@@ -94,7 +99,8 @@ availability_zone="$(aws ec2 describe-availability-zones \
 # assignment is interrupted after AWS has accepted the create request.
 create_response="$(aws ec2 create-volume --region "$HOME_REGION" \
   --availability-zone "$availability_zone" --size 1 --volume-type gp3 \
-  --description "$VOLUME_DESCRIPTION" --output json)"
+  --tag-specifications "ResourceType=volume,Tags=[{Key=${VOLUME_TAG_KEY},Value=${VOLUME_TAG_VALUE}}]" \
+  --output json)"
 VOLUME_ID="$(jq -r '.VolumeId // empty' <<< "$create_response")"
 if [[ -z "$VOLUME_ID" ]]; then
   printf '%s\n' 'FAIL: create-volume returned no volume ID.' >&2
@@ -102,6 +108,8 @@ if [[ -z "$VOLUME_ID" ]]; then
 fi
 
 aws ec2 wait volume-available --region "$HOME_REGION" --volume-ids "$VOLUME_ID"
+aws ec2 delete-tags --region "$HOME_REGION" --resources "$VOLUME_ID" \
+  --tags "Key=${VOLUME_TAG_KEY}"
 if capture_sweep "$OUTPUT_DIR/arm-2.log"; then
   rc=0
 else
