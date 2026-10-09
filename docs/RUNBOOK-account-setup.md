@@ -133,7 +133,9 @@ and repository ID is `1383184443`, so it uses immutable ID-qualified subjects. T
 subjects are `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:pull_request` for plans and
 `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:ref:refs/heads/develop` for applies. This
 format is selected from the repository creation date; no claim-debugger workflow was run because
-this repository is public.
+this repository is public. The teardown sweep has a separate read-only role using the same
+develop-ref subject; its explicit deny prevents reading Terraform state objects while allowing the
+bucket location and tag metadata the verifier checks.
 
 The apply role is scoped to the repository's `develop` default branch. Do not add a GitHub Actions
 `environment:` to the apply job without updating the trust policy in the same change. Environment

@@ -202,10 +202,12 @@ Phase 2 provisions anything.
   apply subject matches the repository's existing `develop` default branch; the user approved this
   revision after confirming that GitHub has no `main` branch.
   Rationale: Pitfall 36 — a `repo:owner/*` trust policy lets any repo in the org assume the role.
-- **D-27:** **Two CI roles, not one:** `gha-terraform-plan` (read-only plus state read/lock),
-  assumable only from `pull_request`; and `gha-terraform-apply` (broad), assumable only from
-  `refs/heads/develop`. Satisfies CD-05's branch scoping, pre-wires Phase 3's "plan on PR, apply on
-  merge", and gives the scheduled sweep (D-12) a read-only identity for free.
+- **D-27 (revised during Plan 01-10):** Three distinct CI roles preserve separate trust and
+  permission boundaries: `gha-terraform-plan` (read-only plus state read/lock), assumable only from
+  `pull_request`; `gha-terraform-apply` (broad), assumable only from `refs/heads/develop`; and
+  `gha-terraform-sweep` (read-only, no state-object reads), assumable only from
+  `refs/heads/develop`. The sweep role is separate because scheduled runs emit a branch-ref subject,
+  not the plan role's `pull_request` subject. The user approved this after the mismatch was identified.
   — **Reversibility:** costly — every GitHub Actions workflow references these role ARNs by name.
 - **D-28:** The apply role is **broad in Phase 1** — administrator-equivalent with an explicit
   `Deny` on Organizations, account-closure, and billing-configuration actions — **and Phase 10

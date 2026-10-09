@@ -94,7 +94,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Use immediate service-dimension anomaly alerts — A DIMENSIONAL SERVICE monitor is valid in the member account and IMMEDIATE supports the SNS-only subscription.
 - [Phase 01]: Keep the cost-alert SNS topic unencrypted — AWS Budgets requires additional permissions for encrypted topics and the KMS key cost is unnecessary.
 - [Phase 01]: Use immutable GitHub OIDC subjects for CI trust — The repository was created on 2026-09-23, after the 2026-07-15 cutover; metadata shows owner ID 82219047 and repository ID 1383184443, so both IDs qualify the subject. The repository is public, so no unredacted claim debugger workflow will be published.
-- [Phase 01]: Restrict the plan role to PRs and the apply role to develop — GitHub's existing default branch is `develop` and no `main` branch exists; separate exact StringEquals subjects preserve the role boundary, and the plan role gets only state reads and scoped .tflock write/delete.
+- [Phase 01]: Keep OIDC roles disjoint by purpose — the plan role trusts PRs only; the apply role and a separate read-only sweep role trust only `develop`. The sweep role explicitly denies state-object reads while retaining required S3 bucket metadata access.
 - [Phase 01]: Keep AdministratorAccess temporary and deny account and credential administration — The apply role's explicit deny blocks Organizations, billing configuration, and long-lived credential creation, but leaves budgets and Cost Explorer usable. Phase 10 replaces the broad grant using recorded CloudTrail activity.
 
 ### Pending Todos

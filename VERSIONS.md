@@ -20,6 +20,7 @@ Last verified against upstream registries: **2026-09-25**
 | `actions/checkout` | `v6.0.2` | `.github/workflows/terraform-plan.yml`, `.github/workflows/terraform-apply.yml` |
 | `hashicorp/setup-terraform` | `v3.1.2` | `.github/workflows/terraform-plan.yml`, `.github/workflows/terraform-apply.yml` |
 | `aws-actions/configure-aws-credentials` | `v6.3.0` | `.github/workflows/terraform-plan.yml`, `.github/workflows/terraform-apply.yml` |
+| `actions/upload-artifact` | `v4.6.2` | `.github/workflows/scheduled-teardown-sweep.yml` |
 
 ## Local tooling (not pinned in code)
 
