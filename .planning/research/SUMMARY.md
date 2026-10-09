@@ -109,7 +109,7 @@ At 20 sessions/month × 3 hours, Profile A is **~$14/month of active spend**, Pr
 
 **Phase 0 — Account, L0 bootstrap, and the teardown harness**
 **Rationale:** Everything depends on it, and the verifier must exist before there is anything to verify — writing it first is the forcing function that makes the constraint real rather than aspirational.
-**Delivers:** Dedicated AWS account + zero-spend Budget + Cost Anomaly Detection at $1. `layers/00-bootstrap`: S3 state (`use_lockfile`, versioned), ECR + keep-last-3 lifecycle + `force_delete = true`, GitHub OIDC provider + two scoped roles, observability S3 bucket (3-day lifecycle), SPA bucket + CloudFront, cost-allocation tags via `default_tags`. Makefile skeleton. **`scripts/verify-teardown.sh`.** `VERSIONS.md`.
+**Delivers:** Dedicated AWS account + zero-spend Budget + Cost Anomaly Detection at $1. `layers/00-bootstrap`: S3 state (`use_lockfile`, versioned), ECR + keep-last-3 lifecycle + `force_delete = true`, GitHub OIDC provider + two scoped roles, observability S3 bucket (3-day lifecycle), SPA bucket + CloudFront, cost-allocation tags via `default_tags`. Makefile skeleton. **`sh/verify-teardown.sh`.** `VERSIONS.md`.
 **Avoids:** Pitfalls 2, 3, 8, 36 (orphans, unverifiable teardown, runaway scale-out, loose OIDC trust).
 **Research flag:** 🔬 **YES** — verify current AWS pricing for the chosen region. The entire budget rests on it and only EKS + PrivateLink rates were authoritatively verified.
 

@@ -1,0 +1,6 @@
+{
+  "Regions": [
+    {"RegionName": "us-east-1", "OptInStatus": "opt-in-not-required"},
+    {"RegionName": "eu-west-1", "OptInStatus": "opt-in-not-required"}
+  ]
+}

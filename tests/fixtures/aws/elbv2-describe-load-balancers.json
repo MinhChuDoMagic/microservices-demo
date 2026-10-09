@@ -15,6 +15,14 @@
       "Type": "application",
       "VpcId": "vpc-00000000000000005",
       "CreatedTime": "2026-09-01T06:00:00Z"
+    },
+    {
+      "LoadBalancerName": "half-created-ingress",
+      "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/half-created-ingress/0123456789abcdef",
+      "State": {"Code": "provisioning"},
+      "Type": "application",
+      "VpcId": "vpc-00000000000000006",
+      "CreatedTime": "2026-10-02T06:00:00Z"
     }
   ]
 }

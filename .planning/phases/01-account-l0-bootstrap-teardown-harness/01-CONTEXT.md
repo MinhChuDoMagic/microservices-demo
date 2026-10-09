@@ -13,7 +13,7 @@ proven able to fail before anything exists to tear down.
 **In scope:** account prerequisites and baseline inventory, S3 remote state with native
 `use_lockfile` locking, the four-layer directory skeleton, `default_tags` cost attribution, a
 zero-spend Budget and $1 Cost Anomaly Detection monitor, GitHub Actions OIDC federation with
-branch-scoped trust, and `scripts/verify-teardown.sh` with a committed test that proves it exits
+branch-scoped trust, and `sh/verify-teardown.sh` with a committed test that proves it exits
 non-zero on a real orphan.
 
 **Out of scope (later phases):** VPC, EKS, node groups, drain scripts, `make up`/`make down`,
@@ -76,7 +76,7 @@ Phase 2 provisions anything.
 
 ### Teardown Sweep Design
 
-- **D-06:** `scripts/verify-teardown.sh` is **Bash + AWS CLI v2 + `jq`**, `set -euo pipefail`, a
+- **D-06:** `sh/verify-teardown.sh` is **Bash + AWS CLI v2 + `jq`**, `set -euo pipefail`, a
   single file. Not Python/boto3. Rationale: zero runtime to install or version-pin, identical
   invocation from `make down` and from CI, and `research/PITFALLS.md` §Pitfall 3 already supplies a
   working skeleton to extend.
@@ -99,7 +99,7 @@ Phase 2 provisions anything.
   cases for a handful of API calls.
 - **D-09:** Immortal resources are excluded by an **explicit allowlist, not a blanket ignore.** L0
   resources carry `Layer=00-bootstrap` and are additionally named in a committed
-  `scripts/teardown-allowlist.txt`. Anything alive that is neither tagged `Layer=00-bootstrap` nor
+  `sh/teardown-allowlist.txt`. Anything alive that is neither tagged `Layer=00-bootstrap` nor
   on the allowlist is a failure. The allowlist grows as L0 grows (see D-17) — that growth being a
   conscious, reviewable edit is the entire point.
   — **Reversibility:** costly — the allowlist contract is consumed by `make down` from Phase 2 on
@@ -118,10 +118,10 @@ Phase 2 provisions anything.
   never torn down, which is the single most expensive mistake available in this project.
   Invocations: `make down` step 7 (from Phase 2), `make verify-teardown` on demand, and this cron.
 - **D-13:** The failure proof is a **committed, repeatable test**, not a one-time manual
-  demonstration: `scripts/test-verify-teardown.sh` creates one untagged 1 GiB `gp3` EBS volume,
+  demonstration: `sh/test-verify-teardown.sh` creates one untagged 1 GiB `gp3` EBS volume,
   asserts exit code `1`, deletes the volume, asserts exit code `0`, and cleans up on trap. This is
   the evidence artifact for the Phase 1 hard gate and for success criterion 1.
-- **D-14:** `scripts/nuke.sh` (the Layer-4 force-delete remediation from `research/PITFALLS.md`) is
+- **D-14:** `sh/nuke.sh` (the Layer-4 force-delete remediation from `research/PITFALLS.md`) is
   **deferred to Phase 2**, alongside `make down`. Rationale: sequencing discipline — this phase
   verifies teardown; building remediation before the verifier inverts the phase's premise. Accepted
   cost: a wedged first `make up` in Phase 2 has no nuke available yet.
@@ -196,13 +196,15 @@ Phase 2 provisions anything.
   automatically create the AWS-managed service monitor, so implementation must inspect existing
   monitors and import rather than collide. Rationale: COST-04 specifies both, and default anomaly
   thresholds are tuned for enterprise spend and will never fire at this scale.
-- **D-26:** OIDC trust is scoped by **explicit `sub` claim values, never a wildcard**:
-  `repo:<owner>/<repo>:ref:refs/heads/main` and `repo:<owner>/<repo>:pull_request`, with
-  `aud = sts.amazonaws.com` asserted via `StringEquals`. Owner and repo come from variables.
+- **D-26 (revised during Plan 01-10):** OIDC trust is scoped by **explicit `sub` claim values, never a wildcard**:
+  `repo:<owner>/<repo>:ref:refs/heads/develop` and `repo:<owner>/<repo>:pull_request`, with
+  `aud = sts.amazonaws.com` asserted via `StringEquals`. Owner and repo come from variables. The
+  apply subject matches the repository's existing `develop` default branch; the user approved this
+  revision after confirming that GitHub has no `main` branch.
   Rationale: Pitfall 36 — a `repo:owner/*` trust policy lets any repo in the org assume the role.
 - **D-27:** **Two CI roles, not one:** `gha-terraform-plan` (read-only plus state read/lock),
   assumable only from `pull_request`; and `gha-terraform-apply` (broad), assumable only from
-  `refs/heads/main`. Satisfies CD-05's branch scoping, pre-wires Phase 3's "plan on PR, apply on
+  `refs/heads/develop`. Satisfies CD-05's branch scoping, pre-wires Phase 3's "plan on PR, apply on
   merge", and gives the scheduled sweep (D-12) a read-only identity for free.
   — **Reversibility:** costly — every GitHub Actions workflow references these role ARNs by name.
 - **D-28:** The apply role is **broad in Phase 1** — administrator-equivalent with an explicit
@@ -233,9 +235,9 @@ Phase 2 provisions anything.
   layers/20-data/              # stub
   layers/30-gitops/            # stub
   modules/
-  scripts/verify-teardown.sh
-  scripts/test-verify-teardown.sh
-  scripts/teardown-allowlist.txt
+  sh/verify-teardown.sh
+  sh/test-verify-teardown.sh
+  sh/teardown-allowlist.txt
   .github/workflows/
   ```
   `COSTS.md` and `VERSIONS.md` sit at the repo root — REQUIREMENTS.md references both by bare name.
@@ -324,7 +326,7 @@ for the scheduled sweep.
 
 ### Reusable Assets
 None — the repository is greenfield. It contains only `README.md`, `AGENTS.md`, `.planning/`, and
-GSD tooling under `.github/`. There is no `layers/`, no `modules/`, no `scripts/`, no `Makefile`,
+GSD tooling under `.github/`. There is no `layers/`, no `modules/`, no `sh/`, no `Makefile`,
 and no CI workflow. Every file in this phase is a first-of-its-kind.
 
 ### Established Patterns
@@ -335,7 +337,7 @@ become the constraints every subsequent phase inherits. Planning should treat th
 being authored, not discovered.
 
 ### Integration Points
-- `scripts/verify-teardown.sh` is consumed by `make down` step 7 from Phase 2 onward and by the
+- `sh/verify-teardown.sh` is consumed by `make down` step 7 from Phase 2 onward and by the
   scheduled CI sweep — its exit contract (D-10), allowlist format (D-09), and JSON schema (D-11) are
   public interfaces, not internal details.
 - `backend.hcl` (D-16) is consumed by every layer's `init` from Phase 2 onward.
@@ -367,7 +369,7 @@ being authored, not discovered.
 <deferred>
 ## Deferred Ideas
 
-- **`scripts/nuke.sh` / `cloud-nuke` evaluation** → Phase 2, alongside `make down` (D-14).
+- **`sh/nuke.sh` / `cloud-nuke` evaluation** → Phase 2, alongside `make down` (D-14).
 - **ECR repositories** → Phase 3, into the L0 layer (D-21).
 - **Observability S3 bucket** → Phase 5, into the L0 layer (D-21).
 - **SPA bucket + CloudFront** → Phase 11, into the L0 layer (D-21).

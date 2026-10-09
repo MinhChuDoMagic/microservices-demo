@@ -23,7 +23,7 @@ key-files:
     - VERSIONS.md
     - backend.hcl.example
     - Makefile
-    - scripts/doctor.sh
+    - sh/doctor.sh
     - layers/00-bootstrap/versions.tf
     - layers/00-bootstrap/variables.tf
     - layers/10-infra/versions.tf
@@ -132,7 +132,7 @@ Additional reproducibility commit: `01823fb` (`chore`), Terraform provider check
 
 - Terraform was not installed; installed `tfenv` and Terraform 1.16.4 for the planned validation.
 - Installed the explicitly required local tools, Bats 1.14.0 and ShellCheck 0.11.0.
-- The editor initially blocked patch edits to `scripts/doctor.sh`; after authorization, recreated the agent-created file and reran ShellCheck successfully.
+- The editor initially blocked patch edits to `sh/doctor.sh`; after authorization, recreated the agent-created file and reran ShellCheck successfully.
 - A first shell assertion used zsh-incompatible interpolation; the corrected assertion passed.
 
 ## User Setup Required

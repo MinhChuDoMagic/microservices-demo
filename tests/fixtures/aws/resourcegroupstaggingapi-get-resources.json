@@ -1,0 +1,12 @@
+{
+	"PaginationToken": "page-two",
+	"ResourceTagMappingList": [
+		{
+			"ResourceARN": "arn:aws:s3:::tfstate-123456789012-us-east-1",
+			"Tags": [
+				{"Key": "Project", "Value": "microservices-demo"},
+				{"Key": "Layer", "Value": "00-bootstrap"}
+			]
+		}
+	]
+}

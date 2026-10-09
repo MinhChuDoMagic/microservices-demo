@@ -165,7 +165,7 @@ down:
 	terraform -chdir=infra/cluster destroy -auto-approve
 	terraform -chdir=infra/network destroy -auto-approve
 	# 5. Prove it
-	./scripts/verify-teardown.sh
+	./sh/verify-teardown.sh
 ```
 
 Additional hard requirements:
@@ -205,7 +205,7 @@ provider "aws" {
   }
 }
 ```
-Then `scripts/verify-teardown.sh`:
+Then `sh/verify-teardown.sh`:
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
@@ -1674,7 +1674,7 @@ Also: **use distinct namespaces** for Terraform-owned vs Argo-owned things where
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **`make down`:** Often missing the pre-Terraform `kubectl` teardown — verify `./scripts/verify-teardown.sh` exits 0 and lists nothing.
+- [ ] **`make down`:** Often missing the pre-Terraform `kubectl` teardown — verify `./sh/verify-teardown.sh` exits 0 and lists nothing.
 - [ ] **`make up`:** Often returns before the cluster converges — verify it ends with `argocd app wait root --health` and a smoke test.
 - [ ] **Teardown verification:** Often only checks tagged resources — verify it also enumerates ALBs, running instances, available volumes/ENIs, manual RDS snapshots, interface endpoints, and never-expiring log groups.
 - [ ] **Spot handling:** Often missing the interruption queue — verify `karpenter` logs show queue polling, not `interruption queue not configured`.

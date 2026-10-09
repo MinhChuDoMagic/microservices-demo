@@ -207,10 +207,10 @@ green.
 
 | Tier | Validation |
 |---|---|
-| T1 | `shellcheck scripts/verify-teardown.sh` and `bash -n` — syntax and lint, no AWS. |
+| T1 | `shellcheck sh/verify-teardown.sh` and `bash -n` — syntax and lint, no AWS. |
 | T1 | **Fixture-driven exclusion tests.** Stub the `aws` binary on `PATH` and feed recorded JSON for each orphan class. This is where the false-positive exclusions (default SGs, terminated instances, `--owner-ids self` snapshots, `RequesterManaged` ENIs) get proven — and it is the only tier that can prove them *cheaply and repeatably*. Strongly recommended; Part C supplies the per-class shapes. |
 | T1 | Assert every LIFE-05 class name appears in the script (coverage grep). |
-| T2 | `scripts/test-verify-teardown.sh` (D-13) — creates one untagged 1 GiB gp3 volume, asserts exit 1, deletes, asserts exit 0, cleans up on trap. This is the phase's **hard-gate evidence artifact**. Cost is a fraction of a cent. |
+| T2 | `sh/test-verify-teardown.sh` (D-13) — creates one untagged 1 GiB gp3 volume, asserts exit 1, deletes, asserts exit 0, cleans up on trap. This is the phase's **hard-gate evidence artifact**. Cost is a fraction of a cent. |
 | T2 | Exit-code-2 path: run with deliberately invalid credentials and assert exit 2, proving D-10's three-way contract is real and a broken verifier cannot masquerade as a clean account. |
 
 > **Design constraint surfaced by research:** the script must check its `HARD_ERROR`
@@ -1925,7 +1925,7 @@ Note the **two rows for Terraform**. That is intentional — the version appears
 
 D-33. Every check is independent, every failure is actionable, and the target reports **all** failures rather than dying on the first one — an operator should fix everything in one pass, not play whack-a-mole.
 
-**`scripts/doctor.sh`:**
+**`sh/doctor.sh`:**
 
 ```bash
 #!/usr/bin/env bash
@@ -2084,7 +2084,7 @@ Wired into the Makefile, and made a hard prerequisite of anything that touches A
 ```makefile
 .PHONY: doctor
 doctor:
-	@bash scripts/doctor.sh
+	@bash sh/doctor.sh
 
 bootstrap: doctor
 verify-teardown: doctor
@@ -2933,7 +2933,7 @@ version. `[ASSUMED]`
 
 **Framing that governs every subsection below.** D-04 establishes a pre-flight **baseline
 inventory**: run this exact sweep *before* anything is provisioned, and put every survivor on
-`scripts/teardown-allowlist.txt`. That baseline is what turns "exclude AWS-managed noise" from an
+`sh/teardown-allowlist.txt`. That baseline is what turns "exclude AWS-managed noise" from an
 open-ended heuristic problem into a closed one. Heuristics below are still worth implementing —
 they keep the allowlist short and make a *new* AWS-managed resource self-explanatory rather than a
 mystery orphan — but the allowlist is the backstop that guarantees a clean account reports zero.
@@ -3191,7 +3191,7 @@ classes (log groups and S3 buckets) where the baseline inventory is not a nicety
 mechanism:
 
 1. At baseline (before any provisioning), record every existing log group name into
-   `scripts/teardown-allowlist.txt`.
+   `sh/teardown-allowlist.txt`.
 2. On every sweep, report any log group **not** on the allowlist and **not** tagged
    `Layer=00-bootstrap`.
 3. Use name prefixes only to populate `reason`, never to filter.
@@ -3209,7 +3209,7 @@ the primary filter. (`list-tags-log-group` is the older, deprecated form; prefer
 `list-tags-for-resource`. `[ASSUMED]`)
 
 ```bash
-jq --slurpfile allow <(jq -R -s 'split("\n")|map(select(length>0))' scripts/teardown-allowlist.txt) '
+jq --slurpfile allow <(jq -R -s 'split("\n")|map(select(length>0))' sh/teardown-allowlist.txt) '
   [ .[]
     | select(.name as $n | ($allow[0] | index($n)) | not)
     | . + {reason: (if .retention == null
@@ -3493,7 +3493,7 @@ and the wrapper is not optional.
 
 ```bash
 #!/usr/bin/env bash
-# scripts/verify-teardown.sh
+# sh/verify-teardown.sh
 #
 # Exit contract (D-10):
 #   0 = clean            — no orphans outside the allowlist
@@ -3511,7 +3511,7 @@ readonly EXIT_ERROR=2
 
 readonly PROJECT_TAG_KEY="Project"
 readonly IMMORTAL_TAG="Layer=00-bootstrap"
-readonly ALLOWLIST="${ALLOWLIST:-scripts/teardown-allowlist.txt}"
+readonly ALLOWLIST="${ALLOWLIST:-sh/teardown-allowlist.txt}"
 readonly REPORT="${REPORT:-.teardown-report.json}"
 readonly HOME_REGION="${AWS_REGION:-us-east-1}"
 readonly GLOBAL_REGION="us-east-1"
@@ -3711,7 +3711,7 @@ main "$@"
 
 ```make
 verify-teardown:
-	@scripts/verify-teardown.sh; rc=$$?; \
+	@sh/verify-teardown.sh; rc=$$?; \
 	 case $$rc in \
 	   0) echo "clean" ;; \
 	   1) echo "ORPHANS FOUND — see .teardown-report.json" >&2; exit 1 ;; \
@@ -3741,7 +3741,7 @@ Sweep-scoped `exit_code` is embedded so the artifact is self-describing — Phas
     "global": ["iam", "cloudfront", "s3"],
     "tier3":  ["us-east-2", "us-west-1", "us-west-2", "eu-west-1"]
   },
-  "allowlist_file": "scripts/teardown-allowlist.txt",
+  "allowlist_file": "sh/teardown-allowlist.txt",
   "allowlist_entries": 7,
   "exit_code": 1,
   "verdict": "orphans",

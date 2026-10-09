@@ -1,0 +1,83 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.0 — Practice Platform",
+  "phases": [
+    {
+      "number": "1",
+      "name": "Account, L0 Bootstrap & Teardown Harness",
+      "status": "in_progress"
+    },
+    {
+      "number": "2",
+      "name": "Ephemeral Infrastructure & Drain Scripts",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Service Scaffolding & CI Pipeline",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "GitOps Seam & Walking Skeleton",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Event Backbone & Minimal Observability",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "★ The Trace Moment",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "The Complete Saga",
+      "status": "pending"
+    },
+    {
+      "number": "8",
+      "name": "Karpenter, Spot & Graceful Drain",
+      "status": "pending"
+    },
+    {
+      "number": "9",
+      "name": "Observability Depth",
+      "status": "pending"
+    },
+    {
+      "number": "10",
+      "name": "Security Hardening",
+      "status": "pending"
+    },
+    {
+      "number": "11",
+      "name": "Storefront, Catalog, Cart & Notification Lambda",
+      "status": "pending"
+    },
+    {
+      "number": "12",
+      "name": "Progressive Delivery & Load Generation",
+      "status": "pending"
+    },
+    {
+      "number": "13",
+      "name": "Chaos Scenarios & Runbooks",
+      "status": "pending"
+    },
+    {
+      "number": "14",
+      "name": "Testing Depth",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 01 of 14 · executing"
+  },
+  "updated_at": "2026-10-09T03:35:16.270Z"
+}

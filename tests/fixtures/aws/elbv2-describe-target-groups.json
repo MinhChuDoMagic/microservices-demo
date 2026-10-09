@@ -15,6 +15,15 @@
       "LoadBalancerArns": [
         "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/baseline-allowed-alb/abcdef0123456789"
       ]
+    },
+    {
+      "TargetGroupName": "attached-manual-target",
+      "TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/attached-manual-target/0123456789abcdef",
+      "Protocol": "HTTP",
+      "VpcId": "vpc-00000000000000006",
+      "LoadBalancerArns": [
+        "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/manual-ingress/0123456789abcdef"
+      ]
     }
   ]
 }

@@ -58,13 +58,13 @@ order). Two deviations are documented in "Deviations from Research" below.
 **Requirements**: COST-01, COST-04, COST-05, COST-08, COST-09, LIFE-05, LIFE-07, LIFE-08, LIFE-09, LIFE-10, CD-05
 **Success Criteria** (what must be TRUE):
 
-  1. Operator can run `scripts/verify-teardown.sh` against the empty account and see it exit zero, and can make it exit non-zero by manually creating a single untagged EBS volume — proving the sweep actually checks ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
+  1. Operator can run `sh/verify-teardown.sh` against the empty account and see it exit zero, and can make it exit non-zero by manually creating a single untagged EBS volume — proving the sweep actually checks ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
   2. Operator can apply `layers/00-bootstrap` and see Terraform state land in a versioned S3 bucket with a `<key>.tflock` object appearing during apply and disappearing after — with no DynamoDB table anywhere
   3. Operator can deliberately provision a $1 resource and receive a Cost Anomaly Detection alert within one day, and see a zero-spend Budget alarm configured
   4. Operator can attribute every bootstrap resource's spend by layer in Cost Explorer via `default_tags`, and confirm idle cost sits at or below $5/month against a real billing period
   5. GitHub Actions can assume an AWS role via OIDC with a trust policy scoped to this repository and branch, and no long-lived access key exists anywhere in the account or in GitHub secrets
 
-**Plans**: 6/10 plans executed
+**Plans**: 9/10 plans executed
 
 Plans:
 
@@ -74,9 +74,9 @@ Plans:
 - [x] 01-04-PLAN.md — **Tracer**: bootstrap state bucket, S3-native locking, baseline inventory and the teardown sweep spine end-to-end
 - [x] 01-05-PLAN.md — Sweep expansion A: instance, snapshot, address and network-interface classes with fixture-proven exclusions
 - [x] 01-06-PLAN.md — Cost guardrails: SNS topic and policy, monthly ceiling plus daily tripwire budgets, anomaly monitor, tag activation
-- [ ] 01-07-PLAN.md — GitHub OIDC provider and the two branch-scoped CI roles, gated on the repository's subject-claim format
-- [ ] 01-08-PLAN.md — Sweep expansion B: load balancer, target group, security group and log classes, tag layer, three region tiers
-- [ ] 01-09-PLAN.md — **Hard gate**: three-arm `test-verify-teardown.sh`, no-long-lived-credential proof, log-retention convention guard
+- [x] 01-07-PLAN.md — GitHub OIDC provider and the two branch-scoped CI roles, gated on the repository's subject-claim format
+- [x] 01-08-PLAN.md — Sweep expansion B: load balancer, target group, security group and log classes, tag layer, three region tiers
+- [x] 01-09-PLAN.md — **Hard gate**: three-arm `test-verify-teardown.sh`, no-long-lived-credential proof, log-retention convention guard
 - [ ] 01-10-PLAN.md — CI workflows through the OIDC path with a negative scoping test, scheduled sweep, and the decommission escape hatch
 
 **Research flag**: 🔬 **YES — blocker.** Verify current AWS unit pricing for the chosen region against the Pricing Calculator. Only EKS ($0.10/hr) and interface endpoints ($0.01/endpoint-AZ-hr) were authoritatively verified; the entire budget model rests on the rest.
@@ -426,7 +426,7 @@ Three smaller placement judgements worth naming:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Account, L0 Bootstrap & Teardown Harness | 6/10 | In Progress|  |
+| 1. Account, L0 Bootstrap & Teardown Harness | 7/10 | In Progress|  |
 | 2. Ephemeral Infrastructure & Drain Scripts | 0/TBD | Not started | - |
 | 3. Service Scaffolding & CI Pipeline | 0/TBD | Not started | - |
 | 4. GitOps Seam & Walking Skeleton | 0/TBD | Not started | - |

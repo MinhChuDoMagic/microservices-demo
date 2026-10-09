@@ -1,0 +1,6 @@
+{
+  "TagSet": [
+    {"Key": "Layer", "Value": "00-bootstrap"},
+    {"Key": "Project", "Value": "microservices-demo"}
+  ]
+}

@@ -28,7 +28,7 @@ key-files:
   created:
     - tests/fixtures/aws/ec2-describe-images.json
   modified:
-    - scripts/verify-teardown.sh
+    - sh/verify-teardown.sh
     - tests/verify_teardown_exclusions.bats
     - tests/verify_teardown_exit_codes.bats
     - tests/fixtures/aws/README.md
@@ -48,7 +48,7 @@ coverage:
         ref: tests/verify_teardown_exclusions.bats#instance-and-snapshot fixtures
         status: pass
       - kind: other
-        ref: shellcheck scripts/verify-teardown.sh
+        ref: shellcheck sh/verify-teardown.sh
         status: pass
     human_judgment: false
   - id: D2
@@ -70,7 +70,7 @@ coverage:
         ref: tests/verify_teardown_exclusions.bats#summary and usual-cause output
         status: pass
       - kind: other
-        ref: bats tests/ && shellcheck scripts/verify-teardown.sh
+        ref: bats tests/ && shellcheck sh/verify-teardown.sh
         status: pass
     human_judgment: false
 
@@ -106,7 +106,7 @@ status: complete
 
 ## Files Created/Modified
 
-- `scripts/verify-teardown.sh` - Four new checks, explicit class coverage registry, error-first verdict note, and class-specific table causes.
+- `sh/verify-teardown.sh` - Four new checks, explicit class coverage registry, error-first verdict note, and class-specific table causes.
 - `tests/verify_teardown_exclusions.bats` - Activated instance, volume, snapshot, address, and ENI cases; added reason and report coverage assertions.
 - `tests/verify_teardown_exit_codes.bats` - Tests late-sweep error precedence and missing class registration.
 - `tests/fixtures/aws/ec2-describe-images.json` - Self-owned AMI reference for the image-backed snapshot exclusion.
@@ -133,7 +133,7 @@ status: complete
 - **Found during:** Task 1 (instance fixture test)
 - **Issue:** The replay shim returns raw responses, so it does not simulate AWS applying the server-side state filter.
 - **Fix:** Kept the required API filter and added a local state predicate for pending/running/stopping/stopped.
-- **Files modified:** `scripts/verify-teardown.sh`
+- **Files modified:** `sh/verify-teardown.sh`
 - **Verification:** The call-log assertion proves the API filter is present; the fixture test excludes terminated and shutting-down instances.
 - **Committed in:** `d2d649a`
 
@@ -141,7 +141,7 @@ status: complete
 - **Found during:** Task 3 (coverage guard)
 - **Issue:** Failing on every currently unwired schema class would contradict the requirement to retain zero-count slots for later plans.
 - **Fix:** Mapped later-plan classes to a deliberate no-op placeholder and made the guard reject schema/registry drift or missing functions.
-- **Files modified:** `scripts/verify-teardown.sh`
+- **Files modified:** `sh/verify-teardown.sh`
 - **Verification:** The exit-code suite injects an unregistered schema key and asserts exit 2 plus an error naming it.
 - **Committed in:** `28362b5`
 
@@ -160,7 +160,7 @@ status: complete
 
 ## Issues Encountered
 
-- Copilot marks `scripts/verify-teardown.sh` as ignored, so `apply_patch` was blocked. After the prior handoff's authorization and explicit confirmation in this session, a unique-anchor Node edit was used; ShellCheck and the full Bats suite passed.
+- Copilot marks `sh/verify-teardown.sh` as ignored, so `apply_patch` was blocked. After the prior handoff's authorization and explicit confirmation in this session, a unique-anchor Node edit was used; ShellCheck and the full Bats suite passed.
 - Initial patch attempts and the first table/guard tests exposed local context and assertion issues, which were corrected before the final verification run.
 
 ## User Setup Required
