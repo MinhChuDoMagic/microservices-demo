@@ -86,3 +86,82 @@ output "gha_plan_role_arn" {
   description = "GitHub Actions plan role ARN; trusted only for pull requests."
   value       = aws_iam_role.gha_terraform_plan.arn
 }
+
+data "aws_iam_policy_document" "gha_apply_trust" {
+  statement {
+    sid     = "GitHubOIDCMainBranchOnly"
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.gh_oidc_host}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${local.gh_oidc_host}:sub"
+      values   = [local.gh_sub_main]
+    }
+  }
+}
+
+resource "aws_iam_role" "gha_terraform_apply" {
+  name                 = "gha-terraform-apply"
+  assume_role_policy   = data.aws_iam_policy_document.gha_apply_trust.json
+  max_session_duration = 3600
+}
+
+resource "aws_iam_role_policy_attachment" "gha_apply_admin" {
+  role       = aws_iam_role.gha_terraform_apply.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+data "aws_iam_policy_document" "gha_apply_guardrails" {
+  statement {
+    sid    = "DenyOrgsAccountClosureAndBillingConfig"
+    effect = "Deny"
+    actions = [
+      "organizations:*",
+      "account:CloseAccount",
+      "account:DisableRegion",
+      "account:EnableRegion",
+      "account:PutAlternateContact",
+      "account:DeleteAlternateContact",
+      "billing:*",
+      "payments:*",
+      "invoicing:*",
+      "consolidatedbilling:*",
+      "purchase-orders:*",
+      "tax:*",
+      "freetier:*",
+      "aws-portal:*",
+      "iam:CreateUser",
+      "iam:CreateAccessKey",
+      "iam:CreateLoginProfile",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "gha_apply_guardrails" {
+  name   = "phase1-broad-apply-guardrails"
+  role   = aws_iam_role.gha_terraform_apply.id
+  policy = data.aws_iam_policy_document.gha_apply_guardrails.json
+
+  # TEMPORARY (D-28). Phase 10 replaces AdministratorAccess with an IAM Access Analyzer-derived
+  # least-privilege policy based on recorded CloudTrail activity.
+}
+
+# Do not add a GitHub Actions environment to the apply job without updating this subject:
+# environment claims take precedence over branch refs, regardless of the workflow trigger.
+output "gha_apply_role_arn" {
+  description = "GitHub Actions apply role ARN; trusted only for the main branch."
+  value       = aws_iam_role.gha_terraform_apply.arn
+}
