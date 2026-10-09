@@ -8,6 +8,7 @@ setup() {
   REPORT="$BATS_TEST_TMPDIR/teardown-report.json"
   printf '%s\n' \
     'baseline-allowed-alb' \
+    'baseline-allowed-classic' \
     'baseline-allowed-target' \
     '/practice/baseline-allowed' > "$ALLOWLIST"
   export ALLOWLIST REPORT
@@ -49,28 +50,42 @@ assert_dirty_report() {
   [ -f "$REPORT" ]
 }
 
-@test "reports an unallowlisted load balancer and excludes the baseline one" {
-  require_sweep_class check_load_balancers
+@test "reports active and provisioning load balancers and excludes the baseline one" {
   run_sweep
   assert_dirty_report
   assert_report_has load_balancers k8s-demo-ingress-1a2b3c4d
+  assert_report_has load_balancers half-created-ingress
   assert_report_lacks load_balancers baseline-allowed-alb
 }
 
+@test "reports classic load balancers and excludes the baseline one" {
+  run_sweep
+  assert_dirty_report
+  assert_report_has load_balancers legacy-manual-classic
+  assert_report_lacks load_balancers baseline-allowed-classic
+  grep -Fq -- 'elb describe-load-balancers' "$STUB_AWS_CALL_LOG"
+}
+
 @test "reports an orphan target group and excludes the baseline one" {
-  require_sweep_class check_target_groups
   run_sweep
   assert_dirty_report
   assert_report_has target_groups orphan-manual-target
+  assert_report_has target_groups attached-manual-target
   assert_report_lacks target_groups baseline-allowed-target
+  jq -e '.orphans.target_groups[] | select(.id == "orphan-manual-target") | .reason | contains("no load balancer attached")' "$REPORT" >/dev/null
+  jq -e '.orphans.target_groups[] | select(.id == "attached-manual-target") | .reason | contains("attached to live LB")' "$REPORT" >/dev/null
 }
 
 @test "reports a controller-style security group and excludes default" {
-  require_sweep_class check_security_groups
   run_sweep
   assert_dirty_report
   assert_report_has security_groups sg-00000000000000002
+  assert_report_has security_groups sg-00000000000000003
   assert_report_lacks security_groups sg-00000000000000001
+  jq -e '.orphans.security_groups[] | select(.id == "sg-00000000000000002") | .reason | test("controller"; "i")' "$REPORT" >/dev/null
+  grep -Fq -- 'GroupName!=`default`' "$STUB_AWS_CALL_LOG"
+  default_exclusions="$(grep -v '^[[:space:]]*#' "$BATS_TEST_DIRNAME/../scripts/verify-teardown.sh" | grep -c 'default')"
+  [ "$default_exclusions" -ge 2 ]
 }
 
 @test "reports running and stopped instances but excludes terminated states" {
@@ -123,7 +138,7 @@ assert_dirty_report() {
 @test "summarizes wired classes and prints their usual causes" {
   run_sweep
   assert_dirty_report
-  jq -e '.summary.by_class | .ebs_volumes == 1 and .ec2_instances == 2 and .snapshots == 1 and .elastic_ips == 1 and .enis == 1 and .security_groups == 0 and .load_balancers == 0 and .target_groups == 0 and .log_groups == 0 and .eks_clusters == 0 and .rds_instances == 0 and .iam == 0 and .cloudfront == 0 and .s3_buckets == 0 and .tagged == 0' "$REPORT" >/dev/null
+  jq -e '.summary.by_class | .ebs_volumes == 1 and .ec2_instances == 2 and .snapshots == 1 and .elastic_ips == 1 and .enis == 1 and .security_groups == 2 and .load_balancers == 3 and .target_groups == 2 and .log_groups == 0 and .eks_clusters == 0 and .rds_instances == 0 and .iam == 0 and .cloudfront == 0 and .s3_buckets == 0 and .tagged == 0' "$REPORT" >/dev/null
   jq -e '[.orphans[] | .[]] | all(.[]; (.reason | length) > 0 and .discovered_by == "blind-spot")' "$REPORT" >/dev/null
   [[ "$output" == *"usual cause: node group deletion left detached EBS volumes"* ]]
   [[ "$output" == *"usual cause: stopped or unterminated EC2 instance"* ]]

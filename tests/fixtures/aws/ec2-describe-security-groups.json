@@ -17,6 +17,14 @@
       "Tags": [
         {"Key": "elbv2.k8s.aws/cluster", "Value": "demo"}
       ]
+    },
+    {
+      "GroupId": "sg-00000000000000003",
+      "GroupName": "manual-console-group",
+      "Description": "created by a console session",
+      "VpcId": "vpc-00000000000000003",
+      "OwnerId": "123456789012",
+      "Tags": []
     }
   ]
 }

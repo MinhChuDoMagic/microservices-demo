@@ -1,0 +1,14 @@
+{
+  "LoadBalancerDescriptions": [
+    {
+      "LoadBalancerName": "legacy-manual-classic",
+      "DNSName": "legacy-manual-classic-123456.us-east-1.elb.amazonaws.com",
+      "VPCId": "vpc-00000000000000006"
+    },
+    {
+      "LoadBalancerName": "baseline-allowed-classic",
+      "DNSName": "baseline-allowed-classic-123456.us-east-1.elb.amazonaws.com",
+      "VPCId": "vpc-00000000000000005"
+    }
+  ]
+}
