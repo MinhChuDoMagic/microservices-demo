@@ -13,10 +13,10 @@ Requirements for Milestone 1. Each maps to a roadmap phase.
 
 ### Cost Control
 
-- [ ] **COST-01**: Operator can see total idle cost stay at or below $5/month with the cluster destroyed, verified against a real billing period
+- [x] **COST-01**: Operator can see total idle cost stay at or below $5/month with the cluster destroyed, verified against a real billing period
 - [ ] **COST-02**: Operator can run a `core` profile session at or below ~$0.23/hour with in-cluster Postgres and Redis, Prometheus and Tempo only
 - [ ] **COST-03**: Operator can run a `full` profile session with RDS, ElastiCache, Loki, and WAF, accepting ~$0.29–0.33/hour bounded by session length
-- [ ] **COST-04**: A zero-spend AWS Budget and Cost Anomaly Detection at a $1 absolute threshold alert the operator within one day of unexpected spend
+- [x] **COST-04**: A zero-spend AWS Budget and Cost Anomaly Detection at a $1 absolute threshold alert the operator within one day of unexpected spend
 - [ ] **COST-05**: Every provisioned resource carries cost-allocation tags applied via Terraform `default_tags`, and spend can be attributed by layer
 - [ ] **COST-06**: Karpenter `NodePool.spec.limits` caps total provisionable CPU and memory, so a runaway workload produces a bounded `NodePool limit exceeded` event rather than an unbounded bill
 - [ ] **COST-07**: An EC2 instance-type allowlist prevents a resource-request typo from summoning an oversized instance
@@ -241,10 +241,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COST-01 | Phase 1 | Pending |
+| COST-01 | Phase 1 | Complete |
 | COST-02 | Phase 5 | Pending |
 | COST-03 | Phase 10 | Pending |
-| COST-04 | Phase 1 | Pending |
+| COST-04 | Phase 1 | Complete |
 | COST-05 | Phase 1 | Pending |
 | COST-06 | Phase 8 | Pending |
 | COST-07 | Phase 8 | Pending |

@@ -5,15 +5,15 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-10-08T10:25:25.693Z"
-last_activity: 2026-10-08
-state_head: d858938314be18ea2e9adf79d937fb72496faf36
+stopped_at: Completed 01-06-PLAN.md; SNS confirmation verified
+last_updated: "2026-10-09T02:47:38.961Z"
+last_activity: 2026-10-09
+state_head: fe0301995868a5edaa2d614ef931e93b92a55477
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 10
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-09-24)
 ## Current Position
 
 Phase: 01 (Account, L0 Bootstrap & Teardown Harness) — EXECUTING
-Plan: 6 of 10
+Plan: 7 of 10
 Status: Ready to execute
-Last activity: 2026-10-08
+Last activity: 2026-10-09
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 1h 14m | 4 tasks | 8 files |
 | Phase 01 P04 | 48 min | 3 tasks | 10 files |
 | Phase 01 P05 | 23 min | 3 tasks | 5 files |
+| Phase 01 P06 | 16h 21m | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Keep the baseline teardown allowlist empty — The user confirmed the member account had no resources that must survive, and the pre-apply sweep found none.
 - [Phase 01]: Keep all report schema classes explicit — Later-plan classes retain zero-count slots through a deliberate placeholder; unknown schema keys fail closed.
 - [Phase 01]: Defensively filter raw EC2 instance fixtures — Keep the required server-side state filter and repeat it locally because fixture replay does not apply AWS CLI projections.
+- [Phase 01]: Use a daily actual-spend tripwire during alert cold starts — The  daily budget provides deterministic first-day coverage while forecast budgets and Cost Anomaly Detection lack sufficient history.
+- [Phase 01]: Use immediate service-dimension anomaly alerts — A DIMENSIONAL SERVICE monitor is valid in the member account and IMMEDIATE supports the SNS-only subscription.
+- [Phase 01]: Keep the cost-alert SNS topic unencrypted — AWS Budgets requires additional permissions for encrypted topics and the KMS key cost is unnecessary.
 
 ### Pending Todos
 
@@ -108,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-08T10:24:47.724Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-10-09T02:47:25.193Z
+Stopped at: Completed 01-06-PLAN.md; SNS confirmation verified
 Resume file: None
