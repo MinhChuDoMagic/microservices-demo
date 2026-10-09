@@ -23,6 +23,20 @@ load 'helpers/load'
   done
 }
 
+@test "cost guardrails use exact string thresholds and document strict boundaries" {
+  guardrails_file="$BATS_TEST_DIRNAME/../layers/00-bootstrap/cost-guardrails.tf"
+  operator_count="$(grep -cF 'comparison_operator       = "GREATER_THAN"' "$guardrails_file")"
+  threshold_count="$(grep -Ec '^[[:space:]]*threshold[[:space:]]*=[[:space:]]*"[0-9]+([.][0-9]+)?"$' "$guardrails_file")"
+
+  [ "$operator_count" -eq 5 ]
+  [ "$threshold_count" -eq 5 ]
+  grep -Fq 'limit_amount = "5"' "$guardrails_file"
+  grep -Fq 'limit_amount = "1"' "$guardrails_file"
+  grep -Eq 'values[[:space:]]*= \["1"\]' "$guardrails_file"
+  grep -Fq 'exactly $5.00 does not notify' "$guardrails_file"
+  grep -Fq 'exactly $1.00 do not notify' "$guardrails_file"
+}
+
 @test "every Terraform layer uses an exact version pin" {
   matches="$(for versions_file in "$BATS_TEST_DIRNAME"/../layers/*/versions.tf; do
     grep -v '^[[:space:]]*#' "$versions_file"
