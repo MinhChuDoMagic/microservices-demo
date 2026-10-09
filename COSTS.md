@@ -132,7 +132,7 @@ No other resources live in this L0 layer. Usage assumptions:
 | 4 | DynamoDB state lock table | - | - | $0.00; absent by design because native S3 `use_lockfile` is used. |
 | 5 | IAM OIDC provider | 1 | $0.00 | $0.00 |
 | 6 | IAM roles and policies | 2 | $0.00 | $0.00 |
-| 7 | AWS Budgets, one monthly action-free COST budget | 1 budget | $0.00/budget-day | $0.00 |
+| 7 | AWS Budgets, monthly ceiling plus daily $1 tripwire (both action-free COST budgets) | 2 budgets | $0.00/budget-day | $0.00 |
 | 8 | Cost Anomaly Detection monitor + subscription | 1 + 1 | No offer code found | $0.00 `[ASSUMED]` |
 | 9 | Standard SNS topic | 1 | No topic-hours SKU | $0.00 `[VERIFIED]` |
 | 10 | SNS Publish API requests | ~20 | First 1M/month free | $0.00 |
@@ -169,6 +169,15 @@ AWS Budgets needs roughly **five weeks of spend history** before producing a for
 100%-of-actual notification is live. Keep the forecast notifications for later use and rely on the daily
 `ACTUAL`/`ABSOLUTE_VALUE` `$1` budget from plan 01-06 for deterministic first-day coverage. Source:
 `01-RESEARCH.md` F-03; verified against AWS documentation during research on 2026-09-25.
+
+### Daily actual-spend tripwire
+
+Plan 01-06 adds a daily COST budget with a `$1` limit and one `ACTUAL` / `ABSOLUTE_VALUE` notification at
+`$1`, routed through the cost-alert SNS topic. Its `GREATER_THAN` comparison is strict: `$0.99` and exactly
+`$1.00` do not notify; spend above `$1.00` crosses the threshold. AWS Budgets refreshes up to three times a
+day, typically 8-12 hours after the prior update, so this is deterministic early coverage rather than an
+instantaneous spend alarm. It is the phase-sealing proxy for Cost Anomaly Detection's cold start, not a
+replacement for the anomaly monitor.
 
 ### Cost Anomaly Detection history and blind spots
 
