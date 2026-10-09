@@ -4,7 +4,7 @@ BOOTSTRAP_DIR := $(ROOT)/layers/00-bootstrap
 AWS_REGION ?= us-east-1
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor fmt validate test bootstrap verify-teardown test-verify-teardown unlock _write-backend-hcl
+.PHONY: help doctor fmt validate test bootstrap verify-teardown test-verify-teardown verify-no-keys unlock _write-backend-hcl
 
 help:
 	@printf '%s\n' \
@@ -12,6 +12,7 @@ help:
 	  'bootstrap              Create and migrate the L0 state backend' \
 	  'verify-teardown        Check the account for teardown orphans' \
 	  'test-verify-teardown   Prove the teardown verifier catches a real orphan' \
+	  'verify-no-keys         Check AWS keys and GitHub secret stores' \
 	  'fmt                    Format Terraform files' \
 	  'validate               Validate every Terraform layer without AWS credentials' \
 	  'test                   Run the Bats test suite' \
@@ -130,6 +131,9 @@ test-verify-teardown: doctor
 	  13) printf '%s\n' 'HARD GATE ERROR-ARM FAILURE - invalid credentials did not produce the error verdict.' >&2; exit 1 ;; \
 	  *) printf 'HARD GATE TOOL FAILURE - test exited %s.\n' "$$RC" >&2; exit 2 ;; \
 	esac
+
+verify-no-keys: doctor
+	@./sh/verify-no-access-keys.sh
 
 unlock: doctor
 	@set -euo pipefail; \
