@@ -5,15 +5,15 @@ milestone_name: Practice Platform
 current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
-stopped_at: "Plan 01-09 complete; ready for Plan 01-10"
-last_updated: "2026-10-09T09:01:09Z"
-last_activity: 2026-10-09
-state_head: 706ac029d0155a0d73fd20b489d2fe6b90f6e112
+stopped_at: "Plan 01-10 complete; phase verification pending"
+last_updated: "2026-10-13T06:55:58Z"
+last_activity: 2026-10-13
+state_head: 2c06866
 progress:
   total_phases: 14
   completed_phases: 0
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -29,16 +29,16 @@ See: .planning/PROJECT.md (updated 2026-09-24)
 
 Phase: 01 (Account, L0 Bootstrap & Teardown Harness) — EXECUTING
 Plan: 10 of 10
-Status: Ready for Plan 01-10
+Status: Plan complete; phase-level verification pending
 Last activity: 2026-10-09
 
-Progress: [█████████░] 90%
+Progress: 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
- Total plans completed: 9
+ Total plans completed: 10
 
 **By Phase:**
 
@@ -65,6 +65,7 @@ Progress: [█████████░] 90%
 | Phase 01 P07 | 46 min | 3 tasks | 5 files |
 | Phase 01 P08 | — | 3 tasks | 5 files |
 | Phase 01 P09 | 15 min | 3 tasks | 5 files |
+| Phase 01 P10 | multi-session | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Use immutable GitHub OIDC subjects for CI trust — The repository was created on 2026-09-23, after the 2026-07-15 cutover; metadata shows owner ID 82219047 and repository ID 1383184443, so both IDs qualify the subject. The repository is public, so no unredacted claim debugger workflow will be published.
 - [Phase 01]: Keep OIDC roles disjoint by purpose — the plan role trusts PRs only; the apply role and a separate read-only sweep role trust only `develop`. The sweep role explicitly denies state-object reads while retaining required S3 bucket metadata access.
 - [Phase 01]: Keep AdministratorAccess temporary and deny account and credential administration — The apply role's explicit deny blocks Organizations, billing configuration, and long-lived credential creation, but leaves budgets and Cost Explorer usable. Phase 10 replaces the broad grant using recorded CloudTrail activity.
+- [Phase 01]: Keep AdministratorAccess temporary and deny account and credential administration — The apply role's explicit deny blocks Organizations, billing configuration, and long-lived credential creation, but leaves budgets and Cost Explorer usable. Phase 10 replaces the broad grant using recorded CloudTrail activity.
+- [Phase 01]: Use `develop` as the only apply and sweep branch — It is the repository's only/default branch.
+- [Phase 01]: Keep bootstrap destruction outside the daily loop — `make nuke-bootstrap` requires the live account ID and restores the literal destroy guard from backup.
 
 ### Pending Todos
 
@@ -106,6 +110,9 @@ None yet.
 - **[Phase 5/6] OQ5: OTel trace context across EventBridge.** Resolved in approach (manual `traceparent` in the envelope), unverified in practice. Three of four researchers flagged this as the most likely thing to silently break the flagship demo. Watch for the Link-vs-Parent false negative.
 - **[Phase 9] OQ2/OQ4 unresolved.** Prometheus TSDB dies nightly but burn-rate alerting needs multi-day history; platform footprint estimates (2.1 / 2.5–4 / 3.5–6.5 GiB) are unmeasured hypotheses.
 - **[Phase 5] OQ1 unresolved.** RDS viability under same-day teardown — `var.use_rds` defaults false pending measured create/delete timings.
+- **[Phase 5] OQ1 unresolved.** RDS viability under same-day teardown — `var.use_rds` defaults false pending measured create/delete timings.
+- **[Phase 1] Cost Explorer attribution deferred.** Four keys were operator-confirmed Active on 2026-10-09; observe per-layer attribution after November's full billing month and the next refresh, on or after 2026-12-02. The member-account CLI cannot list organization tag status.
+- **[Phase 1] Fork-PR workflow observation unverified.** No forks exist; static assertions cover the fallback.
 - **[Cross-cutting] "Infrastructure forever, never ship a feature."** No deadline means no forcing function. Phase 4's walking skeleton and Phase 6's trace moment exist as deliberate defences.
 
 ## Deferred Items
@@ -116,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09
-Stopped at: Plan 01-09 complete; hard-gate, credential, and static-retention checks pass. Next: Plan 01-10.
-Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/01-10-PLAN.md
+Last session: 2026-10-13
+Stopped at: Plan 01-10 complete; CI, teardown sweep, decommission path, and billing checkpoint are recorded. Next: phase-level verification.
+Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/01-10-SUMMARY.md
