@@ -216,3 +216,83 @@ log_group_retention_violations() {
   grep -Fq 'actions/upload-artifact' "$versions_file"
   grep -Fq '.github/workflows/scheduled-teardown-sweep.yml' "$versions_file"
 }
+
+@test "versioned-bucket emptier deletes versions and markers until empty" {
+  stub_dir="$BATS_TEST_TMPDIR/aws-stub"
+  mkdir -p "$stub_dir"
+  cat > "$stub_dir/aws" <<'AWS'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$1 $2" == "s3api list-object-versions" ]]; then
+  [[ "$*" == *"--bucket test-bucket"* && "$*" == *"--max-keys 1000"* ]]
+  listing_count=0
+  [[ ! -f "$AWS_LIST_COUNT" ]] || listing_count="$(<"$AWS_LIST_COUNT")"
+  listing_count=$((listing_count + 1))
+  printf '%s' "$listing_count" > "$AWS_LIST_COUNT"
+  if [[ "$listing_count" -eq 1 ]]; then
+    printf '%s\n' '{"Versions":[{"Key":"state","VersionId":"v1"}],"DeleteMarkers":[{"Key":"state","VersionId":"d1"}]}'
+  else
+    printf '%s\n' '{"Versions":[],"DeleteMarkers":[]}'
+  fi
+elif [[ "$1 $2" == "s3api delete-objects" ]]; then
+  payload="${!#}"
+  jq -e '.Quiet == true and (.Objects | length == 2)' <<< "$payload" >/dev/null
+  printf '%s\n' delete >> "$AWS_DELETE_LOG"
+  printf '%s\n' '{}'
+else
+  exit 64
+fi
+AWS
+  chmod +x "$stub_dir/aws"
+
+  output="$(PATH="$stub_dir:$PATH" \
+    AWS_LIST_COUNT="$BATS_TEST_TMPDIR/list-count" \
+    AWS_DELETE_LOG="$BATS_TEST_TMPDIR/deletes" \
+    "$BATS_TEST_DIRNAME/../sh/empty-versioned-bucket.sh" test-bucket)"
+
+  [ "$(<"$BATS_TEST_TMPDIR/list-count")" -eq 2 ]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/deletes" | tr -d ' ')" -eq 1 ]
+  [[ "$output" == *"deleted 2 versions/markers"* ]]
+  [[ "$output" == *"bucket test-bucket is empty"* ]]
+}
+
+@test "bootstrap destruction has one explicitly decommission-only entry point" {
+  makefile="$BATS_TEST_DIRNAME/../Makefile"
+
+  [ "$(grep -cE 'terraform.*destroy' "$makefile")" -eq 1 ]
+  grep -Fq "nuke-bootstrap         DECOMMISSION:" "$makefile"
+  grep -Fq "trap 'if [[ -f \"\$\$GUARD_BACKUP\" ]]" "$makefile"
+  grep -Fq 'sed -i.bak' "$makefile"
+}
+
+@test "nuke-bootstrap rejects a wrong confirmation before changing state" {
+  stub_dir="$BATS_TEST_TMPDIR/aws-stub"
+  mkdir -p "$stub_dir"
+  cat > "$stub_dir/aws" <<'AWS'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$AWS_CALL_LOG"
+if [[ "$1 $2" == "sts get-caller-identity" ]]; then
+  printf '%s\n' 123456789012
+else
+  exit 64
+fi
+AWS
+  chmod +x "$stub_dir/aws"
+  guard_file="$BATS_TEST_DIRNAME/../layers/00-bootstrap/main.tf"
+  guard_before="$(shasum -a 256 "$guard_file")"
+
+  if output="$(printf 'WRONG STRING\n' | \
+      PATH="$stub_dir:$PATH" \
+      AWS_CALL_LOG="$BATS_TEST_TMPDIR/aws-calls" \
+      make -s nuke-bootstrap 2>&1)"; then
+    fail "nuke-bootstrap accepted an incorrect confirmation"
+  fi
+
+  [[ "$output" == *"confirmation mismatch"* ]]
+  [ "$(wc -l < "$BATS_TEST_TMPDIR/aws-calls" | tr -d ' ')" -eq 1 ]
+  [[ "$(<"$BATS_TEST_TMPDIR/aws-calls")" == "sts get-caller-identity --query Account --output text" ]]
+  [ "$guard_before" = "$(shasum -a 256 "$guard_file")" ]
+  [ ! -e "${guard_file}.bak" ]
+}

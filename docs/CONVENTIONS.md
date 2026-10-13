@@ -31,6 +31,14 @@ Run Terraform initialization only through the Makefile. The S3 backend blocks ar
 partial and depend on generated `backend.hcl` values; a hand-run `terraform init` can initialize the
 wrong backend and put state in the wrong place.
 
+## Bootstrap Decommissioning
+
+`make nuke-bootstrap` is the sole decommission-only exception to D-35's Phase 1 daily-loop target
+list. D-19 requires this separate, deliberately confirmed path; it is not part of `make up` or
+`make down`, and later daily-loop targets must never reach `00-bootstrap`. The target retains the
+literal `prevent_destroy` guard in tracked configuration and lifts it only temporarily, restoring
+the original file from a backup on exit.
+
 ## Teardown Allowlist
 
 Each allowlist entry is a reviewed edit with an inline reason. Never widen the allowlist to make an

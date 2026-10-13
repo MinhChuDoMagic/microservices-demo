@@ -4,7 +4,7 @@ BOOTSTRAP_DIR := $(ROOT)/layers/00-bootstrap
 AWS_REGION ?= us-east-1
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor fmt validate test bootstrap verify-teardown test-verify-teardown verify-no-keys unlock _write-backend-hcl
+.PHONY: help doctor fmt validate test bootstrap verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl
 
 help:
 	@printf '%s\n' \
@@ -16,7 +16,8 @@ help:
 	  'fmt                    Format Terraform files' \
 	  'validate               Validate every Terraform layer without AWS credentials' \
 	  'test                   Run the Bats test suite' \
-	  'unlock                 Inspect and recover a stale S3 state lock'
+	  'unlock                 Inspect and recover a stale S3 state lock' \
+	  'nuke-bootstrap         DECOMMISSION: destroy the L0 state backend'
 
 doctor:
 	@bash sh/doctor.sh
@@ -32,7 +33,7 @@ validate:
 	  terraform -chdir="$$d" validate; \
 	done; \
 	terraform fmt -recursive -check -diff; \
-	shellcheck scripts/*.sh
+	shellcheck sh/*.sh
 
 test:
 	@bats tests/
@@ -163,3 +164,42 @@ unlock: doctor
 	terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" init -input=false -reconfigure \
 	  -backend-config="$(BACKEND_HCL)" -backend-config="key=$$STATE_KEY"; \
 	terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" force-unlock "$$LOCK_ID"
+
+nuke-bootstrap:
+	@set -euo pipefail; \
+	ACCOUNT_ID="$$(aws sts get-caller-identity --query Account --output text)"; \
+	if [[ ! "$$ACCOUNT_ID" =~ ^[0-9]{12}$$ ]]; then printf 'ERROR: invalid AWS account ID: %s\n' "$$ACCOUNT_ID" >&2; exit 1; fi; \
+	EXPECTED="DESTROY BOOTSTRAP $$ACCOUNT_ID"; \
+	printf 'DECOMMISSIONING: this destroys the L0 state bucket and bootstrap resources for AWS account %s.\n' "$$ACCOUNT_ID"; \
+	printf 'All other Terraform layers must already be destroyed.\nType exactly: %s\n> ' "$$EXPECTED"; \
+	IFS= read -r CONFIRM || { printf '%s\n' 'ERROR: confirmation was not provided. Aborted.' >&2; exit 1; }; \
+	if [[ "$$CONFIRM" != "$$EXPECTED" ]]; then printf '%s\n' 'ERROR: confirmation mismatch. Aborted.' >&2; exit 1; fi; \
+	GUARD_FILE="$(BOOTSTRAP_DIR)/main.tf"; \
+	GUARD_BACKUP="$$GUARD_FILE.bak"; \
+	if [[ -e "$$GUARD_BACKUP" ]]; then printf 'ERROR: guard backup already exists: %s\n' "$$GUARD_BACKUP" >&2; exit 1; fi; \
+	GUARD_COUNT="$$(grep -Ec '^[[:space:]]*prevent_destroy = true[[:space:]]*$$' "$$GUARD_FILE" || true)"; \
+	if [[ "$$GUARD_COUNT" -ne 1 ]]; then printf 'ERROR: expected exactly one destroy guard in %s.\n' "$$GUARD_FILE" >&2; exit 1; fi; \
+	BUCKET="$$(terraform -chdir="$(BOOTSTRAP_DIR)" output -raw state_bucket_name)"; \
+	if [[ "$$BUCKET" != "tfstate-$$ACCOUNT_ID-"* ]]; then printf 'ERROR: state bucket %s does not belong to caller account %s.\n' "$$BUCKET" "$$ACCOUNT_ID" >&2; exit 1; fi; \
+	for LAYER in infra data gitops; do \
+	  STATE_KEY="$$LAYER/terraform.tfstate"; \
+	  OBJECTS_JSON="$$(aws s3api list-objects-v2 --bucket "$$BUCKET" --prefix "$$STATE_KEY" --max-keys 1 --output json)"; \
+	  if jq -e --arg key "$$STATE_KEY" 'any(.Contents[]?; .Key == $$key)' <<< "$$OBJECTS_JSON" >/dev/null; then \
+	    printf 'ERROR: %s still exists in the state bucket. Destroy that layer first.\n' "$$STATE_KEY" >&2; exit 1; \
+	  fi; \
+	done; \
+	printf '%s\n' '==> Migrating bootstrap state to the local backend.'; \
+	terraform -chdir="$(BOOTSTRAP_DIR)" init -input=false -force-copy -backend=false; \
+	trap 'if [[ -f "$$GUARD_BACKUP" ]]; then mv "$$GUARD_BACKUP" "$$GUARD_FILE"; fi' EXIT; \
+	trap 'exit 130' INT; \
+	trap 'exit 143' TERM; \
+	sed -i.bak 's/^[[:space:]]*prevent_destroy = true[[:space:]]*$$/    prevent_destroy = false/' "$$GUARD_FILE"; \
+	if grep -Eq '^[[:space:]]*prevent_destroy = true[[:space:]]*$$' "$$GUARD_FILE"; then printf '%s\n' 'ERROR: failed to lift the destroy guard.' >&2; exit 1; fi; \
+	printf '==> Emptying all versions and delete markers from %s.\n' "$$BUCKET"; \
+	"$(ROOT)/sh/empty-versioned-bucket.sh" "$$BUCKET"; \
+	printf '%s\n' '==> Destroying 00-bootstrap.'; \
+	terraform -chdir="$(BOOTSTRAP_DIR)" destroy -input=false -auto-approve; \
+	rm -f "$(BACKEND_HCL)"; \
+	if [[ -f "$$GUARD_BACKUP" ]]; then mv "$$GUARD_BACKUP" "$$GUARD_FILE"; fi; \
+	trap - EXIT INT TERM; \
+	printf '%s\n' '==> L0 decommissioned. The account no longer has Terraform state.'
