@@ -60,7 +60,7 @@ coverage:
     requirement: LIFE-07
     verification:
       - kind: other
-        ref: "shellcheck scripts/*.sh; make -n bootstrap; target inventory assertions"
+        ref: "shellcheck sh/*.sh; make -n bootstrap; target inventory assertions"
         status: pass
       - kind: integration
         ref: "make doctor with a local AWS CLI stub: actual account 123456789012 versus pinned 999999999999"

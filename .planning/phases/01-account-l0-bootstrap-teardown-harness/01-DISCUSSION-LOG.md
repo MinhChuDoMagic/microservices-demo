@@ -232,7 +232,7 @@ phases arrive, and the cron schedule for the scheduled sweep.
 
 ## Deferred Ideas
 
-- `scripts/nuke.sh` / `cloud-nuke` evaluation → Phase 2, alongside `make down`
+- `sh/nuke.sh` / `cloud-nuke` evaluation → Phase 2, alongside `make down`
 - ECR repositories → Phase 3, into the L0 layer
 - Observability S3 bucket → Phase 5, into the L0 layer
 - SPA bucket + CloudFront → Phase 11, into the L0 layer

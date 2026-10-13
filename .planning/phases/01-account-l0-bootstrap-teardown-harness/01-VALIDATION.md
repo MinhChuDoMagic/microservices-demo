@@ -25,7 +25,7 @@ created: "2026-09-24"
 |----------|-------|
 | **Framework** | `bats-core` (Bash assertions) + `shellcheck` (lint) + `terraform fmt`/`validate` (HCL) |
 | **Config file** | none — Wave 0 installs `bats-core` and creates `tests/` |
-| **Quick run command** | `make validate` (→ `terraform fmt -check -recursive`, `terraform validate` per layer, `shellcheck scripts/*.sh`) |
+| **Quick run command** | `make validate` (→ `terraform fmt -check -recursive`, `terraform validate` per layer, `shellcheck sh/*.sh`) |
 | **Full suite command** | `make validate && bats tests/` |
 | **Estimated runtime** | ~20 seconds (T1 static only — no AWS calls) |
 

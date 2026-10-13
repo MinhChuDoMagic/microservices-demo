@@ -17,9 +17,9 @@ Last verified against upstream registries: **2026-09-25**
 
 | Artifact | Pin | Pinned in |
 |---|---|---|
-| `actions/checkout` | `v6.0.2` | `.github/workflows/terraform-plan.yml`, `.github/workflows/terraform-apply.yml` |
-| `hashicorp/setup-terraform` | `v3.1.2` | `.github/workflows/terraform-plan.yml`, `.github/workflows/terraform-apply.yml` |
-| `aws-actions/configure-aws-credentials` | `v6.3.0` | `.github/workflows/terraform-plan.yml`, `.github/workflows/terraform-apply.yml` |
+| `actions/checkout` | `v6.0.2` | `.github/workflows/oidc-plan-role-smoke.yml`, `.github/workflows/oidc-apply-role-smoke.yml` |
+| `hashicorp/setup-terraform` | `v3.1.2` | `.github/workflows/oidc-plan-role-smoke.yml`, `.github/workflows/oidc-apply-role-smoke.yml` |
+| `aws-actions/configure-aws-credentials` | `v6.3.0` | `.github/workflows/oidc-plan-role-smoke.yml`, `.github/workflows/oidc-apply-role-smoke.yml` |
 | `actions/upload-artifact` | `v4.6.2` | `.github/workflows/scheduled-teardown-sweep.yml` |
 
 ## Local tooling (not pinned in code)

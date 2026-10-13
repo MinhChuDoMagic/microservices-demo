@@ -1,4 +1,4 @@
-name: terraform-apply
+name: OIDC apply-role smoke check
 
 on:
   push:
@@ -9,11 +9,11 @@ permissions:
   id-token: write
 
 concurrency:
-  group: terraform-apply
+  group: oidc-apply-role-smoke
   cancel-in-progress: false
 
 jobs:
-  apply:
+  apply-role-smoke:
     runs-on: ubuntu-latest
     # Do not add environment: without updating the role trust policy's sub claim in the same change.
     steps:
@@ -45,3 +45,11 @@ jobs:
 
       - name: Verify assumed role
         run: aws sts get-caller-identity
+
+      - name: Report workflow scope
+        run: |
+          {
+            echo '## OIDC role smoke check'
+            echo 'This workflow validates apply-role assumption and Terraform formatting/validation; it does not run `terraform apply`.'
+            echo 'Terraform apply automation remains tracked by requirement CD-06.'
+          } >> "$GITHUB_STEP_SUMMARY"

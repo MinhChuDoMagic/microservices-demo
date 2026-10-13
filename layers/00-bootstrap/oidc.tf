@@ -201,6 +201,7 @@ data "aws_iam_policy_document" "gha_apply_guardrails" {
       "iam:CreateUser",
       "iam:CreateAccessKey",
       "iam:CreateLoginProfile",
+      "iam:CreateServiceSpecificCredential",
     ]
     resources = ["*"]
   }

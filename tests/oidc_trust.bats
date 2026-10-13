@@ -91,7 +91,8 @@ policy_block() {
     'organizations:*' 'account:CloseAccount' 'account:DisableRegion' \
     'account:EnableRegion' 'billing:*' 'payments:*' 'invoicing:*' \
     'consolidatedbilling:*' 'tax:*' 'aws-portal:*' 'iam:CreateUser' \
-    'iam:CreateAccessKey' 'iam:CreateLoginProfile'; do
+    'iam:CreateAccessKey' 'iam:CreateLoginProfile' \
+    'iam:CreateServiceSpecificCredential'; do
     printf '%s\n' "$policy" | grep -Fq "\"$action\""
   done
   ! printf '%s\n' "$policy" | grep -Eq '"(budgets|ce):'

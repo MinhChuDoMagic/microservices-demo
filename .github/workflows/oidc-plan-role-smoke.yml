@@ -1,4 +1,4 @@
-name: terraform-plan
+name: OIDC plan-role smoke check
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  plan:
+  plan-role-smoke:
     # Fork tokens cannot receive id-token: write; skip AWS and let the credential-free job validate.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -45,6 +45,14 @@ jobs:
       - name: Verify assumed role
         run: aws sts get-caller-identity
 
+      - name: Report workflow scope
+        run: |
+          {
+            echo '## OIDC role smoke check'
+            echo 'This workflow validates plan-role assumption and Terraform formatting/validation; it does not run `terraform plan`.'
+            echo 'Terraform plan automation remains tracked by requirement CD-06.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   fork-validation:
     if: github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
@@ -74,5 +82,5 @@ jobs:
           {
             echo '## Fork pull request validation'
             echo 'This fork pull request ran `terraform fmt` and `terraform validate` only. Fork tokens cannot receive `id-token: write`, so no AWS role was assumed.'
-            echo 'A maintainer can push the same changes to a branch in this repository and open or update its pull request to run the credentialed plan.'
+            echo 'A maintainer can push the same changes to a branch in this repository and open or update its pull request to run the credentialed OIDC role smoke check.'
           } >> "$GITHUB_STEP_SUMMARY"

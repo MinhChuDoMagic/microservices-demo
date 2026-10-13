@@ -177,6 +177,9 @@ nuke-bootstrap:
 	GUARD_FILE="$(BOOTSTRAP_DIR)/main.tf"; \
 	GUARD_BACKUP="$$GUARD_FILE.bak"; \
 	if [[ -e "$$GUARD_BACKUP" ]]; then printf 'ERROR: guard backup already exists: %s\n' "$$GUARD_BACKUP" >&2; exit 1; fi; \
+	BACKEND_FILE="$(BOOTSTRAP_DIR)/backend.tf"; \
+	BACKEND_BACKUP="$$BACKEND_FILE.bak"; \
+	if [[ -e "$$BACKEND_BACKUP" ]]; then printf 'ERROR: backend backup already exists: %s\n' "$$BACKEND_BACKUP" >&2; exit 1; fi; \
 	GUARD_COUNT="$$(grep -Ec '^[[:space:]]*prevent_destroy = true[[:space:]]*$$' "$$GUARD_FILE" || true)"; \
 	if [[ "$$GUARD_COUNT" -ne 1 ]]; then printf 'ERROR: expected exactly one destroy guard in %s.\n' "$$GUARD_FILE" >&2; exit 1; fi; \
 	BUCKET="$$(terraform -chdir="$(BOOTSTRAP_DIR)" output -raw state_bucket_name)"; \
@@ -189,17 +192,25 @@ nuke-bootstrap:
 	  fi; \
 	done; \
 	printf '%s\n' '==> Migrating bootstrap state to the local backend.'; \
-	terraform -chdir="$(BOOTSTRAP_DIR)" init -input=false -force-copy -backend=false; \
-	trap 'if [[ -f "$$GUARD_BACKUP" ]]; then mv "$$GUARD_BACKUP" "$$GUARD_FILE"; fi' EXIT; \
+	restore_nuke_files() { \
+	  if [[ -f "$$BACKEND_BACKUP" ]]; then mv "$$BACKEND_BACKUP" "$$BACKEND_FILE"; fi; \
+	  if [[ -f "$$GUARD_BACKUP" ]]; then mv "$$GUARD_BACKUP" "$$GUARD_FILE"; fi; \
+	}; \
+	trap 'restore_nuke_files' EXIT; \
 	trap 'exit 130' INT; \
 	trap 'exit 143' TERM; \
+	mv "$$BACKEND_FILE" "$$BACKEND_BACKUP"; \
+	printf 'terraform {\n  backend "local" {}\n}\n' > "$$BACKEND_FILE"; \
+	terraform -chdir="$(BOOTSTRAP_DIR)" init -input=false -migrate-state -force-copy; \
+	LOCAL_STATE="$$(terraform -chdir="$(BOOTSTRAP_DIR)" state list)"; \
+	if [[ -z "$$LOCAL_STATE" ]] || ! grep -Fxq 'aws_s3_bucket.tfstate' <<< "$$LOCAL_STATE"; then printf '%s\n' 'ERROR: migrated local state does not contain aws_s3_bucket.tfstate; refusing to empty the remote state bucket.' >&2; exit 1; fi; \
 	sed -i.bak 's/^[[:space:]]*prevent_destroy = true[[:space:]]*$$/    prevent_destroy = false/' "$$GUARD_FILE"; \
 	if grep -Eq '^[[:space:]]*prevent_destroy = true[[:space:]]*$$' "$$GUARD_FILE"; then printf '%s\n' 'ERROR: failed to lift the destroy guard.' >&2; exit 1; fi; \
 	printf '==> Emptying all versions and delete markers from %s.\n' "$$BUCKET"; \
 	"$(ROOT)/sh/empty-versioned-bucket.sh" "$$BUCKET"; \
 	printf '%s\n' '==> Destroying 00-bootstrap.'; \
 	terraform -chdir="$(BOOTSTRAP_DIR)" destroy -input=false -auto-approve; \
-	rm -f "$(BACKEND_HCL)"; \
-	if [[ -f "$$GUARD_BACKUP" ]]; then mv "$$GUARD_BACKUP" "$$GUARD_FILE"; fi; \
+	rm -f "$(BOOTSTRAP_DIR)/terraform.tfstate" "$(BOOTSTRAP_DIR)/terraform.tfstate.backup"; \
+	restore_nuke_files; \
 	trap - EXIT INT TERM; \
 	printf '%s\n' '==> L0 decommissioned. The account no longer has Terraform state.'

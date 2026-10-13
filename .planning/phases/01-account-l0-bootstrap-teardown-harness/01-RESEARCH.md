@@ -1488,7 +1488,7 @@ nuke-bootstrap:
 	mv guard.tf guard.tf.disabled; \
 	\
 	echo "==> [4/5] Emptying the versioned bucket (all versions + delete markers)"; \
-	./scripts/empty-versioned-bucket.sh "$$BUCKET"; \
+	./sh/empty-versioned-bucket.sh "$$BUCKET"; \
 	\
 	echo "==> [5/5] Destroying"; \
 	terraform destroy -input=false -auto-approve; \
@@ -1513,7 +1513,7 @@ resource "aws_s3_bucket" "tfstate" {
 
 > ⚠️ **Terraform does not support split `resource` blocks** — you cannot declare `aws_s3_bucket.tfstate` in two files. The `guard.tf` above is **illustrative of intent only and will not parse**. The real options are: (a) `sed -i.bak 's/prevent_destroy = true/prevent_destroy = false/'` on the single `main.tf` inside the nuke target, restoring from `.bak` afterwards; or (b) commit the whole `aws_s3_bucket.tfstate` resource in a file `state-bucket.tf` and have the nuke target run a targeted `sed` against just that file. **Recommendation: (a), with the restore in a `trap` so an interrupted nuke cannot leave the guard down.** The plan must not ship the two-block form.
 
-Also required — `scripts/empty-versioned-bucket.sh`, because `terraform destroy` on a non-empty bucket fails with `BucketNotEmpty` and `force_destroy = true` must **not** be set on a state bucket in normal operation (it would make a stray `destroy` silently eat all state history):
+Also required — `sh/empty-versioned-bucket.sh`, because `terraform destroy` on a non-empty bucket fails with `BucketNotEmpty` and `force_destroy = true` must **not** be set on a state bucket in normal operation (it would make a stray `destroy` silently eat all state history):
 
 ```bash
 #!/usr/bin/env bash
@@ -2167,7 +2167,7 @@ Design notes:
 
 4. **PROJECT.md still says "S3 + DynamoDB state locking."** ARCHITECTURE.md flags the contradiction; this slice confirms DynamoDB locking is deprecated as of Terraform 1.11 and should not be adopted. **The plan needs an explicit task to amend PROJECT.md's requirement text** — otherwise the phase ships in documented violation of its own requirements. Out of this slice's authority to change.
 
-5. **Which lock-demonstration method becomes the committed evidence artifact for success criterion 2?** This slice recommends Method 1 (`list-object-versions`, post-hoc, race-free) as primary with Method 3 (contention) as the proof of exclusion. Whether that is captured as a script (`scripts/demo-state-lock.sh`) or as a one-time recorded output in the phase artifacts is a planner decision.
+5. **Which lock-demonstration method becomes the committed evidence artifact for success criterion 2?** This slice recommends Method 1 (`list-object-versions`, post-hoc, race-free) as primary with Method 3 (contention) as the proof of exclusion. Whether that is captured as a script (`sh/demo-state-lock.sh`) or as a one-time recorded output in the phase artifacts is a planner decision.
 
 6. **`00-bootstrap` CloudWatch log groups (D-23).** Nothing in D-20's L0 contents list (state bucket, OIDC provider + 2 roles, Budget, anomaly monitor, SNS topic) natively emits CloudWatch logs, so there may be **zero** log groups to declare in this phase. D-23 may therefore be establishing a convention with no Phase 1 instance. *Needs confirmation that "no log groups in Phase 1" satisfies D-23, or identification of which resource is expected to produce one.* [ASSUMED]
 
@@ -2721,7 +2721,7 @@ own AWS example pins `@e3dd6a429d7300a6a4c196c26e071d42e0343502`
 re-pointed, so `@v6.3.0` is now a genuinely strong pin; SHA-pinning is belt-and-braces.
 
 ```yaml
-# .github/workflows/terraform-plan.yml
+# .github/workflows/oidc-plan-role-smoke.yml
 name: terraform-plan
 on:
   pull_request:
@@ -2821,7 +2821,7 @@ than a one-time screenshot.
 
 ```bash
 #!/usr/bin/env bash
-# scripts/verify-no-access-keys.sh
+# sh/verify-no-access-keys.sh
 set -euo pipefail
 
 rc=0

@@ -150,8 +150,8 @@ log_group_retention_violations() {
 
 @test "Terraform OIDC workflows are scoped, pinned, and documented" {
   workflow_dir="$BATS_TEST_DIRNAME/../.github/workflows"
-  plan_workflow="$workflow_dir/terraform-plan.yml"
-  apply_workflow="$workflow_dir/terraform-apply.yml"
+  plan_workflow="$workflow_dir/oidc-plan-role-smoke.yml"
+  apply_workflow="$workflow_dir/oidc-apply-role-smoke.yml"
   versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
 
   [ -f "$plan_workflow" ]
@@ -164,11 +164,17 @@ log_group_retention_violations() {
   grep -Fq 'github.event.pull_request.head.repo.full_name != github.repository' "$plan_workflow"
   grep -Fq 'terraform fmt' "$plan_workflow"
   grep -Fq 'terraform validate' "$plan_workflow"
+  grep -Fq 'name: OIDC plan-role smoke check' "$plan_workflow"
+  grep -Fq 'does not run `terraform plan`' "$plan_workflow"
+  grep -Fq 'requirement CD-06' "$plan_workflow"
   grep -Eq '^[[:space:]]*push:[[:space:]]*$' "$apply_workflow"
   grep -Fq 'branches: [develop]' "$apply_workflow"
   grep -Fq 'vars.AWS_APPLY_ROLE_ARN' "$apply_workflow"
   grep -Fq 'vars.AWS_ACCOUNT_ID' "$apply_workflow"
   grep -Fq 'cancel-in-progress: false' "$apply_workflow"
+  grep -Fq 'name: OIDC apply-role smoke check' "$apply_workflow"
+  grep -Fq 'does not run `terraform apply`' "$apply_workflow"
+  grep -Fq 'requirement CD-06' "$apply_workflow"
 
   for workflow in "$plan_workflow" "$apply_workflow"; do
     grep -Fq 'contents: read' "$workflow"
@@ -262,7 +268,9 @@ AWS
 
   [ "$(grep -cE 'terraform.*destroy' "$makefile")" -eq 1 ]
   grep -Fq "nuke-bootstrap         DECOMMISSION:" "$makefile"
-  grep -Fq "trap 'if [[ -f \"\$\$GUARD_BACKUP\" ]]" "$makefile"
+  grep -Fq "trap 'restore_nuke_files' EXIT" "$makefile"
+  grep -Fq 'if [[ -f "$$BACKEND_BACKUP" ]]' "$makefile"
+  grep -Fq 'if [[ -f "$$GUARD_BACKUP" ]]' "$makefile"
   grep -Fq 'sed -i.bak' "$makefile"
 }
 
@@ -295,4 +303,20 @@ AWS
   [[ "$(<"$BATS_TEST_TMPDIR/aws-calls")" == "sts get-caller-identity --query Account --output text" ]]
   [ "$guard_before" = "$(shasum -a 256 "$guard_file")" ]
   [ ! -e "${guard_file}.bak" ]
+}
+
+@test "nuke-bootstrap migrates and verifies local state before emptying the bucket" {
+  makefile="$BATS_TEST_DIRNAME/../Makefile"
+  target="$(sed -n '/^nuke-bootstrap:/,$p' "$makefile")"
+
+  [[ "$target" == *'init -input=false -migrate-state -force-copy'* ]]
+  [[ "$target" == *'terraform -chdir="$(BOOTSTRAP_DIR)" state list'* ]]
+  [[ "$target" == *'aws_s3_bucket.tfstate'* ]]
+  [[ "$target" != *'-backend=false'* ]]
+
+  migration_line="$(grep -nF 'init -input=false -migrate-state -force-copy' <<< "$target" | cut -d: -f1)"
+  state_line="$(grep -nF 'state list' <<< "$target" | cut -d: -f1)"
+  empty_line="$(grep -nF 'empty-versioned-bucket.sh' <<< "$target" | cut -d: -f1)"
+  [ "$migration_line" -lt "$state_line" ]
+  [ "$state_line" -lt "$empty_line" ]
 }
