@@ -148,7 +148,7 @@ status: complete
 - The GSD CLI helper cannot load because it imports the missing `sh/fix-slash-commands.cjs`; planning close-out must use the checked-in artifacts and careful manual updates.
 - The valid-confirmation decommission path was not run, as required. Only its mismatch path and dry-run recipe were exercised.
 - Source review found that `-backend=false` did not migrate bootstrap state and that the apply guard omitted service-specific credentials. Both are fixed and covered by focused regression tests; actual remote-state migration and valid decommission remain intentionally unexecuted.
-- The phase verifier reports `human_needed` (0/5 roadmap truths fully verified). Although read-only AWS/GitHub checks now pass and the live IAM guardrail now matches source, renamed workflows are not yet published and required lifecycle, alert, and billing-period observations remain incomplete. Phase 1 remains executing.
+- The phase verifier reports `human_needed` (1/5 roadmap truths fully verified). The live IAM guardrail matches source, and both published OIDC smoke workflows passed, including their AWS role assumptions. Required lifecycle, alert, and billing-period observations remain incomplete; Phase 1 remains executing.
 
 ## Verification
 
@@ -157,11 +157,11 @@ status: complete
 - Current isolated Terraform `init -backend=false` and `validate` passed in fresh `TF_DATA_DIR` directories for all four layers. `terraform fmt -check -recursive` and `shellcheck sh/*.sh` passed.
 - After restoring SSO, current `AWS_PROFILE=microservices-demo make validate` passed all four layers and `AWS_PROFILE=microservices-demo make verify-teardown` reported the account clean for wired classes.
 - Read-only live checks found root access-key count 0, no IAM users, zero Actions/Dependabot/Codespaces secrets, no GitHub environments, and all four expected repository variables. The bootstrap bucket versioning is Enabled, the current state object exists, no current lock object or DynamoDB table exists, and live OIDC trust subjects match the intended PR/develop claims.
-- The live `gha-terraform-apply` policy `phase1-broad-apply-guardrails` was updated from the explicitly authorized saved plan to deny `iam:CreateServiceSpecificCredential`: 0 added, 1 changed, 0 destroyed. The live read-back confirmed the deny. GitHub returned 404 for the renamed local smoke workflow names because those changes are not yet on the default branch.
+- The live `gha-terraform-apply` policy `phase1-broad-apply-guardrails` was updated from the explicitly authorized saved plan to deny `iam:CreateServiceSpecificCredential`: 0 added, 1 changed, 0 destroyed. The live read-back confirmed the deny. After publishing the renamed workflows, apply-role run `38370037745` on `develop` and plan-role PR run `38370179861` both succeeded. Temporary PR #4 was closed without merging and its branch deleted.
 - Current `make -n nuke-bootstrap` expanded the migration and local-state verification before bucket emptying; the valid target was not executed. The wrong-confirmation test passed and confirmed caller identity was the only AWS call and `layers/00-bootstrap/main.tf` remained unchanged.
 - Focused source re-review: clean, 0 findings. `git diff --check` passed.
 - Historical live GitHub sweep run `37914598359`: succeeded; 714-byte artifact uploaded.
-- Phase verification: `01-VERIFICATION.md` status `human_needed`; no roadmap completion change was made. `STATE.md` records remaining workflow and external-outcome evidence.
+- Phase verification: `01-VERIFICATION.md` status `human_needed` with 1/5 truths verified; Phase 1 remains executing. `STATE.md` records remaining external-outcome evidence.
 
 ## User Setup Required
 
@@ -169,7 +169,7 @@ None for Plan 01-10. The management-account Billing action was completed by the 
 
 ## Next Phase Readiness
 
-Plan 01-10 implementation and checkpoints are complete. Phase-level verification ran and returned `human_needed`; keep Phase 1 executing until the live policy is reconciled and outstanding external evidence is addressed. Cost Explorer per-layer attribution is deferred until 2026-12-02, fork-PR runtime behavior remains unobserved because no forks exist, and CD-06 plan/apply automation remains open.
+Plan 01-10 implementation and checkpoints are complete. Phase-level verification returned `human_needed` with 1/5 truths verified; keep Phase 1 executing until remaining lifecycle, cost-alert, and billing-period evidence is addressed. Cost Explorer per-layer attribution is deferred until 2026-12-02, fork-PR runtime behavior remains unobserved because no forks exist, and CD-06 plan/apply automation remains open.
 
 ## Self-Check: PASSED
 

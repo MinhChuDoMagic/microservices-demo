@@ -1,8 +1,8 @@
 ---
 phase: 01-account-l0-bootstrap-teardown-harness
-verified: 2026-10-13T08:19:15Z
+verified: 2026-10-13T08:35:40Z
 status: human_needed
-score: 0/5 must-haves verified
+score: 1/5 must-haves verified
 covered_files:
   - .planning/ROADMAP.md
   - .planning/REQUIREMENTS.md
@@ -76,23 +76,23 @@ re_verification:
 # Phase 1: Account, L0 Bootstrap & Teardown Harness Verification Report
 
 **Phase Goal:** The operator has an isolated, cost-guardrailed AWS account with an immortal bootstrap layer, and can prove teardown correctness before there is anything to tear down.
-**Verified:** 2026-10-13T08:19:15Z
+**Verified:** 2026-10-13T08:35:40Z
 **Status:** human_needed
-**Re-verification:** Yes — read-only evidence refresh plus separately authorized single-policy reconciliation; phase status remains human-needed.
+**Re-verification:** Yes — read-only evidence refresh, separately authorized single-policy reconciliation, and successful published OIDC smoke runs; phase status remains human-needed.
 
 ## Goal Achievement
 
-The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh adds read-only AWS and GitHub evidence from 2026-10-13. `AWS_PROFILE=microservices-demo make validate` passed all four layers, and `make verify-teardown` reported account `072842666153` clean for wired classes. An explicitly authorized saved plan applied one IAM policy update (0 add, 1 change, 0 destroy); no other apply, resource provisioning, cost event, or valid `make nuke-bootstrap` was run. The post-apply read-back confirmed the deny, and Terraform released the state lock. The evidence improves current-state confidence but does not establish every required lifecycle or external outcome.
+The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh adds read-only AWS and GitHub evidence from 2026-10-13. `AWS_PROFILE=microservices-demo make validate` passed all four layers, and `make verify-teardown` reported account `072842666153` clean for wired classes. An explicitly authorized saved plan applied one IAM policy update (0 add, 1 change, 0 destroy); no other apply, resource provisioning, cost event, or valid `make nuke-bootstrap` was run. The post-apply read-back confirmed the deny. Both published OIDC smoke workflows subsequently passed, including their AWS role assumptions. The evidence improves current-state confidence but does not establish every required lifecycle or external outcome.
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
 | 1 | `sh/verify-teardown.sh` exits zero on the empty account and non-zero for an untagged EBS orphan, checking all listed resource classes. | ? UNCERTAIN | Live `make verify-teardown` returned clean for the wired classes in account `072842666153`; fixture tests cover clean/orphan/error outcomes and per-class parsing. The required real untagged-EBS failure observation was not run, so the full criterion is not proven. |
-| 2 | Applying `layers/00-bootstrap` stores state in a versioned S3 bucket, exposes then removes `.tflock`, and uses no DynamoDB table. | ? UNCERTAIN | Read-only inspection found versioning `Enabled`, current `bootstrap/terraform.tfstate` present, no currently listed `bootstrap/terraform.tfstate.tflock`, and no DynamoDB tables in `us-east-1`. This is a point-in-time check; without an apply, lock appearance/release is unobserved. |
+| 2 | Applying `layers/00-bootstrap` stores state in a versioned S3 bucket, exposes then removes `.tflock`, and uses no DynamoDB table. | ? UNCERTAIN | Read-only inspection found versioning `Enabled`, current `bootstrap/terraform.tfstate` present, no currently listed `bootstrap/terraform.tfstate.tflock`, and no DynamoDB tables in `us-east-1`. The read-only plan and authorized IAM-policy apply both released their locks, but no in-flight observation captured lock appearance. |
 | 3 | A deliberate $1 resource yields a Cost Anomaly Detection alert within one day, and a zero-spend Budget alarm is configured. | ? UNCERTAIN | Terraform source configures the $5 monthly budget, $1 daily actual-spend tripwire, and $1 service-dimension anomaly subscription. No live alert event was triggered and delivery/timing remains unverified. |
 | 4 | Bootstrap spend is attributable by layer via `default_tags`, and idle cost is at most $5/month over a real billing period. | ? UNCERTAIN | Four `default_tags` keys are configured; the operator manually confirmed all four Active on 2026-10-09. Billing-period attribution is not complete, so neither per-layer actual attribution nor the real-period $5 ceiling is established. |
-| 5 | GitHub Actions assumes a repository/branch-scoped AWS role through OIDC, with no long-lived access key in AWS or GitHub secrets. | ? UNCERTAIN | Live plan/apply/sweep trust subjects and audiences match their intended PR/develop claims. Root access-key count and IAM-user count are both zero; Actions, Dependabot, and Codespaces secret stores each contain zero secrets, no environments exist, and all four required repository variables exist. The authorized saved plan applied one in-place update (0 add, 1 change, 0 destroy), and live read-back confirmed `iam:CreateServiceSpecificCredential` is denied. GitHub still does not expose the renamed smoke workflows on the default branch (HTTP 404), so a current workflow assumption is not evidenced. |
+| 5 | GitHub Actions assumes a repository/branch-scoped AWS role through OIDC, with no long-lived access key in AWS or GitHub secrets. | VERIFIED | Live plan/apply/sweep trust subjects and audiences match their intended PR/develop claims. Root access-key count and IAM-user count are both zero; Actions, Dependabot, and Codespaces secret stores each contain zero secrets, no environments exist, and all four required repository variables exist. Plan-role PR run `38370179861` and apply-role `develop` push run `38370037745` both succeeded. The live apply guardrail also denies `iam:CreateServiceSpecificCredential`. |
 
-**Score:** 0/5 truths fully verified; each criterion still lacks at least one required observation. No roadmap truth is marked FAILED because the remaining evidence is unavailable or prohibited in this read-only refresh; status remains `human_needed`.
+**Score:** 1/5 truths fully verified. The other four criteria still lack at least one required observation. No roadmap truth is marked FAILED because the remaining evidence is unavailable or prohibited; status remains `human_needed`.
 
 ### Required Artifacts
 
@@ -102,7 +102,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | `sh/test-verify-teardown.sh` | Repeatable live clean/orphan/error proof | PRESENT, substantive, wired | The orphan arm creates a real EBS volume. It was not run; no AWS resource was provisioned. |
 | `layers/00-bootstrap/main.tf`, `backend.tf` | Immortal, versioned S3 state backend | PRESENT, substantive, wired; live state observed | Source configures versioning, encryption, public access block, retention, `prevent_destroy`, and S3 backend. Live bucket `tfstate-072842666153-us-east-1` reports versioning Enabled and contains the current bootstrap state object. No current lock object was listed; apply lock lifecycle remains unobserved. |
 | `layers/00-bootstrap/cost-guardrails.tf` | Budget, anomaly monitor, SNS alert path | PRESENT, substantive, wired | Dependencies and thresholds are implemented and statically tested; no cost event was triggered. |
-| `layers/00-bootstrap/oidc.tf` and workflows | Repository-scoped OIDC roles and smoke checks | PRESENT, substantive, wired; workflow publication pending | Live plan trust is `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:pull_request`; apply and sweep trust are `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:ref:refs/heads/develop`; all require audience `sts.amazonaws.com`. The live apply guardrail now matches source after the authorized single-resource update and successful read-back. GitHub's default-branch workflow lookup returned HTTP 404, so no current run is evidenced. CD-06 remains open and out of Phase 1. |
+| `layers/00-bootstrap/oidc.tf` and workflows | Repository-scoped OIDC roles and smoke checks | PRESENT, substantive, published and live-tested | Live plan trust is `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:pull_request`; apply and sweep trust are `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:ref:refs/heads/develop`; all require audience `sts.amazonaws.com`. Plan-role PR run `38370179861` and apply-role push run `38370037745` both passed. The live apply guardrail matches source after the authorized update and read-back. CD-06 remains open and out of Phase 1. |
 | Four Terraform layers and version inventory | Layer split and exact pins | PRESENT, substantive, wired | Exact pins/native locking are present; isolated credential-free validation passed. |
 | `sh/verify-no-access-keys.sh` | Current AWS/GitHub credential audit | PRESENT, substantive, wired | Read-only checks observed root access-key count 0, IAM-user count 0, three GitHub secret stores with 0 secrets each, and no repository environments. |
 
@@ -114,7 +114,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | Teardown sweep | `.teardown-report.json` and exit status | Findings/error aggregation and serialization | WIRED | Bats proves clean=0, orphan=1, error=2, and no false clean verdict on errors. |
 | `make bootstrap` | S3 remote state/lock | Local apply, output, generated backend, migration | WIRED in source; partial live evidence | Current S3 state and versioning are observed. The read-only plan acquired and released the native lock; apply-time lifecycle remains unobserved. |
 | Provider `default_tags` | Bootstrap resources and Cost Explorer | AWS provider tags followed by billing allocation | PARTIAL | Configuration and manual Active status are evidenced; real period attribution is not. |
-| OIDC workflow | AWS role | Repository variable → `role-to-assume` → STS | PARTIAL | Live trust claims and required repository variables match source intent, but the renamed workflows are not visible on the default branch and no current run is evidenced. |
+| OIDC workflow | AWS role | Repository variable → `role-to-assume` → STS | PASS | Published plan-role PR run `38370179861` and apply-role `develop` run `38370037745` both assumed their scoped AWS roles successfully. |
 | Budget/CAD resources | SNS email endpoint | Terraform references and topic policy | WIRED in source; delivery not exercised | No real event or delivery test was triggered. |
 
 ### Data-Flow Trace (Level 4)
@@ -125,7 +125,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | Teardown tests | Fixture JSON | Hand-authored AWS response fixtures through `stub-aws.bash` | Fixture data | FLOWING for local behavior, not a substitute for live proof |
 | State backend | State and lock objects | S3 backend with `use_lockfile` | Yes, after Terraform operations | State object/versioning observed; the authorized plan acquired and released the native lock, but apply-time lifecycle remains unobserved |
 | Cost alerts | Budget/CAD notifications | AWS services → SNS | Yes, on qualifying spend | WIRED; no event triggered |
-| OIDC smoke checks | Caller identity | GitHub OIDC token → STS | Yes, on workflow run | WIRED in YAML; current GitHub run not evidenced (default-branch workflow lookup returned 404). |
+| OIDC smoke checks | Caller identity | GitHub OIDC token → STS | Yes, on workflow run | FLOWING; PR plan-role run `38370179861` and `develop` apply-role run `38370037745` both succeeded. Temporary PR #4 was closed without merging and its branch deleted. |
 
 ### Behavioral Spot-Checks
 
@@ -138,7 +138,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | GitHub credential configuration | Secret-store, environment, and repository-variable queries | Actions/Dependabot/Codespaces each 0 secrets; 0 environments; all four required variables exist | PASS (configuration state) |
 | Remote state and current lock | S3 versioning, `head-object`, lock-prefix listing; DynamoDB `list-tables` in `us-east-1` | Versioning Enabled; bootstrap state object present; no current `.tflock`; no regional DynamoDB tables | PASS (snapshot only; lock lifecycle unverified) |
 | Live OIDC trust and apply guardrail | IAM `get-role` / `get-role-policy`; saved Terraform plan/apply | Three trust subjects match intended claims; deployed deny policy includes `iam:CreateServiceSpecificCredential` | PASS (current IAM state) |
-| Existing OIDC workflow runs | `gh run list` for renamed plan/apply smoke workflows | Plan workflow lookup returned HTTP 404 on default branch; no run evidence obtained | UNAVAILABLE |
+| Published OIDC smoke workflow runs | GitHub Actions run IDs `38370179861` and `38370037745` | PR plan-role and `develop` apply-role runs both completed successfully, including Terraform validation and AWS role assumption | PASS |
 | Bootstrap Terraform plan | Explicitly authorized read-only operation | 0 add, 1 in-place change, 0 destroy; state lock released | PASS (inspection only; no apply) |
 | Targeted bootstrap Terraform apply | Explicitly authorized saved-plan operation | 0 added, 1 changed, 0 destroyed; live IAM policy read-back confirmed the deny | PASS (single authorized policy update) |
 | Valid `make nuke-bootstrap` | Not authorized | Not run | SKIPPED BY CONSTRAINT |
@@ -162,7 +162,7 @@ No phase-declared probe paths were found and no `probe-*.sh` files were present 
 | LIFE-08 | 01-04 | Versioned S3 state, native locking, no DynamoDB table | PARTIAL / NEEDS HUMAN | Live versioning/state object and no current lock/no `us-east-1` DynamoDB table observed; apply-time lock lifecycle remains unverified. |
 | LIFE-09 | 01-01, 01-04, 01-10 | Slow/near-free resources stay in bootstrap, outside daily teardown | SATISFIED (repository) | Bootstrap is outside ordinary targets; only the guarded decommission target can destroy it. Valid destructive path was not run. Future ECR/CloudFront placement is explicit in phase context. |
 | LIFE-10 | 01-01, 01-02, 01-04, 01-10 | Exact pinned tool/provider/action versions | SATISFIED (repository) | Exact pins and `VERSIONS.md` entries are present; offline validation passed. |
-| CD-05 | 01-02, 01-07, 01-09, 01-10 | Scoped GitHub OIDC and no long-lived keys | PARTIAL / NEEDS HUMAN | Live trust subjects, zero root keys/users, zero GitHub secrets, and required variables verified. The live apply-policy deny now matches source; renamed workflow runs are not visible on the default branch. |
+| CD-05 | 01-02, 01-07, 01-09, 01-10 | Scoped GitHub OIDC and no long-lived keys | SATISFIED | Live trust subjects, zero root keys/users, zero GitHub secrets, required variables, and successful plan/apply smoke-run role assumptions are verified. |
 | CD-06 | Phase 3 | Terraform plan on PR and apply on merge through OIDC | OPEN / OUT OF PHASE | Remains open. Renamed workflows only smoke-test OIDC and format/validate; they do not execute Terraform plan/apply. |
 
 No Phase 1 roadmap requirement was orphaned from the plans. COST-09 is deferred to explicit later-phase measurements. CD-06 is not a Phase 1 roadmap requirement.
@@ -227,13 +227,7 @@ None. The live apply-policy difference was directly observed and resolved throug
 **Expected:** Spend after activation is attributable by layer and idle cost is at most $5/month. Pre-activation resources remain unattributable because tags do not backfill.
 **Why human:** A complete billing period and management-account access are required. The four keys were manually confirmed Active on 2026-10-09; this is not observed spend attribution.
 
-#### 5. OIDC workflow publication
-
-**Test:** After the renamed workflows are published on the default branch, review successful plan/apply OIDC smoke runs. The live apply guardrail now matches Terraform source; its single-policy update was separately authorized, applied, and read back.
-**Expected:** Workflows are present and assume the exact PR/develop-scoped roles; the deployed deny policy remains aligned with source.
-**Why human:** GitHub currently returns 404 for the renamed workflows on the default branch, so no current smoke run is evidenced.
-
-#### 6. Fork pull-request fallback
+#### 5. Fork pull-request fallback
 
 **Test:** Observe the existing fallback only if an actual fork PR exists; do not create a fork solely for this check.
 **Expected:** Credential-free validation runs and no AWS OIDC role assumption is attempted.
@@ -243,11 +237,11 @@ This is an infrastructure/foundation phase; no artificial manual UI test is need
 
 ### Gaps Summary
 
-No source artifact is missing or a stub, and static workflow/sweep wiring remains present. Today's checks establish that the account is clean for wired sweep classes, inspected credential/secrets stores are empty, the bootstrap state object is present in a versioned bucket, live OIDC trust conditions are scoped as intended, and the live apply guardrail now matches source. All five roadmap truths remain incomplete as full criteria: the real EBS failure arm, apply-time lock lifecycle, cost-alert delivery, complete billing-period attribution/idle cost, and actual renamed-workflow assumption are not evidenced. The single-policy update was applied from the explicitly authorized saved plan; valid bootstrap destruction, resource provisioning, and a cost event were not performed under the user's constraints. Overall status remains `human_needed`.
+No source artifact is missing or a stub, and static workflow/sweep wiring remains present. Today's checks establish that the account is clean for wired sweep classes, inspected credential/secrets stores are empty, the bootstrap state object is present in a versioned bucket, live OIDC trust conditions are scoped as intended, the live apply guardrail matches source, and both published OIDC smoke workflows passed. The remaining four roadmap truths still lack evidence for the real EBS failure arm, in-flight lock lifecycle, cost-alert delivery, and complete billing-period attribution/idle cost. The single-policy update was applied from the explicitly authorized saved plan; valid bootstrap destruction, resource provisioning, and a cost event were not performed under the user's constraints. Overall status remains `human_needed`.
 
 Phase 1 remains executing. This report does not mark Phase 1 complete in `ROADMAP.md` or `STATE.md`.
 
 ---
 
-_Verified: 2026-10-13T08:19:15Z_
+_Verified: 2026-10-13T08:35:40Z_
 _Verifier: the agent (gsd-verifier)_
