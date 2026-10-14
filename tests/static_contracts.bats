@@ -100,7 +100,9 @@ log_group_retention_violations() {
 
 @test "L1 Karpenter uses the pinned EKS module for AWS-side resources" {
   karpenter_file="$BATS_TEST_DIRNAME/../layers/10-infra/karpenter.tf"
+  eks_file="$BATS_TEST_DIRNAME/../layers/10-infra/eks.tf"
   [ -f "$karpenter_file" ]
+  [ -f "$eks_file" ]
 
   source="$(grep -v '^[[:space:]]*#' "$karpenter_file")"
   [[ "$source" == *'terraform-aws-modules/eks/aws//modules/karpenter'* ]]
@@ -109,7 +111,130 @@ log_group_retention_violations() {
   [[ "$source" == *'create_instance_profile = true'* ]]
   [[ "$source" == *'create_pod_identity_association = true'* ]]
   [[ "$source" == *'enable_spot_termination = true'* ]]
+  [[ "$source" == *'node_iam_role_name'*'${local.cluster_name}-karpenter-node'* ]]
+  [[ "$source" == *'node_iam_role_use_name_prefix = false'* ]]
+  [[ "$source" == *'iam_role_name'*'${local.cluster_name}-karpenter-controller'* ]]
+  [[ "$source" == *'queue_name = local.cluster_name'* ]]
   [[ "$source" != *'aws_cloudformation_stack'* ]]
+
+  eks_source="$(grep -v '^[[:space:]]*#' "$eks_file")"
+  [[ "$eks_source" == *'workload = "system"'* ]]
+}
+
+@test "L1 network contract uses two AZ subnet tiers and module-owned NAT routes" {
+  vpc_file="$BATS_TEST_DIRNAME/../layers/10-infra/vpc.tf"
+  nat_file="$BATS_TEST_DIRNAME/../layers/10-infra/nat.tf"
+  [ -f "$vpc_file" ]
+  [ -f "$nat_file" ]
+  vpc_source="$(grep -v '^[[:space:]]*#' "$vpc_file")"
+  nat_source="$(grep -v '^[[:space:]]*#' "$nat_file")"
+
+  [[ "$vpc_source" == *'slice(sort(data.aws_availability_zones.available.names), 0, 2)'* ]]
+  [[ "$vpc_source" == *'private_subnets  = ["10.42.16.0/20", "10.42.32.0/20"]'* ]]
+  [[ "$vpc_source" == *'intra_subnets   = ["10.42.64.0/24", "10.42.65.0/24"]'* ]]
+  [[ "$vpc_source" == *'enable_nat_gateway   = false'* ]]
+  [[ "$vpc_source" != *'intra_route_table_ids'* ]]
+  [[ "$vpc_source" == *'"kubernetes.io/role/elb"                      = "1"'* ]]
+  [[ "$vpc_source" == *'"kubernetes.io/role/internal-elb"             = "1"'* ]]
+  [[ "$vpc_source" == *'"karpenter.sh/discovery"                      = local.cluster_name'* ]]
+  [[ "$nat_source" == *'instance_type       = "t4g.nano"'* ]]
+  [[ "$nat_source" == *'update_route_tables = true'* ]]
+  [[ "$nat_source" == *'route_tables_ids = {'* ]]
+  [[ "$nat_source" == *'module.vpc.private_route_table_ids[0]'* ]]
+  [[ "$nat_source" == *'module.vpc.private_route_table_ids[1]'* ]]
+}
+
+@test "L1 endpoint and EKS contracts remain explicit and version-pinned" {
+  vpc_file="$BATS_TEST_DIRNAME/../layers/10-infra/vpc.tf"
+  variables_file="$BATS_TEST_DIRNAME/../layers/10-infra/variables.tf"
+  eks_file="$BATS_TEST_DIRNAME/../layers/10-infra/eks.tf"
+  vpc_source="$(grep -v '^[[:space:]]*#' "$vpc_file")"
+  variables_source="$(grep -v '^[[:space:]]*#' "$variables_file")"
+  eks_source="$(grep -v '^[[:space:]]*#' "$eks_file")"
+  endpoint_variable="$(sed -n '/variable "enable_interface_endpoints"/,/^}/p' "$variables_file")"
+
+  [[ "$vpc_source" == *'service_type    = "Gateway"'* ]]
+  [[ "$vpc_source" == *'s3 = {'* ]]
+  [[ "$vpc_source" == *'dynamodb = {'* ]]
+  [[ "$vpc_source" == *'route_table_ids = module.vpc.private_route_table_ids'* ]]
+  [[ "$endpoint_variable" == *'default     = false'* ]]
+  [[ "$vpc_source" == *'count   = var.enable_interface_endpoints ? 1 : 0'* ]]
+  [[ "$eks_source" == *'version = "21.26.0"'* ]]
+  [[ "$eks_source" == *'kubernetes_version = "1.34"'* ]]
+  [[ "$eks_source" == *'endpoint_public_access_cidrs = [var.operator_cidr]'* ]]
+  [[ "$eks_source" == *'capacity_type                  = "ON_DEMAND"'* ]]
+  [[ "$eks_source" == *'min_size                       = 2'* ]]
+  [[ "$eks_source" == *'desired_size                   = 2'* ]]
+  [[ "$eks_source" == *'CriticalAddonsOnly'* ]]
+  [[ "$eks_source" == *'value  = "true"'* ]]
+  [[ "$eks_source" == *'effect = "NO_SCHEDULE"'* ]]
+  [ "$(grep -Ec 'karpenter.sh/discovery"[[:space:]]*=[[:space:]]*local.cluster_name' "$eks_file")" -eq 2 ]
+  [[ "$eks_source" == *'addon_version               = "v1.23.2-eksbuild.3"'* ]]
+  [[ "$eks_source" == *'addon_version = "v1.34.6-eksbuild.49"'* ]]
+  [[ "$eks_source" == *'addon_version = "v1.13.2-eksbuild.51"'* ]]
+  [[ "$eks_source" == *'addon_version = "v1.4.0-eksbuild.4"'* ]]
+  [[ "$eks_source" != *'aws-ebs-csi-driver'* ]]
+}
+
+@test "L1 exact provider module add-on and AMI pins match VERSIONS.md" {
+  infra_dir="$BATS_TEST_DIRNAME/../layers/10-infra"
+  versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
+  for provider in cloudinit time tls; do
+    grep -Fq "source  = \"hashicorp/$provider\"" "$infra_dir/versions.tf"
+  done
+  grep -Fq 'version = "= 2.4.1"' "$infra_dir/versions.tf"
+  grep -Fq 'version = "= 0.14.2"' "$infra_dir/versions.tf"
+  grep -Fq 'version = "= 4.4.1"' "$infra_dir/versions.tf"
+  grep -Fq '| `hashicorp/cloudinit` | 2.4.1 |' "$versions_file"
+  grep -Fq '| `hashicorp/time` | 0.14.2 |' "$versions_file"
+  grep -Fq '| `hashicorp/tls` | 4.4.1 |' "$versions_file"
+
+  grep -Fq 'version = "6.7.3"' "$infra_dir/vpc.tf"
+  grep -Fq 'version = "1.6.1"' "$infra_dir/nat.tf"
+  grep -Fq 'version = "21.26.0"' "$infra_dir/eks.tf"
+  grep -Fq 'version = "21.26.0"' "$infra_dir/karpenter.tf"
+  grep -Fq '| `terraform-aws-modules/vpc` | 6.7.3 |' "$versions_file"
+  grep -Fq '| `RaJiska/fck-nat` | 1.6.1 |' "$versions_file"
+  grep -Fq '| `terraform-aws-modules/eks` | 21.26.0 |' "$versions_file"
+  grep -Fq 'ami_release_version            = "1.34.11-20261003"' "$infra_dir/eks.tf"
+  grep -Fq '| EKS AL2023 ARM64 node AMI release | `1.34.11-20261003` |' "$versions_file"
+  for addon_version in v1.23.2-eksbuild.3 v1.34.6-eksbuild.49 v1.13.2-eksbuild.51 v1.4.0-eksbuild.4; do
+    grep -Fq "$addon_version" "$infra_dir/eks.tf"
+    grep -Fq "$addon_version" "$versions_file"
+  done
+  [ "$(grep -Ec 'most_recent[[:space:]]*=([[:space:]]*)false' "$infra_dir/eks.tf")" -eq 4 ]
+}
+
+@test "Terraform Kubernetes and Helm providers are restricted to 30-gitops" {
+  layers_dir="$BATS_TEST_DIRNAME/../layers"
+  expected_layers=(00-bootstrap 10-infra 20-data 30-gitops)
+  for layer in "${expected_layers[@]}"; do
+    [ -f "$layers_dir/$layer/versions.tf" ]
+  done
+
+  matches="$(find "$layers_dir" -type f -name '*.tf' ! -path '*/.terraform/*' ! -path '*/30-gitops/*' \
+    -exec grep -v '^[[:space:]]*#' {} \; 2>/dev/null | \
+    grep -E 'provider[[:space:]]+"(kubernetes|helm)"|source[[:space:]]*=[[:space:]]*"hashicorp/(kubernetes|helm)"' || true)"
+  [ -z "$matches" ]
+}
+
+@test "L1 README documents operator access network and GitOps ownership" {
+  readme="$BATS_TEST_DIRNAME/../layers/10-infra/README.md"
+  [ -f "$readme" ]
+  grep -Fq 'infra/terraform.tfstate' "$readme"
+  grep -Fq 'OPERATOR_CIDR' "$readme"
+  grep -Fq '10.42.16.0/20' "$readme"
+  grep -Fq '10.42.64.0/24' "$readme"
+  grep -Fq 'persistent ENI' "$readme"
+  grep -Fqi 'interface endpoints' "$readme"
+  grep -Fq 'enable_interface_endpoints' "$readme"
+  grep -Fq '$14.60/month per endpoint' "$readme"
+  grep -Fq 'workload=system' "$readme"
+  grep -Fq 'CriticalAddonsOnly=true:NoSchedule' "$readme"
+  grep -Fq 'Karpenter controller' "$readme"
+  grep -Fq 'AWS Load Balancer Controller' "$readme"
+  grep -Fq 'Phase 4 GitOps seam' "$readme"
+  grep -Fq 'not installed by this layer' "$readme"
 }
 
 @test "GitHub workflows do not accept long-lived AWS credentials" {
