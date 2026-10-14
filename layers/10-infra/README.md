@@ -4,7 +4,7 @@ This per-session Terraform layer owns the AWS network, EKS cluster, managed node
 
 ## Operator Access
 
-Set `OPERATOR_CIDR` when running `make up`. The value must be a valid trusted public IPv4 CIDR containing the workstation's current public IPv4 address. The preflight checks reachability before Terraform initialization; a missing, invalid, world-open, or unreachable CIDR stops the operation before apply. The EKS public API endpoint is restricted to this CIDR, and private endpoint access remains enabled inside the VPC.
+Set `OPERATOR_CIDRS` when running `make up` to a comma-separated list of trusted public IPv4 CIDRs. Each CIDR must be unique, valid, and not world-open; the list must include the workstation's current public IPv4 address. The preflight checks reachability before Terraform initialization; a missing, invalid, or unreachable list stops the operation before apply. The EKS public API endpoint is restricted to exactly this list, and private endpoint access remains enabled inside the VPC.
 
 The AWS identity running Terraform receives the EKS cluster creator administrator access entry. After provisioning, configure `kubectl` for the project cluster with:
 
@@ -43,7 +43,7 @@ from local tests or timing estimates.
 
 Lifecycle commands require the exact `kubectl` pin in `VERSIONS.md`; `make doctor` rejects a different client before draining. Kubernetes supports kubectl within one minor version of the API server; this project pins a matching 1.34 patch for the EKS 1.34 control plane.
 
-The approved operator API path is the public EKS endpoint restricted to the explicit trusted IPv4 CIDR passed as `OPERATOR_CIDR` to `make up`. Never use `0.0.0.0/0`. If the workstation's public address changes or the API becomes unreachable, restore access from the trusted operator network and update the endpoint allowlist through the normal Terraform-owned `make up` path; do not widen access. After access is restored, rerun `make down` from its first step.
+The approved operator API path is the public EKS endpoint restricted to the explicit trusted IPv4 CIDRs passed as `OPERATOR_CIDRS` to `make up`. Never use `0.0.0.0/0`. Multiple exact `/32` entries may be used for known, trusted egress addresses, but do not add a broad range to accommodate rotating WARP egress. If the workstation's public address changes outside the configured list or the API becomes unreachable, restore access from a trusted operator network and update the endpoint allowlist through the normal Terraform-owned `make up` path; do not widen access. After access is restored, rerun `make down` from its first step.
 
 Drain recovery treats EKS states as follows:
 

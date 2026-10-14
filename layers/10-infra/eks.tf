@@ -30,7 +30,7 @@ module "eks" {
 
   endpoint_private_access      = true
   endpoint_public_access       = true
-  endpoint_public_access_cidrs = [var.operator_cidr]
+  endpoint_public_access_cidrs = var.operator_cidrs
 
   enable_cluster_creator_admin_permissions = true
   create_kms_key                           = false

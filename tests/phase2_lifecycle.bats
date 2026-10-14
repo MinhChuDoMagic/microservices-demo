@@ -412,15 +412,15 @@ use_sequence_fixture() {
   [[ "$(<"$call_log")" == *'-backend-config=key=infra/terraform.tfstate'* ]]
 
   : > "$call_log"
-  run bash -c 'cd "$1" && "$2" -s _apply-layer LAYER=10-infra OPERATOR_CIDR=203.0.113.10/32' _ \
+  run bash -c 'cd "$1" && "$2" -s _apply-layer LAYER=10-infra OPERATOR_CIDRS_JSON='"'"'["203.0.113.10/32","198.51.100.20/32"]'"'"'' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -eq 0 ]
-  [[ "$(<"$call_log")" == *'-var=operator_cidr=203.0.113.10/32'* ]]
+  [[ "$(<"$call_log")" == *'-var=operator_cidrs=["203.0.113.10/32","198.51.100.20/32"]'* ]]
 }
 
 @test "make up rejects an unreachable operator CIDR before init or apply" {
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.20/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.20/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -ne 0 ]
@@ -437,11 +437,14 @@ use_sequence_fixture() {
 
   [ "$status" -eq 0 ]
   [[ "$output" == *'make up complete'* ]]
-  [[ "$(<"$call_log")" == *'-var=operator_cidrs=["203.0.113.10/32","198.51.100.20/32"]'* ]]
+  terraform_calls="$(<"$call_log")"
+  [[ "$terraform_calls" == *'operator_cidrs='* ]]
+  [[ "$terraform_calls" == *'203.0.113.10/32'* ]]
+  [[ "$terraform_calls" == *'198.51.100.20/32'* ]]
 }
 
 @test "make up applies once and waits for all required EKS components" {
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -eq 0 ]
@@ -455,7 +458,7 @@ use_sequence_fixture() {
 @test "make up preserves a failed apply without retry or destroy" {
   export TEST_APPLY_EXIT=42
 
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -ne 0 ]
@@ -468,7 +471,7 @@ use_sequence_fixture() {
 @test "make up stops on an unhealthy node group without retry or destroy" {
   export TEST_NODEGROUP_STATUS=DEGRADED
 
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -ne 0 ]

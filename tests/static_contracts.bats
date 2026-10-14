@@ -161,7 +161,7 @@ log_group_retention_violations() {
   [[ "$vpc_source" == *'count   = var.enable_interface_endpoints ? 1 : 0'* ]]
   [[ "$eks_source" == *'version = "21.26.0"'* ]]
   [[ "$eks_source" == *'kubernetes_version = "1.34"'* ]]
-  [[ "$eks_source" == *'endpoint_public_access_cidrs = [var.operator_cidr]'* ]]
+  [[ "$eks_source" == *'endpoint_public_access_cidrs = var.operator_cidrs'* ]]
   [[ "$eks_source" == *'capacity_type                  = "ON_DEMAND"'* ]]
   [[ "$eks_source" == *'min_size                       = 2'* ]]
   [[ "$eks_source" == *'desired_size                   = 2'* ]]

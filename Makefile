@@ -160,9 +160,9 @@ _init-layer:
 _apply-layer:
 	@set -euo pipefail; \
 	if [[ "$(LAYER)" != 10-infra ]]; then printf 'ERROR: unsupported apply layer: %s\n' "$(LAYER)" >&2; exit 2; fi; \
-	if [[ -z "$(OPERATOR_CIDR)" ]]; then printf '%s\n' 'ERROR: OPERATOR_CIDR is required.' >&2; exit 2; fi; \
+	if [[ -z "$(OPERATOR_CIDRS_JSON)" ]]; then printf '%s\n' 'ERROR: OPERATOR_CIDRS is required.' >&2; exit 2; fi; \
 	terraform -chdir="$(ROOT)/layers/10-infra" apply -input=false -auto-approve \
-	  -var="operator_cidr=$(OPERATOR_CIDR)"
+	  -var='operator_cidrs=$(OPERATOR_CIDRS_JSON)'
 
 _destroy-layer:
 	@set -euo pipefail; \
