@@ -58,6 +58,9 @@ module "eks" {
       desired_size                   = 2
       subnet_ids                     = module.vpc.private_subnets
       iam_role_attach_cni_policy     = false
+      labels = {
+        workload = "system"
+      }
 
       taints = {
         critical_addons = {
