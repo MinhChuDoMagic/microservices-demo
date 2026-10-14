@@ -209,6 +209,12 @@ esac
 TERRAFORM
   chmod +x "$test_bin/terraform"
 
+  cat > "$test_bin/cloud-nuke" <<'CLOUDNUKE'
+#!/usr/bin/env bash
+printf 'cloud-nuke %s\n' "$*" >> "$TEST_CALL_LOG"
+CLOUDNUKE
+  chmod +x "$test_bin/cloud-nuke"
+
   cat > "$test_bin/kubectl" <<'KUBECTL'
 #!/usr/bin/env bash
   printf '%s\n' "$*" >> "$TEST_CALL_LOG"
@@ -644,6 +650,7 @@ use_sequence_fixture() {
   [[ "$output" == *'i-0123456789abcdef0'* ]]
   [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
   [[ "$(<"$STUB_AWS_CALL_LOG")" != *'_destroy-layer'* ]]
+  [[ "$(<"$call_log")" != *'cloud-nuke'* ]]
 }
 
 @test "a failed PVC drain stops make down before Terraform destroy" {
@@ -782,6 +789,7 @@ use_sequence_fixture() {
   expected_destroy_order="$(printf '%s\n' 'destroy:30-gitops' 'destroy:20-data' 'destroy:10-infra')"
   [ "$destroy_order" = "$expected_destroy_order" ]
   [[ "$(<"$call_log")" == *'verify-teardown'* ]]
+  [[ "$(<"$call_log")" != *'cloud-nuke'* ]]
   [[ "$output" == *'Successful teardown timing: total='*'stage_8='*'verifier_exit=0'* ]]
   [ ! -e "$test_root/.down.lock" ]
 }
@@ -923,6 +931,8 @@ use_sequence_fixture() {
   run bash "$wrapper" --print-scope-contract
 
   [ "$status" -eq 0 ]
-  jq -e '.preview_scope == .execution_scope and .resource_types == [] and .preview_mode == "--dry-run" and .execution_mode == "--force"' <<< "$output" >/dev/null
-  jq -e 'any(.preview_scope[]; . == "--region") and any(.preview_scope[]; . == "--config")' <<< "$output" >/dev/null
+  jq -e '.contract_only and (.invocation_allowed == false) and (.preview_scope == .execution_scope) and (.deletable_resource_types == []) and (.preview_argv[1] == "--dry-run") and (.execution_argv[1] == "--force")' <<< "$output" >/dev/null
+  jq -e '.tag_filter == {"Project":"microservices-demo"} and (.untagged_control_eligible == false) and (.report_only_resource_types == ["ec2"]) and (.vpc_included == false)' <<< "$output" >/dev/null
+  jq -e 'any(.preview_scope[]; . == "--region") and any(.preview_scope[]; . == "--config") and any(.preview_scope[]; . == "--resource-type") and any(.preview_scope[]; . == "ec2")' <<< "$output" >/dev/null
+  [[ "$(<"$call_log")" != *'cloud-nuke'* ]]
 }

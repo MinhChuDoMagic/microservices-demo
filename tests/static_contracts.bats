@@ -530,9 +530,13 @@ AWS
   [ -f "$wrapper" ]
   [ -f "$config" ]
   grep -Fq 'Project: "microservices-demo"' "$config"
-  grep -Fq 'DELETABLE_RESOURCE_TYPES=""' "$wrapper"
+  grep -Fq 'readonly DELETABLE_RESOURCE_TYPES=""' "$wrapper"
+  grep -Fq 'REPORT_ONLY_RESOURCE_TYPES="ec2"' "$wrapper"
   grep -Fq '366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d' "$wrapper"
   grep -Fq 'Cloud Nuke' "$versions_file"
+  grep -Fq -- '--dry-run' "$wrapper"
+  grep -Fq -- '--force' "$wrapper"
+  grep -Fq 'shasum -a 256' "$wrapper"
   ! grep -Eiq '(^|[[:space:]])vpc([[:space:]]|$)|^[[:space:]]*VPC:' "$config" "$wrapper"
   ! grep -Eiq 'cloud-nuke|nuke-project' "$down_script"
 }
