@@ -114,8 +114,15 @@ _write-backend-hcl:
 	  'use_lockfile = true' > "$(BACKEND_HCL)"
 	@grep -qF 'use_lockfile = true' "$(BACKEND_HCL)"
 
-down: doctor
-	@python3 sh/run-down-with-deadline.py
+down:
+	@set -euo pipefail; \
+	TIMEOUT_CMD="$$(command -v timeout || command -v gtimeout || true)"; \
+	if [[ -z "$$TIMEOUT_CMD" ]]; then \
+	  $(MAKE) -s doctor; \
+	  printf '%s\n' 'ERROR: GNU timeout is required to enforce the make down deadline.' >&2; \
+	  exit 1; \
+	fi; \
+	"$$TIMEOUT_CMD" --signal=TERM --kill-after=5s 900s bash sh/down.sh
 
 up: doctor
 	@bash sh/up.sh

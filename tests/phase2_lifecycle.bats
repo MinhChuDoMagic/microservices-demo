@@ -22,6 +22,7 @@ setup() {
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >> "$TEST_TIMEOUT_LOG"
+printf 'timeout:%s\n' "$*" >> "$TEST_CALL_LOG"
 [[ "$1" == '--signal=TERM' && "$2" == '--kill-after=5s' && "$3" == '900s' ]]
 shift 3
 exec "$@"
@@ -297,6 +298,7 @@ install_drain_scripts() {
   for script in lifecycle-common.sh drain-ingress.sh drain-nodes.sh drain-pvcs.sh; do
     cp "$BATS_TEST_DIRNAME/../sh/$script" "$test_root/sh/$script"
   done
+  chmod +x "$test_root/sh/drain-ingress.sh" "$test_root/sh/drain-nodes.sh" "$test_root/sh/drain-pvcs.sh"
 }
 
 use_sequence_fixture() {
@@ -322,6 +324,9 @@ use_sequence_fixture() {
 
   [ "$(wc -l < "$timeout_log" | tr -d ' ')" -eq 1 ]
   [[ "$(<"$timeout_log")" == *'--signal=TERM --kill-after=5s 900s bash sh/down.sh'* ]]
+  timeout_line="$(grep -n '^timeout:' "$call_log" | cut -d: -f1)"
+  doctor_line="$(grep -nF -- '-s doctor' "$call_log" | cut -d: -f1)"
+  [ "$timeout_line" -lt "$doctor_line" ]
   [ "$status" -eq 0 ]
   [[ "$output" == *'[1/8] disable Argo auto-sync'* ]]
   [[ "$output" == *'[8/8] verify'* ]]
@@ -342,6 +347,30 @@ use_sequence_fixture() {
   [[ "$(<"$call_log")" == *'app get root'* ]]
   [[ "$(<"$call_log")" != *'app set root'* ]]
   [[ "$(<"$call_log")" == *'_destroy-layer LAYER=30-gitops'* ]]
+}
+
+@test "an existing Argo application has auto-sync disabled" {
+  install_drain_scripts
+  export TEST_STATE_30_gitops=present
+
+  run bash "$test_root/sh/down.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$(<"$call_log")" == *'app get root --output json'* ]]
+  [[ "$(<"$call_log")" == *'app set root --sync-policy none'* ]]
+}
+
+@test "a non-NotFound Argo error stops before Terraform destroy" {
+  install_drain_scripts
+  export TEST_STATE_30_gitops=present
+  export TEST_ARGOCD_GET_EXIT=1
+  export TEST_ARGOCD_GET_ERROR='rpc error: code = PermissionDenied desc = denied'
+
+  run bash "$test_root/sh/down.sh"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'PermissionDenied'* ]]
+  [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
 }
 
 @test "Make L1 helpers use the generated backend and exact state key" {
@@ -673,7 +702,11 @@ use_sequence_fixture() {
     '==> [8/8] verify')"
   actual_stages="$(grep -E '^==> \[[1-8]/8\]' <<< "$output")"
   [ "$actual_stages" = "$expected_stages" ]
+  destroy_order="$(grep '^destroy:' "$call_log")"
+  expected_destroy_order="$(printf '%s\n' 'destroy:30-gitops' 'destroy:20-data' 'destroy:10-infra')"
+  [ "$destroy_order" = "$expected_destroy_order" ]
   [[ "$(<"$call_log")" == *'verify-teardown'* ]]
+  [[ "$output" == *'Successful teardown timing: total='*'stage_8='*'verifier_exit=0'* ]]
   [ ! -e "$test_root/.down.lock" ]
 }
 
@@ -794,6 +827,7 @@ use_sequence_fixture() {
 
   [ "$status" -eq 1 ]
   [[ "$output" == *'test verifier output'* ]]
+  [[ "$output" != *'Successful teardown timing'* ]]
 }
 
 @test "the verifier error result remains exit 2" {
@@ -803,4 +837,5 @@ use_sequence_fixture() {
 
   [ "$status" -eq 2 ]
   [[ "$output" == *'test verifier output'* ]]
+  [[ "$output" != *'Successful teardown timing'* ]]
 }
