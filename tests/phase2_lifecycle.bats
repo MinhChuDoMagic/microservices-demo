@@ -73,7 +73,19 @@ MAKE
 #!/usr/bin/env bash
 set -u
   printf '%s\n' "$*" >> "$TEST_CALL_LOG"
+  if [[ "${1:-}" == --version ]]; then
+    printf '%s\n' 'aws-cli/2.37.0 Python/3.13'
+    exit 0
+  fi
   case "${1:-}:${2:-}" in
+    sts:get-caller-identity)
+      printf '%s\n' '{"Account":"123456789012","Arn":"arn:aws:iam::123456789012:user/test"}'
+      exit 0
+      ;;
+    configure:get)
+      printf '%s\n' 'us-east-1'
+      exit 0
+      ;;
     eks:describe-cluster)
       printf '{"cluster":{"status":"%s"}}\n' "${TEST_CLUSTER_STATUS:-ACTIVE}"
       exit 0
@@ -106,6 +118,7 @@ CURL
 set -u
 printf '%s\n' "$*" >> "$TEST_CALL_LOG"
 case "$*" in
+    *'version -json'*) printf '%s\n' '{"terraform_version":"1.16.4"}' ;;
   *'output -raw cluster_name'*) printf '%s\n' 'microservices-demo' ;;
   *'output -raw system_node_group_name'*) printf '%s\n' 'microservices-demo-system' ;;
   *' init '*) exit 0 ;;
@@ -114,6 +127,15 @@ case "$*" in
 esac
 TERRAFORM
   chmod +x "$test_bin/terraform"
+
+  cat > "$test_bin/kubectl" <<'KUBECTL'
+#!/usr/bin/env bash
+printf '%s\n' "${TEST_KUBECTL_VERSION:-v1.34.12}" | {
+  IFS= read -r client_version
+  printf '{"clientVersion":{"gitVersion":"%s"}}\n' "$client_version"
+}
+KUBECTL
+  chmod +x "$test_bin/kubectl"
 
   export TEST_CALL_LOG="$call_log"
   export TEST_REAL_MAKE="$real_make"
@@ -130,6 +152,31 @@ TERRAFORM
 run_layer_state() {
   run "$TEST_REAL_MAKE" -s "BACKEND_HCL=$TEST_BACKEND_HCL" \
     _layer-state LAYER=10-infra
+}
+
+prepare_doctor_root() {
+  mkdir -p "$test_root/layers/00-bootstrap" "$test_root/layers/10-infra" \
+    "$test_root/layers/20-data" "$test_root/layers/30-gitops"
+  cp "$BATS_TEST_DIRNAME/../sh/doctor.sh" "$test_root/sh/doctor.sh"
+  chmod +x "$test_root/sh/doctor.sh"
+  printf '%s\n' '1.16.4' > "$test_root/.terraform-version"
+  printf '%s\n' '123456789012' > "$test_root/.aws-account-id"
+  printf '%s\n' \
+    'alert_email = "test@example.com"' \
+    'github_owner = "test-owner"' \
+    'github_repo = "test-repo"' > "$test_root/layers/00-bootstrap/terraform.tfvars"
+  for layer in 00-bootstrap 10-infra 20-data 30-gitops; do
+    printf '%s\n' 'terraform {' '  required_version = "= 1.16.4"' '}' \
+      > "$test_root/layers/$layer/versions.tf"
+  done
+  printf '%s\n' \
+    'backend.hcl' \
+    '.aws-account-id' \
+    'terraform.tfstate' \
+    '.teardown-report.json' \
+    'layers/00-bootstrap/terraform.tfvars' > "$test_root/.gitignore"
+  git -C "$test_root" init -q
+  export AWS_REGION=us-east-1
 }
 
 @test "make down is wired to the teardown spine" {
@@ -223,6 +270,22 @@ run_layer_state() {
   [[ "$output" == *'node group'* ]]
   [ "$(grep -c '_apply-layer LAYER=10-infra' "$call_log")" -eq 1 ]
   [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
+}
+
+@test "doctor accepts the pinned kubectl client minor" {
+  prepare_doctor_root
+  run "$test_root/sh/doctor.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kubectl v1.34.12"* ]]
+}
+
+@test "doctor rejects kubectl outside the EKS server skew window" {
+  prepare_doctor_root
+  export TEST_KUBECTL_VERSION=v1.37.0
+  run "$test_root/sh/doctor.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kubectl v1.37.0"* ]]
+  [[ "$output" == *"EKS Kubernetes 1.34"* ]]
 }
 
 @test "empty account runs the eight named stages and preserves verifier success" {

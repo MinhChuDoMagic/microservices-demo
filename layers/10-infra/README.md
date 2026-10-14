@@ -14,6 +14,25 @@ aws eks update-kubeconfig --name microservices-demo --region us-east-1
 
 The operator still needs valid AWS credentials and the permissions required by the cluster access entry. `make up` does not install application or platform controllers.
 
+## Teardown Access And Recovery
+
+Lifecycle commands require the exact `kubectl` pin in `VERSIONS.md`; `make doctor` rejects a different client before draining. Kubernetes supports kubectl within one minor version of the API server; this project pins a matching 1.34 patch for the EKS 1.34 control plane.
+
+The approved operator API path is the public EKS endpoint restricted to the explicit trusted IPv4 CIDR passed as `OPERATOR_CIDR` to `make up`. Never use `0.0.0.0/0`. If the workstation's public address changes or the API becomes unreachable, restore access from the trusted operator network and update the endpoint allowlist through the normal Terraform-owned `make up` path; do not widen access. After access is restored, rerun `make down` from its first step.
+
+Drain recovery treats EKS states as follows:
+
+| EKS state | Drain rule |
+|---|---|
+| `ABSENT` | Only an EKS `ResourceNotFound` response proves absence; drains may pass after their AWS resource queries are valid and terminal. |
+| `CREATING` | Kubernetes controllers may not be operational. AWS-only predicates may pass a drain only when its complete resource set is confirmed absent/terminal; residual IDs block teardown. |
+| `FAILED` | Same AWS-only proof rule as `CREATING`; residual IDs require resource-specific operator remediation. |
+| `DEGRADED` | Require Kubernetes API access plus AWS terminal-state evidence. If API access fails while resources remain, stop before destroy and report the original error and IDs. |
+| `ACTIVE` | Require working Kubernetes API access to request deletion, then AWS API evidence of terminal absence. |
+| `UNKNOWN` | Fail closed. Authorization errors, malformed responses, and other API errors never mean absence. |
+
+For any blocked drain, preserve the originating error, identify the stage/state and residual resources, remediate access or the named resource, then rerun `make down` from step one. A fresh run passes only drains whose full AWS resource sets are confirmed absent or terminal; a failed attempt does not automatically clean residual resources (D-03, D-04).
+
 ## Network Contract
 
 The VPC uses the first two sorted available Availability Zones in `us-east-1` and these fixed subnet tiers:

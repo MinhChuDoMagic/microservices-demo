@@ -2,7 +2,7 @@
 
 Every version in this project is pinned to an exact version (D-36), never a `~>` range. This file is the single source of truth. If you change a version, change it here and in the file named in the "Pinned in" column, in the same commit.
 
-Last verified against upstream registries: **2026-09-25**
+Last verified against upstream registries: **2026-10-14**
 
 | Artifact | Version | Pin syntax (verbatim) | Pinned in | Source of truth |
 |---|---|---|---|---|
@@ -21,6 +21,7 @@ Last verified against upstream registries: **2026-09-25**
 | EKS managed add-on `coredns` | `v1.13.2-eksbuild.51` | `addon_version = "v1.13.2-eksbuild.51"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html) |
 | EKS managed add-on `eks-pod-identity-agent` | `v1.4.0-eksbuild.4` | `addon_version = "v1.4.0-eksbuild.4"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html) |
 | EKS Kubernetes | 1.34 | `kubernetes_version = "1.34"` | `layers/10-infra/eks.tf` | [EKS Kubernetes versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) |
+| `kubectl` | v1.34.12 | `v1.34.12` | `sh/doctor.sh` | [Kubernetes patch releases](https://kubernetes.io/releases/patch-releases/); [version-skew policy](https://kubernetes.io/releases/version-skew-policy/) |
 | EKS AL2023 ARM64 node AMI release | `1.34.11-20261003` | `ami_release_version = "1.34.11-20261003"` | `layers/10-infra/eks.tf` | [EKS optimized AMI releases](https://github.com/awslabs/amazon-eks-ami/releases) |
 
 ## CI actions
@@ -31,6 +32,8 @@ Last verified against upstream registries: **2026-09-25**
 | `hashicorp/setup-terraform` | `v3.1.2` | `.github/workflows/oidc-plan-role-smoke.yml`, `.github/workflows/oidc-apply-role-smoke.yml` |
 | `aws-actions/configure-aws-credentials` | `v6.3.0` | `.github/workflows/oidc-plan-role-smoke.yml`, `.github/workflows/oidc-apply-role-smoke.yml` |
 | `actions/upload-artifact` | `v4.6.2` | `.github/workflows/scheduled-teardown-sweep.yml` |
+
+`kubectl v1.34.12` is the Kubernetes 1.34 patch release listed upstream on 2026-10-14. The Kubernetes version-skew policy supports kubectl within one minor version of kube-apiserver; matching the EKS 1.34 minor is within that window and avoids the observed v1.37 client's unsupported three-minor lead.
 
 ## Local tooling (not pinned in code)
 
