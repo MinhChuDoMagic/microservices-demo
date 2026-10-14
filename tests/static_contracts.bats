@@ -98,6 +98,20 @@ log_group_retention_violations() {
   [ -z "$matches" ]
 }
 
+@test "L1 Karpenter uses the pinned EKS module for AWS-side resources" {
+  karpenter_file="$BATS_TEST_DIRNAME/../layers/10-infra/karpenter.tf"
+  [ -f "$karpenter_file" ]
+
+  source="$(grep -v '^[[:space:]]*#' "$karpenter_file")"
+  [[ "$source" == *'terraform-aws-modules/eks/aws//modules/karpenter'* ]]
+  [[ "$source" == *'version = "21.26.0"'* ]]
+  [[ "$source" == *'cluster_name = module.eks.cluster_name'* ]]
+  [[ "$source" == *'create_instance_profile = true'* ]]
+  [[ "$source" == *'create_pod_identity_association = true'* ]]
+  [[ "$source" == *'enable_spot_termination = true'* ]]
+  [[ "$source" != *'aws_cloudformation_stack'* ]]
+}
+
 @test "GitHub workflows do not accept long-lived AWS credentials" {
   workflow_dir="$BATS_TEST_DIRNAME/../.github/workflows"
   for workflow in "$workflow_dir"/*.yml "$workflow_dir"/*.yaml; do
