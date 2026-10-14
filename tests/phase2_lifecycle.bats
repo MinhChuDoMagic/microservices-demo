@@ -429,6 +429,17 @@ use_sequence_fixture() {
   [[ "$(<"$call_log")" != *'_apply-layer'* ]]
 }
 
+@test "make up accepts and forwards multiple explicit operator CIDRs" {
+  export TEST_PUBLIC_IP=198.51.100.20
+
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32,198.51.100.20/32 "$2" -o doctor -s up' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'make up complete'* ]]
+  [[ "$(<"$call_log")" == *'-var=operator_cidrs=["203.0.113.10/32","198.51.100.20/32"]'* ]]
+}
+
 @test "make up applies once and waits for all required EKS components" {
   run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
