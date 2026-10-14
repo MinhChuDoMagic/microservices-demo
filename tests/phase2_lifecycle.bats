@@ -29,6 +29,12 @@ exec "$@"
 TIMEOUT
   chmod +x "$test_bin/timeout"
 
+  cat > "$test_bin/gtimeout" <<'GTIMEOUT'
+#!/usr/bin/env bash
+exit 0
+GTIMEOUT
+  chmod +x "$test_bin/gtimeout"
+
   cat > "$test_bin/make" <<'MAKE'
 #!/usr/bin/env bash
 set -u
@@ -294,6 +300,24 @@ prepare_doctor_root() {
   export AWS_REGION=us-east-1
 }
 
+prepare_doctor_path() {
+  local deadline_tool="${1:-}"
+  local doctor_path="$BATS_TEST_TMPDIR/doctor-path"
+  local command_name
+  mkdir -p "$doctor_path"
+  for command_name in env bash dirname basename cut grep head sed sort tr wc git jq; do
+    ln -s "$(command -v "$command_name")" "$doctor_path/$command_name"
+  done
+  for command_name in aws kubectl terraform; do
+    ln -s "$test_bin/$command_name" "$doctor_path/$command_name"
+  done
+  if [[ -n "$deadline_tool" ]]; then
+    ln -s "$test_bin/$deadline_tool" "$doctor_path/$deadline_tool"
+  fi
+  PATH="$doctor_path"
+  export PATH
+}
+
 install_drain_scripts() {
   for script in lifecycle-common.sh drain-ingress.sh drain-nodes.sh drain-pvcs.sh; do
     cp "$BATS_TEST_DIRNAME/../sh/$script" "$test_root/sh/$script"
@@ -441,6 +465,24 @@ use_sequence_fixture() {
   run "$test_root/sh/doctor.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"kubectl v1.34.12"* ]]
+  [[ "$output" == *"GNU timeout"* ]]
+}
+
+@test "doctor accepts gtimeout when timeout is unavailable" {
+  prepare_doctor_root
+  prepare_doctor_path gtimeout
+  run "$test_root/sh/doctor.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'gtimeout'* ]]
+}
+
+@test "doctor blocks teardown when neither timeout command exists" {
+  prepare_doctor_root
+  prepare_doctor_path
+  run "$test_root/sh/doctor.sh"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'GNU timeout or gtimeout'* ]]
+  [[ "$output" == *'brew install coreutils'* ]]
 }
 
 @test "doctor rejects kubectl outside the EKS server skew window" {
@@ -525,6 +567,40 @@ use_sequence_fixture() {
   [[ "$output" == *'ThrottlingException'* ]]
   [[ "$output" == *'last_observed=ELBv2 describe-load-balancers error'* ]]
   [[ "$(<"$call_log")" != *'kubectl delete'* ]]
+}
+
+@test "retry classification accepts transient AWS errors and rejects permanent or unknown errors" {
+  common_file="$BATS_TEST_DIRNAME/../sh/lifecycle-common.sh"
+  run bash -c '
+    source "$1"
+    for error in ThrottlingException RequestLimitExceeded ServiceUnavailableException InternalError EndpointConnectionError ReadTimeoutError; do
+      lc_retryable_aws_error "$error" || exit 1
+    done
+    for error in AccessDeniedException ValidationException unknown-malformed-response; do
+      if lc_retryable_aws_error "$error"; then exit 2; fi
+    done
+  ' _ "$common_file"
+  [ "$status" -eq 0 ]
+}
+
+@test "shared deadline helper distinguishes before exact and after 900 seconds" {
+  common_file="$BATS_TEST_DIRNAME/../sh/lifecycle-common.sh"
+  run bash -c '
+    source "$1"
+    declare -F lc_deadline_expired >/dev/null || { printf "%s\n" "deadline helper is missing"; exit 1; }
+    lc_monotonic_seconds() { printf "%s\n" "$FAKE_MONOTONIC_SECONDS"; }
+    LC_STARTED_SECONDS=100
+    FAKE_MONOTONIC_SECONDS=999
+    if lc_deadline_expired; then exit 10; fi
+    [[ "$(lc_elapsed)" == 899s ]] || exit 11
+    FAKE_MONOTONIC_SECONDS=1000
+    lc_deadline_expired || exit 12
+    [[ "$(lc_elapsed)" == 900s ]] || exit 13
+    FAKE_MONOTONIC_SECONDS=1001
+    lc_deadline_expired || exit 14
+    [[ "$(lc_elapsed)" == 901s ]] || exit 15
+  ' _ "$common_file"
+  [ "$status" -eq 0 ]
 }
 
 @test "Ingress delete failure with residual ELB resources stops before Service deletion" {

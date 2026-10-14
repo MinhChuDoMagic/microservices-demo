@@ -415,16 +415,24 @@ AWS
 
 @test "daily teardown has one fixed deadline and only ephemeral state keys" {
   makefile="$BATS_TEST_DIRNAME/../Makefile"
-  deadline_runner="$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py"
-  down_target="$(sed -n '/^down: doctor$/,/^_layer-state:/p' "$makefile")"
+  down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
+  common_script="$BATS_TEST_DIRNAME/../sh/lifecycle-common.sh"
+  down_target="$(sed -n '/^down:$/,/^_layer-state:/p' "$makefile")"
   layer_helpers="$(sed -n '/^_layer-state:/,/^verify-teardown:/p' "$makefile")"
 
-  [ "$(grep -cF 'python3 sh/run-down-with-deadline.py' <<< "$down_target")" -eq 1 ]
-  grep -Fq 'DEADLINE_SECONDS = 900' "$deadline_runner"
-  grep -Fq 'time.monotonic()' "$deadline_runner"
-  grep -Fq 'start_new_session=True' "$deadline_runner"
-  grep -Fq 'os.killpg(process.pid' "$deadline_runner"
+  grep -Eq '^down:[[:space:]]*$' "$makefile"
+  grep -Fq 'command -v timeout || command -v gtimeout' <<< "$down_target"
+  grep -Fq -- '--kill-after=5s 900s bash sh/down.sh' <<< "$down_target"
+  [[ "$down_target" != *'--foreground'* ]]
+  grep -Fq 'LC_DEADLINE_SECONDS=900' "$common_script"
+  grep -Fq 'lc_deadline_expired' "$common_script"
+  [ ! -e "$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py" ]
   [[ "$down_target" != *'DOWN_TIMEOUT'* ]]
+  [[ "$down_target" != *'TIMEOUT_SECONDS'* ]]
+  [ "$(grep -c 'STARTED_SECONDS=\$SECONDS' "$down_script")" -eq 1 ]
+  ! grep -Fq 'LC_STARTED_SECONDS=$SECONDS' "$common_script"
+  ! grep -Fq 'LC_DEADLINE_SECONDS:-' "$common_script"
+  grep -Fq 'make -s doctor' "$down_script"
   grep -Fq '10-infra) STATE_KEY=infra/terraform.tfstate' <<< "$layer_helpers"
   grep -Fq '20-data) STATE_KEY=data/terraform.tfstate' <<< "$layer_helpers"
   grep -Fq '30-gitops) STATE_KEY=gitops/terraform.tfstate' <<< "$layer_helpers"
