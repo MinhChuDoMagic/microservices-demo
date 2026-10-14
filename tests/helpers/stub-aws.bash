@@ -10,7 +10,7 @@ stub_aws_start() {
   STUB_AWS_CALL_LOG="${BATS_TEST_TMPDIR:-${TMPDIR:-/tmp}}/aws-calls.log"
   STUB_AWS_FIXTURE_DIR="${BATS_TEST_DIRNAME:-$(pwd)/tests}/fixtures/aws"
   : > "$STUB_AWS_CALL_LOG"
-  export STUB_AWS_CALL_LOG STUB_AWS_FIXTURE_DIR
+  export STUB_AWS_CALL_LOG STUB_AWS_FIXTURE_DIR STUB_AWS_DIR
 
   cat > "$STUB_AWS_DIR/aws" <<'STUB_AWS'
 #!/usr/bin/env bash
@@ -70,6 +70,51 @@ if [[ "$service:$operation" == "logs:list-tags-for-resource" && "$fixture_kind" 
   fixture_selector="${fixture_selector#*:log-group:}"
   fixture_selector="${fixture_selector%:*}"
   fixture_selector="$(printf '%s' "$fixture_selector" | tr -c '[:alnum:]_-' '_')"
+fi
+if [[ -n "${STUB_AWS_SEQUENCE_SCENARIO:-}" && -n "${STUB_AWS_SEQUENCE_FIXTURE:-}" ]]; then
+  sequence_fixture="$STUB_AWS_SEQUENCE_FIXTURE"
+  sequence_scenario="$STUB_AWS_SEQUENCE_SCENARIO"
+  sequence_operation="${service}:${operation}"
+  sequence_count_file="$STUB_AWS_DIR/sequence-${service}-${operation}.count"
+
+  if [[ ! -f "$sequence_fixture" ]] || ! jq -e --arg scenario "$sequence_scenario" \
+    --arg operation "$sequence_operation" \
+    'type == "object" and (.[$scenario] | type == "object") and (.[$scenario][$operation] | type == "array")' \
+    "$sequence_fixture" >/dev/null 2>&1; then
+    printf 'stub-aws: sequence fixture missing/invalid scenario=%s operation=%s file=%s; fail closed\n' \
+      "$sequence_scenario" "$sequence_operation" "$sequence_fixture" >&2
+    exit 98
+  fi
+
+  call_number=0
+  if [[ -f "$sequence_count_file" ]]; then
+    read -r call_number < "$sequence_count_file"
+  fi
+  call_number=$((call_number + 1))
+  printf '%s\n' "$call_number" > "$sequence_count_file"
+  sequence_index=$((call_number - 1))
+  if ! sequence_response="$(jq -ce --arg scenario "$sequence_scenario" \
+    --arg operation "$sequence_operation" --argjson index "$sequence_index" \
+    '.[$scenario][$operation][$index] // empty' "$sequence_fixture" 2>/dev/null)"; then
+    printf 'stub-aws: missing sequence response scenario=%s operation=%s call=%s; fail closed\n' \
+      "$sequence_scenario" "$sequence_operation" "$call_number" >&2
+    exit 98
+  fi
+
+  if jq -e 'type == "object" and (keys == ["json"]) and (.json | type == "object")' \
+    <<< "$sequence_response" >/dev/null 2>&1; then
+    jq -c '.json' <<< "$sequence_response"
+    exit 0
+  fi
+  if jq -e 'type == "object" and (keys == ["error"]) and (.error | type == "object") and (.error.stderr | type == "string") and (.error.exit | type == "number" and . >= 1 and . <= 255 and floor == .)' \
+    <<< "$sequence_response" >/dev/null 2>&1; then
+    jq -r '.error.stderr' <<< "$sequence_response" >&2
+    exit "$(jq -r '.error.exit' <<< "$sequence_response")"
+  fi
+
+  printf 'stub-aws: invalid sequence response scenario=%s operation=%s call=%s; expected json object or explicit error; fail closed\n' \
+    "$sequence_scenario" "$sequence_operation" "$call_number" >&2
+  exit 98
 fi
 if [[ -n "$pagination_token" && ( -f "${fixture_base}-${pagination_token}.err" || -f "${fixture_base}-${pagination_token}.json" ) ]]; then
   fixture_base="${fixture_base}-${pagination_token}"

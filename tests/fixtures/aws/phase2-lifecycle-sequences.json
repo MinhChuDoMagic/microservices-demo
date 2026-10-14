@@ -1,0 +1,173 @@
+{
+  "ingress-pending-to-absent": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"json": {"LoadBalancers": [{"LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234", "VpcId": "vpc-12345678", "State": {"Code": "provisioning"}}]}},
+      {"json": {"LoadBalancers": []}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": [{"TargetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/demo/1234", "VpcId": "vpc-12345678", "LoadBalancerArns": []}]}},
+      {"json": {"TargetGroups": []}}
+    ]
+  },
+  "karpenter-pending-to-absent": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "ec2:describe-instances": [
+      {"json": {"Reservations": [{"Instances": [{"InstanceId": "i-0123456789abcdef0", "State": {"Name": "running"}}]}]}},
+      {"json": {"Reservations": []}}
+    ]
+  },
+  "pvc-pending-to-absent": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "ec2:describe-volumes": [
+      {"json": {"Volumes": [{"VolumeId": "vol-0123456789abcdef0", "State": "in-use", "Tags": [{"Key": "kubernetes.io/cluster/microservices-demo", "Value": "owned"}, {"Key": "kubernetes.io/created-for/pvc/name", "Value": "data"}, {"Key": "kubernetes.io/created-for/pvc/namespace", "Value": "default"}], "Attachments": [{"InstanceId": "i-0123456789abcdef0", "State": "attached"}]}]}},
+      {"json": {"Volumes": []}}
+    ]
+  },
+  "eks-creating-residual": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "CREATING", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"json": {"LoadBalancers": [{"LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234", "VpcId": "vpc-12345678", "State": {"Code": "provisioning"}}]}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": []}}
+    ]
+  },
+  "eks-failed-residual": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "FAILED", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "ec2:describe-instances": [
+      {"json": {"Reservations": [{"Instances": [{"InstanceId": "i-0123456789abcdef0", "State": {"Name": "stopped"}}]}]}}
+    ]
+  },
+  "eks-degraded-residual": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "DEGRADED", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "ec2:describe-volumes": [
+      {"json": {"Volumes": [{"VolumeId": "vol-0123456789abcdef0", "State": "in-use", "Tags": [{"Key": "kubernetes.io/cluster/microservices-demo", "Value": "owned"}, {"Key": "kubernetes.io/created-for/pvc/name", "Value": "data"}, {"Key": "kubernetes.io/created-for/pvc/namespace", "Value": "default"}], "Attachments": [{"InstanceId": "i-0123456789abcdef0", "State": "attached"}]}]}}
+    ]
+  },
+  "eks-unknown-status": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "UNRECOGNIZED", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "ec2:describe-instances": [
+      {"json": {"Reservations": []}}
+    ]
+  },
+  "eks-authorization-error": {
+    "eks:describe-cluster": [
+      {"error": {"stderr": "An error occurred (AccessDeniedException): describe-cluster denied", "exit": 255}}
+    ],
+    "ec2:describe-instances": [
+      {"json": {"Reservations": []}}
+    ]
+  },
+  "elbv2-permanent-error": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"error": {"stderr": "An error occurred (AccessDeniedException): denied by sequence fixture", "exit": 255}}
+    ]
+  },
+  "active-node-api-unreachable": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"json": {"LoadBalancers": []}},
+      {"json": {"LoadBalancers": []}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": []}},
+      {"json": {"TargetGroups": []}}
+    ],
+    "ec2:describe-instances": [
+      {"json": {"Reservations": [{"Instances": [{"InstanceId": "i-0123456789abcdef0", "State": {"Name": "running"}}]}]}}
+    ]
+  },
+  "active-pvc-api-unreachable": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"json": {"LoadBalancers": []}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": []}}
+    ],
+    "ec2:describe-instances": [
+      {"json": {"Reservations": []}}
+    ],
+    "ec2:describe-volumes": [
+      {"json": {"Volumes": [{"VolumeId": "vol-0123456789abcdef0", "State": "in-use", "Tags": [{"Key": "kubernetes.io/cluster/microservices-demo", "Value": "owned"}, {"Key": "kubernetes.io/created-for/pvc/name", "Value": "data"}, {"Key": "kubernetes.io/created-for/pvc/namespace", "Value": "default"}], "Attachments": [{"InstanceId": "i-0123456789abcdef0", "State": "attached"}]}]}}
+    ]
+  },
+  "ingress-delete-fail-residual": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"json": {"LoadBalancers": [{"LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234", "VpcId": "vpc-12345678", "State": {"Code": "active"}}]}},
+      {"json": {"LoadBalancers": [{"LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234", "VpcId": "vpc-12345678", "State": {"Code": "active"}}]}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": []}},
+      {"json": {"TargetGroups": []}}
+    ]
+  },
+  "eks-absent-terminal": {
+    "eks:describe-cluster": [
+      {"error": {"stderr": "An error occurred (ResourceNotFoundException): No cluster found", "exit": 255}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"json": {"LoadBalancers": []}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": []}}
+    ]
+  },
+  "transient-retry": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"error": {"stderr": "An error occurred (ThrottlingException): retry fixture", "exit": 255}},
+      {"json": {"LoadBalancers": []}},
+      {"json": {"LoadBalancers": []}}
+    ],
+    "elbv2:describe-target-groups": [
+      {"json": {"TargetGroups": []}},
+      {"json": {"TargetGroups": []}}
+    ]
+  },
+  "transient-retry-exhaustion": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "elbv2:describe-load-balancers": [
+      {"error": {"stderr": "An error occurred (ThrottlingException): attempt one", "exit": 255}},
+      {"error": {"stderr": "An error occurred (ThrottlingException): attempt two", "exit": 255}},
+      {"error": {"stderr": "An error occurred (ThrottlingException): attempt three", "exit": 255}}
+    ]
+  },
+  "malformed-volume-response": {
+    "eks:describe-cluster": [
+      {"json": {"cluster": {"status": "ACTIVE", "resourcesVpcConfig": {"vpcId": "vpc-12345678"}}}}
+    ],
+    "ec2:describe-volumes": [
+      {"json": {"Volumes": {}}}
+    ]
+  }
+}

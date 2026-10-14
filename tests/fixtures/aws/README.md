@@ -42,3 +42,24 @@ its root-volume snapshot is the image-backed snapshot excluded from `ec2-describ
 
 The expired-credential fixture is `sts-get-caller-identity-expired.err`. It contains the AWS CLI
 error text used to drive the hard-error/exit-2 path; it is stderr, not JSON.
+
+## Lifecycle Response Sequences
+
+`phase2-lifecycle-sequences.json` is a test-only scenario manifest, not a raw one-response AWS
+fixture. Enable it by exporting both `STUB_AWS_SEQUENCE_SCENARIO` (an exact top-level scenario
+name) and `STUB_AWS_SEQUENCE_FIXTURE` (the manifest path). Each scenario maps `service:operation`
+to an ordered array. A success entry has the form `{"json":{"Volumes":[]}}` and represents the
+raw AWS API response; an error entry has the form
+`{"error":{"stderr":"AccessDeniedException: ...","exit":255}}` and is emitted on stderr with
+the configured nonzero status.
+
+The shim stores a separate call counter for each service/operation inside its temporary directory.
+Responses advance once per invocation, persist across separate AWS shim processes, and do not
+repeat the last item. A missing scenario, operation, or next response fails closed with exit 98;
+sequence mode never falls through to the raw fixture resolver. Starting a new stub directory resets
+all counters, so a teardown retry begins at the first response again (D-04, D-05). When sequence
+mode is not enabled, the existing fixture lookup and error-precedence behavior is unchanged.
+
+The manifest includes pending-to-absent transitions for ELBv2, Karpenter EC2 instances, and PVC EBS
+volumes; EKS status/error cases; transient retry and retry exhaustion; malformed response data; and
+terminal absence. All entries remain fixture-only and must not be used by production scripts.
