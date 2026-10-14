@@ -189,7 +189,6 @@ log_group_retention_violations() {
   grep -Fq '| `hashicorp/cloudinit` | 2.4.1 |' "$versions_file"
   grep -Fq '| `hashicorp/time` | 0.14.2 |' "$versions_file"
   grep -Fq '| `hashicorp/tls` | 4.4.1 |' "$versions_file"
-
   grep -Fq 'version = "6.7.3"' "$infra_dir/vpc.tf"
   grep -Fq 'version = "1.6.1"' "$infra_dir/nat.tf"
   grep -Fq 'version = "21.26.0"' "$infra_dir/eks.tf"
@@ -204,6 +203,12 @@ log_group_retention_violations() {
     grep -Fq "$addon_version" "$versions_file"
   done
   [ "$(grep -Ec 'most_recent[[:space:]]*=([[:space:]]*)false' "$infra_dir/eks.tf")" -eq 4 ]
+}
+
+@test "system node group output extracts name from the EKS module node_group_id" {
+  outputs_file="$BATS_TEST_DIRNAME/../layers/10-infra/outputs.tf"
+
+  grep -Fq 'split(":", module.eks.eks_managed_node_groups["system"].node_group_id)[1]' "$outputs_file"
 }
 
 @test "Terraform Kubernetes and Helm providers are restricted to 30-gitops" {
