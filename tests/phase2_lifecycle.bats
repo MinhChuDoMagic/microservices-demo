@@ -305,7 +305,7 @@ prepare_doctor_path() {
   local doctor_path="$BATS_TEST_TMPDIR/doctor-path"
   local command_name
   mkdir -p "$doctor_path"
-  for command_name in env bash dirname basename cut grep head sed sort tr wc git jq; do
+  for command_name in env bash dirname basename cut grep head sed sort tr wc git jq rm; do
     ln -s "$(command -v "$command_name")" "$doctor_path/$command_name"
   done
   for command_name in aws kubectl terraform; do
