@@ -9,9 +9,19 @@ Last verified against upstream registries: **2026-09-25**
 | Terraform CLI | 1.16.4 | `1.16.4` | `.terraform-version` | [releases.hashicorp.com](https://releases.hashicorp.com/terraform/1.16.4/) |
 | Terraform CLI | 1.16.4 | `required_version = "= 1.16.4"` | `layers/*/versions.tf` | [releases.hashicorp.com](https://releases.hashicorp.com/terraform/1.16.4/) |
 | `hashicorp/aws` | 6.66.0 | `version = "= 6.66.0"` | `layers/*/versions.tf` | [Terraform Registry](https://registry.terraform.io/providers/hashicorp/aws/6.66.0) |
+| `hashicorp/cloudinit` | 2.4.1 | `version = "= 2.4.1"` | `layers/10-infra/versions.tf` | [Terraform Registry](https://registry.terraform.io/providers/hashicorp/cloudinit/2.4.1) |
+| `hashicorp/time` | 0.14.2 | `version = "= 0.14.2"` | `layers/10-infra/versions.tf` | [Terraform Registry](https://registry.terraform.io/providers/hashicorp/time/0.14.2) |
+| `hashicorp/tls` | 4.4.1 | `version = "= 4.4.1"` | `layers/10-infra/versions.tf` | [Terraform Registry](https://registry.terraform.io/providers/hashicorp/tls/4.4.1) |
+| `hashicorp/null` (transitive) | 3.3.2 | `version = "3.3.2"` | `layers/10-infra/.terraform.lock.hcl` | [Terraform Registry](https://registry.terraform.io/providers/hashicorp/null/3.3.2) |
 | `terraform-aws-modules/vpc` | 6.7.3 | `version = "6.7.3"` | `layers/10-infra/vpc.tf` (Phase 2) | [Terraform Registry](https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/6.7.3) |
 | `terraform-aws-modules/eks` | 21.26.0 | `version = "21.26.0"` | `layers/10-infra/eks.tf` (Phase 2) | [Terraform Registry](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/21.26.0) |
 | `RaJiska/fck-nat` | 1.6.1 | `version = "1.6.1"` | `layers/10-infra/nat.tf` (Phase 2) | [Terraform Registry](https://registry.terraform.io/modules/RaJiska/fck-nat/aws/1.6.1) |
+| EKS managed add-on `vpc-cni` | `v1.23.2-eksbuild.3` | `addon_version = "v1.23.2-eksbuild.3"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html) |
+| EKS managed add-on `kube-proxy` | `v1.34.6-eksbuild.49` | `addon_version = "v1.34.6-eksbuild.49"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/managing-kube-proxy.html) |
+| EKS managed add-on `coredns` | `v1.13.2-eksbuild.51` | `addon_version = "v1.13.2-eksbuild.51"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html) |
+| EKS managed add-on `eks-pod-identity-agent` | `v1.4.0-eksbuild.4` | `addon_version = "v1.4.0-eksbuild.4"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html) |
+| EKS Kubernetes | 1.34 | `kubernetes_version = "1.34"` | `layers/10-infra/eks.tf` | [EKS Kubernetes versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) |
+| EKS AL2023 ARM64 node AMI release | `1.34.11-20261003` | `ami_release_version = "1.34.11-20261003"` | `layers/10-infra/eks.tf` | [EKS optimized AMI releases](https://github.com/awslabs/amazon-eks-ami/releases) |
 
 ## CI actions
 
