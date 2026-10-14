@@ -266,12 +266,45 @@ AWS
 @test "bootstrap destruction has one explicitly decommission-only entry point" {
   makefile="$BATS_TEST_DIRNAME/../Makefile"
 
-  [ "$(grep -cE 'terraform.*destroy' "$makefile")" -eq 1 ]
+  [ "$(grep -cE 'terraform.*destroy' "$makefile")" -eq 2 ]
   grep -Fq "nuke-bootstrap         DECOMMISSION:" "$makefile"
   grep -Fq "trap 'restore_nuke_files' EXIT" "$makefile"
   grep -Fq 'if [[ -f "$$BACKEND_BACKUP" ]]' "$makefile"
   grep -Fq 'if [[ -f "$$GUARD_BACKUP" ]]' "$makefile"
   grep -Fq 'sed -i.bak' "$makefile"
+}
+
+@test "daily teardown has one fixed deadline and only ephemeral state keys" {
+  makefile="$BATS_TEST_DIRNAME/../Makefile"
+  deadline_runner="$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py"
+  down_target="$(sed -n '/^down: doctor$/,/^_layer-state:/p' "$makefile")"
+  layer_helpers="$(sed -n '/^_layer-state:/,/^verify-teardown:/p' "$makefile")"
+
+  [ "$(grep -cF 'python3 sh/run-down-with-deadline.py' <<< "$down_target")" -eq 1 ]
+  grep -Fq 'DEADLINE_SECONDS = 900' "$deadline_runner"
+  grep -Fq 'time.monotonic()' "$deadline_runner"
+  grep -Fq 'start_new_session=True' "$deadline_runner"
+  grep -Fq 'os.killpg(process.pid' "$deadline_runner"
+  [[ "$down_target" != *'DOWN_TIMEOUT'* ]]
+  grep -Fq '10-infra) STATE_KEY=infra/terraform.tfstate' <<< "$layer_helpers"
+  grep -Fq '20-data) STATE_KEY=data/terraform.tfstate' <<< "$layer_helpers"
+  grep -Fq '30-gitops) STATE_KEY=gitops/terraform.tfstate' <<< "$layer_helpers"
+  [[ "$layer_helpers" != *'00-bootstrap'* ]]
+  grep -Fq -- '-backend-config="$(BACKEND_HCL)"' <<< "$layer_helpers"
+  grep -Fq 'key=$$STATE_KEY' <<< "$layer_helpers"
+}
+
+@test "teardown lock precedes every lifecycle stage and has exit and signal cleanup" {
+  down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
+  lock_line="$(grep -nF 'if ! mkdir "$LOCK_DIR"' "$down_script" | cut -d: -f1)"
+  first_stage_line="$(grep -nF "stage 1 'disable Argo auto-sync'" "$down_script" | cut -d: -f1)"
+
+  [ -n "$lock_line" ]
+  [ -n "$first_stage_line" ]
+  [ "$lock_line" -lt "$first_stage_line" ]
+  grep -Fq 'trap cleanup EXIT' "$down_script"
+  grep -Fq "trap 'on_signal INT' INT" "$down_script"
+  grep -Fq "trap 'on_signal TERM' TERM" "$down_script"
 }
 
 @test "nuke-bootstrap rejects a wrong confirmation before changing state" {
