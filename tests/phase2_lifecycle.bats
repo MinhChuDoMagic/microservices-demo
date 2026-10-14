@@ -9,13 +9,24 @@ setup() {
   test_root="$BATS_TEST_TMPDIR/repo"
   call_log="$BATS_TEST_TMPDIR/calls.log"
   backend_hcl="$BATS_TEST_TMPDIR/backend.hcl"
+  timeout_log="$BATS_TEST_TMPDIR/timeout.log"
   mkdir -p "$test_bin" "$test_root/sh" "$test_root/layers/10-infra"
   cp "$BATS_TEST_DIRNAME/../Makefile" "$test_root/Makefile"
   cp "$BATS_TEST_DIRNAME/../sh/down.sh" "$test_root/sh/down.sh" 2>/dev/null || true
   cp "$BATS_TEST_DIRNAME/../sh/up.sh" "$test_root/sh/up.sh" 2>/dev/null || true
-  cp "$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py" "$test_root/sh/run-down-with-deadline.py"
   printf '%s\n' 'bucket = "test-state-bucket"' > "$backend_hcl"
   : > "$call_log"
+  : > "$timeout_log"
+
+  cat > "$test_bin/timeout" <<'TIMEOUT'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$TEST_TIMEOUT_LOG"
+[[ "$1" == '--signal=TERM' && "$2" == '--kill-after=5s' && "$3" == '900s' ]]
+shift 3
+exec "$@"
+TIMEOUT
+  chmod +x "$test_bin/timeout"
 
   cat > "$test_bin/make" <<'MAKE'
 #!/usr/bin/env bash
@@ -25,11 +36,13 @@ target=""
 layer=""
 for argument in "$@"; do
   case "$argument" in
-    _layer-state|_init-layer|_apply-layer|_destroy-layer|verify-teardown) target="$argument" ;;
+    doctor|_layer-state|_init-layer|_apply-layer|_destroy-layer|verify-teardown) target="$argument" ;;
     LAYER=*) layer="${argument#LAYER=}" ;;
   esac
 done
 case "$target" in
+    doctor)
+      ;;
   _init-layer)
     [[ "$layer" == 10-infra ]] || exit 2
     ;;
@@ -208,7 +221,31 @@ TERRAFORM
 KUBECTL
   chmod +x "$test_bin/kubectl"
 
+  cat > "$test_bin/argocd" <<'ARGOCD'
+#!/usr/bin/env bash
+set -u
+printf '%s\n' "$*" >> "$TEST_CALL_LOG"
+case "${1:-}:${2:-}" in
+  app:get)
+    if [[ "${TEST_ARGOCD_GET_EXIT:-0}" -ne 0 ]]; then
+      printf '%s\n' "${TEST_ARGOCD_GET_ERROR:-test Argo CD error}" >&2
+      exit "$TEST_ARGOCD_GET_EXIT"
+    fi
+    printf '%s\n' '{"metadata":{"name":"root"}}'
+    ;;
+  app:set)
+    if [[ "${TEST_ARGOCD_SET_EXIT:-0}" -ne 0 ]]; then
+      printf '%s\n' "${TEST_ARGOCD_SET_ERROR:-test Argo CD set error}" >&2
+      exit "$TEST_ARGOCD_SET_EXIT"
+    fi
+    ;;
+  *) exit 64 ;;
+esac
+ARGOCD
+  chmod +x "$test_bin/argocd"
+
   export TEST_CALL_LOG="$call_log"
+  export TEST_TIMEOUT_LOG="$timeout_log"
   export TEST_REAL_MAKE="$real_make"
   export TEST_BACKEND_HCL="$backend_hcl"
   export TEST_ENTERED="$BATS_TEST_TMPDIR/state-entered"
@@ -274,29 +311,37 @@ use_sequence_fixture() {
   down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
 
   grep -Eq '^down:' "$makefile"
-  grep -Fq 'python3 sh/run-down-with-deadline.py' "$makefile"
-  grep -Fq '"sh/down.sh"' "$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py"
+  grep -Fq '900s' "$makefile"
+  grep -Fq 'sh/down.sh' "$makefile"
   [ -x "$down_script" ]
-}
-
-@test "deadline runner preserves the teardown command exit code" {
-  deadline_runner="$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py"
-  printf '%s\n' '#!/usr/bin/env bash' 'exit 7' > "$test_root/sh/down.sh"
-
-  run bash -c 'cd "$1" && python3 "$2"' _ "$test_root" "$deadline_runner"
-
-  [ "$status" -eq 7 ]
 }
 
 @test "make down runs through the deadline runner without AWS side effects" {
   run bash -c 'cd "$1" && "$2" -o doctor -s down' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
+  [ "$(wc -l < "$timeout_log" | tr -d ' ')" -eq 1 ]
+  [[ "$(<"$timeout_log")" == *'--signal=TERM --kill-after=5s 900s bash sh/down.sh'* ]]
   [ "$status" -eq 0 ]
   [[ "$output" == *'[1/8] disable Argo auto-sync'* ]]
   [[ "$output" == *'[8/8] verify'* ]]
   [[ "$(<"$call_log")" == *'verify-teardown'* ]]
   [ ! -e "$test_root/.down.lock" ]
+}
+
+@test "a confirmed missing Argo application is a no-op before teardown continues" {
+  install_drain_scripts
+  export TEST_STATE_30_gitops=present
+  export TEST_ARGOCD_GET_EXIT=3
+  export TEST_ARGOCD_GET_ERROR='rpc error: code = NotFound desc = application root not found'
+
+  run bash "$test_root/sh/down.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'root application is confirmed absent'* ]]
+  [[ "$(<"$call_log")" == *'app get root'* ]]
+  [[ "$(<"$call_log")" != *'app set root'* ]]
+  [[ "$(<"$call_log")" == *'_destroy-layer LAYER=30-gitops'* ]]
 }
 
 @test "Make L1 helpers use the generated backend and exact state key" {
