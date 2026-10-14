@@ -7,7 +7,7 @@
  * `gsd-core/bin/lib/semver-compare.cjs`; only types are added. The
  * normalization policy here is locked by `tests/semver-compare.test.cjs` and
  * consumed by update-check, statusline dev-install detection, and changeset
- * range compare (`scripts/changeset/cli.cjs`).
+ * range compare (`sh/changeset/cli.cjs`).
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toNumericTuple = toNumericTuple;

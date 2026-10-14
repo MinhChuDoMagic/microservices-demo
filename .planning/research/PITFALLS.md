@@ -254,7 +254,7 @@ aws logs describe-log-groups --region "$REGION" \
 - **Cost Anomaly Detection** with a monitor on the linked account and a **$1 absolute threshold**. The default thresholds are tuned for enterprise spend and will never fire at this scale — you must set it low manually.
 - Budgets/anomaly alerts are also lagging, but they are the backstop for the case where your script has a blind spot.
 
-**Layer 4 — Standing nuke script.** A `scripts/nuke.sh` that force-deletes by tag/VPC, for when an ordered teardown genuinely fails. Consider `aws-nuke` or `cloud-nuke` scoped tightly to the practice account. **Use a dedicated AWS account for this project** so a blunt nuke is safe — this is the single highest-leverage structural decision for teardown confidence.
+**Layer 4 — Standing nuke script.** A `sh/nuke.sh` that force-deletes by tag/VPC, for when an ordered teardown genuinely fails. Consider `aws-nuke` or `cloud-nuke` scoped tightly to the practice account. **Use a dedicated AWS account for this project** so a blunt nuke is safe — this is the single highest-leverage structural decision for teardown confidence.
 
 **Warning signs:** you find yourself opening the billing console "just to check" more than once per session. That means you do not trust your script, which means the script is wrong.
 
@@ -739,7 +739,7 @@ At *this* project's scale (2–3 nodes, ~30 pods) this is genuinely unlikely —
 4. **Security groups vs NetworkPolicies confusion.** SGs are node/ENI-level; NetworkPolicies are pod-level. A pod-to-RDS connection is governed by the *node's* SG (unless using Security Groups for Pods), so a NetworkPolicy alone will not stop it, and an SG rule alone will not stop pod-to-pod.
 5. **Egress to AWS APIs.** Default-deny egress blocks pods reaching STS/SQS/Secrets Manager via fck-nat. You need an egress rule to `0.0.0.0/0` minus the cluster CIDR, or to the fck-nat ENI.
 
-**How to avoid:** roll out NetworkPolicy **namespace by namespace, in audit mode first**. Write a `scripts/netpol-test.sh` that asserts (a) a pod in `apps` **can** resolve DNS and reach `order`, and (b) a pod in `default` **cannot** reach `order`. Run it in `make up`'s smoke test. Without the negative assertion you have no evidence enforcement is on.
+**How to avoid:** roll out NetworkPolicy **namespace by namespace, in audit mode first**. Write a `sh/netpol-test.sh` that asserts (a) a pod in `apps` **can** resolve DNS and reach `order`, and (b) a pod in `default` **cannot** reach `order`. Run it in `make up`'s smoke test. Without the negative assertion you have no evidence enforcement is on.
 
 **Phase to address:** Security phase — but **after** observability is working, because debugging NetworkPolicy without metrics and logs is miserable.
 

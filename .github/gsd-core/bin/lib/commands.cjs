@@ -3596,7 +3596,7 @@ const COMMIT_DOCS_GUARD_MARKER = '# gsd-core:commit-docs-guard';
 /**
  * Locate `gsd-core/workflows/_runtime-launcher.snippet.sh` — the SAME
  * gsd-tools-resolution chain every shipped workflow/agent bash block uses
- * (scripts/sync-runtime-launcher.cjs) — by walking up from this module's own
+ * (sh/sync-runtime-launcher.cjs) — by walking up from this module's own
  * compiled location rather than a fixed literal `../..` join, so the walk
  * tolerates the module living at a different depth under an alternate build
  * or bundling layout (same defensive shape as

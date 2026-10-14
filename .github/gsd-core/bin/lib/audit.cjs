@@ -338,7 +338,7 @@ function scanDebugSessions(planDir) {
  * `cmdAuditAcknowledge`'s quick_tasks writer share the ONE discovery rule —
  * previously the writer would have had to hand-roll this exact filter a
  * second time, which is exactly the re-derivation-drift class
- * `scripts/lint-plan-count-drift.cjs` exists to catch (see its
+ * `sh/lint-plan-count-drift.cjs` exists to catch (see its
  * `FUNCTION_SCOPED_EXEMPTIONS` entry for this function).
  *
  * Returns `null` (never throws) on an unreadable `taskDir` or when no

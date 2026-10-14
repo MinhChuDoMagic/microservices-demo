@@ -1,9 +1,9 @@
 'use strict';
 
-// Machine-readable companion reporter for scripts/run-tests.cjs (#3889).
+// Machine-readable companion reporter for sh/run-tests.cjs (#3889).
 //
 // node:test's built-in reporters (spec/tap) are human-formatted and
-// scripts/run-tests.cjs spawns the child with `stdio: 'inherit'` — by design,
+// sh/run-tests.cjs spawns the child with `stdio: 'inherit'` — by design,
 // per #3597/#1051, to avoid the maxBuffer and live-output risks of piping —
 // so the parent process has no way to see WHICH file was executing when a
 // per-chunk timeout kills the child. This reporter runs ALONGSIDE the normal

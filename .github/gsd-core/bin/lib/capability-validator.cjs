@@ -3,7 +3,7 @@
 /**
  * capability-validator.cjs — shared, runtime-callable capability validator.
  *
- * Extracted from scripts/gen-capability-registry.cjs per ADR-1244 D2 so that
+ * Extracted from sh/gen-capability-registry.cjs per ADR-1244 D2 so that
  * both the build-time generator and the runtime overlay loader can require the
  * validator WITHOUT pulling in the generator's build-time-only machinery
  * (ExitError, config-schema.manifest.json, install-profiles.cjs, clusters.cjs,
@@ -1761,7 +1761,7 @@ function validateRuntimeBody(cap) {
       errors.push(
         'runtime.hooksSurface "' + r.hooksSurface + '" is not valid for installSurface "' + r.installSurface + '"' +
         ' — allowed: ' + [...allowedHooksSurfaces].join(', ') +
-        ' (src: INSTALL_SURFACE_TO_ALLOWED_HOOKS_SURFACES in scripts/gen-capability-registry.cjs)',
+        ' (src: INSTALL_SURFACE_TO_ALLOWED_HOOKS_SURFACES in sh/gen-capability-registry.cjs)',
       );
     }
   }
@@ -3760,7 +3760,7 @@ function validateHooksWired(cap, wiredKinds) {
         '" is declared but not wired in any host-loop workflow ' +
         '(no `loop render-hooks ' + point + '` call site). ' +
         'Wire the call site in the host workflow ' +
-        '(see scripts/gen-loop-host-contract.cjs STEP_WORKFLOWS) or remove the hook.',
+        '(see sh/gen-loop-host-contract.cjs STEP_WORKFLOWS) or remove the hook.',
       );
       return;
     }
@@ -3889,7 +3889,7 @@ function runConfigFormatParityGate(capMap) {
       throw new Error(
         'configFormat parity gate: runtime "' + capId + '" has installSurface "' + installSurface +
         '" which is not in the INSTALL_SURFACE_TO_CONFIG_FORMAT mapping — ' +
-        'update the mapping in scripts/gen-capability-registry.cjs',
+        'update the mapping in sh/gen-capability-registry.cjs',
       );
     }
 
@@ -3900,7 +3900,7 @@ function runConfigFormatParityGate(capMap) {
         '  expected configFormat: ' + expectedConfigFormat + '\n' +
         '  actual configFormat:   ' + r.configFormat + '\n' +
         'The capability.json configFormat must match the value derived from installSurface ' +
-        '(src: scripts/gen-capability-registry.cjs INSTALL_SURFACE_TO_CONFIG_FORMAT)',
+        '(src: sh/gen-capability-registry.cjs INSTALL_SURFACE_TO_CONFIG_FORMAT)',
       );
     }
   }

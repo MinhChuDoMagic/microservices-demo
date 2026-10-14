@@ -37,7 +37,7 @@ const { ExitError } = require('./cli-exit.cjs');
 // releases API as the current latest tag at the time this was written
 // (2026-08-31). Never resolved dynamically ("latest") — a moving target
 // would make this lint's exact ShellCheck version, and therefore its exact
-// finding set against scripts/lint-workflow-shellcheck-baseline.json,
+// finding set against sh/lint-workflow-shellcheck-baseline.json,
 // non-reproducible across runs/machines/CI.
 const SHELLCHECK_VERSION = 'v0.11.0';
 

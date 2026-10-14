@@ -24,7 +24,7 @@ Extract the changelog entries for every release in a version range, reading from
 an existing `CHANGELOG.md`. The range is **`--from` exclusive, `--to` inclusive**.
 
 ```bash
-node scripts/changeset/cli.cjs extract --from VERSION --to VERSION \
+node sh/changeset/cli.cjs extract --from VERSION --to VERSION \
   [--changelog FILE] [--repo <dir>] [--json]
 ```
 
@@ -104,13 +104,13 @@ paste into release notes:
 Extract everything released after `1.41.0` up to and including `1.42.0`:
 
 ```bash
-node scripts/changeset/cli.cjs extract --from 1.41.0 --to 1.42.0
+node sh/changeset/cli.cjs extract --from 1.41.0 --to 1.42.0
 ```
 
 The same range as structured JSON, reading an explicit changelog file:
 
 ```bash
-node scripts/changeset/cli.cjs extract \
+node sh/changeset/cli.cjs extract \
   --from v1.41.0 --to v1.42.0 \
   --changelog ./CHANGELOG.md --json
 ```
@@ -118,7 +118,7 @@ node scripts/changeset/cli.cjs extract \
 Handle the three outcomes in a shell consumer:
 
 ```bash
-if out=$(node scripts/changeset/cli.cjs extract --from "$FROM" --to "$TO" --json); then
+if out=$(node sh/changeset/cli.cjs extract --from "$FROM" --to "$TO" --json); then
   echo "$out"            # exit 0 — releases found
 else
   case $? in

@@ -40,7 +40,7 @@ compiled output dir). There are two kinds:
 - **upstream-verbatim** (`re2js.d.cts`) — a byte-for-byte copy of an
   upstream `.d.cts`/`.d.ts` that ships with the package. Both the
   `gsd-core/bin/lib/vendor/` copy and the `src/vendor/` copy are checked by
-  `scripts/lint-vendored-deps.cjs` against `node_modules` and against each
+  `sh/lint-vendored-deps.cjs` against `node_modules` and against each
   other.
 - **hand-authored** (`js-yaml.d.cts`) — js-yaml ships **no** type
   declarations upstream and `@types/js-yaml` is not installed, so there is
@@ -67,7 +67,7 @@ cp node_modules/js-yaml/dist/js-yaml.js gsd-core/bin/lib/vendor/js-yaml.cjs
 # by hand if the js-yaml API surface this repo depends on changes.
 ```
 
-`node scripts/lint-vendored-deps.cjs` fails CI if any vendored copy drifts
+`node sh/lint-vendored-deps.cjs` fails CI if any vendored copy drifts
 byte-for-byte from its `node_modules` upstream, from its own source-side
 type twin (upstream-verbatim twins only), or from the version pinned in
 `package.json` `devDependencies`. It is table-driven (`VENDORED` in that

@@ -196,7 +196,7 @@ function normalizeSepBytes(rel) {
  *      point a hook `script` at (`__pycache__/run.js`) to install benign, then rewrite freely post-consent.
  *   2. A FILE whose name ends `.pyc` or `.pyo` is excluded ONLY when its PARENT directory's basename is
  *      exactly `__pycache__` (checked byte-exact, never `.pytest_cache`) — a `.pyc`/`.pyo` anywhere else
- *      (bundle root, `scripts/`, a directory literally named `cache.pyc`, etc.) is hashed normally,
+ *      (bundle root, `sh/`, a directory literally named `cache.pyc`, etc.) is hashed normally,
  *      because a sourceless legacy `.pyc` there IS importable and executable (H2).
  *
  * A regular FILE literally named `__pycache__` or `.pytest_cache` is NOT excluded (only a DIRECTORY of
@@ -284,7 +284,7 @@ function hasPycacheFileSuffix(name) {
  * True when a FILE with basename `name`, inside a directory whose OWN basename is `dirBasename`, must
  * be excluded from the digest: a `.pyc`/`.pyo` suffix whose parent directory basename is exactly
  * `__pycache__` (byte-exact — never `.pytest_cache`, so a `.pyc` sitting directly inside a
- * `.pytest_cache` dir is still hashed). A `.pyc`/`.pyo` file anywhere else — bundle root, `scripts/`,
+ * `.pytest_cache` dir is still hashed). A `.pyc`/`.pyo` file anywhere else — bundle root, `sh/`,
  * a directory literally named `cache.pyc`, etc. — is NOT excluded (H2): a sourceless legacy `.pyc`
  * there is importable and executable, so it must stay bound to consent.
  */
@@ -409,7 +409,7 @@ const TAG_DIR = Buffer.from([0x02]);
  *   - A `__pycache__` or `.pytest_cache` DIRECTORY's own TAG_DIR marker is suppressed, but it is
  *     ALWAYS recursed into — every non-excluded child underneath is still hashed.
  *   - A `.pyc`/`.pyo` FILE is excluded ONLY when its immediate parent directory's basename is exactly
- *     `__pycache__`; a `.pyc`/`.pyo` anywhere else (bundle root, `scripts/`, etc.) is hashed normally,
+ *     `__pycache__`; a `.pyc`/`.pyo` anywhere else (bundle root, `sh/`, etc.) is hashed normally,
  *     since a sourceless legacy `.pyc` there is importable and executable.
  * `node_modules`, `dist`, `build`, and similar are deliberately NOT excluded: their contents are
  * executed/required at runtime, so dropping them from the digest would stop consent from binding

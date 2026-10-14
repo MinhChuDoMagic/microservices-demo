@@ -565,7 +565,7 @@ function isSandboxHeld(...candidates) {
 // {@link deriveCodexSandboxMode}; giving it this reader too avoids importing
 // `runtime-artifact-conversion.cjs` there just to pull one frontmatter field
 // — that module's own dependency chain (`command-roster.cjs` →
-// `scripts/fix-slash-commands.cjs`, a dev-only repo script) does not resolve
+// `sh/fix-slash-commands.cjs`, a dev-only repo script) does not resolve
 // from an installed tree, which is exactly what broke
 // `tests/agent-install-check.test.cjs` against a synthetic install dir.
 // Scoped to ONLY the `tools:` key: finds the leading `---`-delimited

@@ -191,7 +191,7 @@ function projectCompletionStatus(implementationComplete, phaseComplete) {
 }
 function buildPhaseCompletionProjection(cwd, phaseNumber, phaseDir, planCount, summaryCount, slashRuntime) {
     // ADR-3180 §7.4 (issue #3186) / DO-NOT-MIGRATE exemption
-    // (scripts/lint-completion-predicate-drift.cjs FUNCTION_SCOPED_EXEMPTIONS,
+    // (sh/lint-completion-predicate-drift.cjs FUNCTION_SCOPED_EXEMPTIONS,
     // declared deviation): `implementation_complete` answers "are the plans
     // done" (a `scanPhasePlans`-shaped different question, per the design's
     // 0.x-split), NOT "is the phase complete" — it is kept for the
@@ -344,7 +344,7 @@ function getInitGitState(cwd) {
     };
 }
 // #2932 (Phase 5, ADR-1671): shipped, generated artifact — see
-// scripts/gen-section-manifest.cjs and gsd-core/workflows/section-manifest.json.
+// sh/gen-section-manifest.cjs and gsd-core/workflows/section-manifest.json.
 // Resolved the same way model-catalog.cts resolves model-catalog.json: relative
 // to the compiled module's own directory (gsd-core/bin/lib -> gsd-core/workflows),
 // with a GSD_SECTION_MANIFEST env override so tests can point at a temp fixture
@@ -377,7 +377,7 @@ function isUnsafeManifestReadPath(readPath) {
  * Loads and shape-validates the generated section manifest, then returns the
  * document-order section array for exactly one named `workflow` (#2992 Phase
  * 6.1: the artifact is now `{ workflows: { <name>: [...] } }`, keyed by
- * `.md` basename — see `scripts/gen-section-manifest.cjs`). Returns `null`
+ * `.md` basename — see `sh/gen-section-manifest.cjs`). Returns `null`
  * — never throws — when the artifact is missing, unreadable, malformed
  * JSON, valid JSON of the wrong shape (INCLUDING the pre-6.1 flat
  * `{sections:[...]}` shape, which must never be mis-attributed to any

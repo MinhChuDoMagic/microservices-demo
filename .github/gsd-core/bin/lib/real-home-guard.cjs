@@ -10,7 +10,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
  * as a test by the remote runner, which never imports it and throws immediately
  * on load — proven against the unmodified `next` tip 622f43353 (linux-node24,
  * 37199 passed / 1 failed, failure at `src/test-home-guard.cts`). Meanwhile
- * `scripts/run-tests.cjs` only globs `tests/**\/*.test.cjs`, so GitHub CI never
+ * `sh/run-tests.cjs` only globs `tests/**\/*.test.cjs`, so GitHub CI never
  * sees the failure and stays green while the remote push-gate runner goes red.
  * Any name works except one matching `test-*`, `*-test`, `*_test`, `*.test.*`,
  * or `test.*`.
@@ -148,7 +148,7 @@ function identify(p) {
  * @param deps - test seam. The guard's own trigger condition is "HOME equals the
  *   passwd home", which cannot be reproduced without pointing at the developer's
  *   real home, so it is injected rather than simulated. Mirrors the `deps.os`
- *   seam in scripts/live-config-guard.cjs.
+ *   seam in sh/live-config-guard.cjs.
  * @throws {Error} when a global `home` override cannot be shown to be sandboxed.
  */
 /**

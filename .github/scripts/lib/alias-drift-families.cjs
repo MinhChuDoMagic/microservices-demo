@@ -3,7 +3,7 @@
 /**
  * Single source of truth for the command-alias drift surface.
  *
- * Two parallel surfaces consume this: `scripts/check-alias-drift.cjs`, which
+ * Two parallel surfaces consume this: `sh/check-alias-drift.cjs`, which
  * validates the built alias artifacts, and `.githooks/pre-commit`, which decides
  * when to run that validation. Until #2725 the hook's watched-path list had
  * drifted from the checker's family table until every pattern named either the

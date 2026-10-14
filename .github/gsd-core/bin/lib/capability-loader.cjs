@@ -392,7 +392,7 @@ function centralConfigKeys() {
         else {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-require-imports
-                const mod = require('../../../scripts/gen-capability-registry.cjs');
+                const mod = require('../../../sh/gen-capability-registry.cjs');
                 _centralKeysMemo = mod.loadCentralConfigKeys();
             }
             catch {
@@ -591,7 +591,7 @@ function loadRegistry(options = {}) {
         if (generatorMod)
             return generatorMod;
         // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
-        const mod = _generatorOverride ?? require('../../../scripts/gen-capability-registry.cjs');
+        const mod = _generatorOverride ?? require('../../../sh/gen-capability-registry.cjs');
         generatorMod = mod;
         return mod;
     };

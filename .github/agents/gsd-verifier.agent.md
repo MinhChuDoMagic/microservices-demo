@@ -466,7 +466,7 @@ cargo test "$TEST_NAME" -- --exact   # pytest -k "$TEST_NAME" · npx vitest run 
 
 SUMMARY.md probe pass claims are not evidence. If a phase declares or implies probe-based verification, the verifier must run the probe in its own process and record the command result.
 
-**When to run:** For migration phases, CLI/tooling phases, or any phase whose PLAN/SUMMARY/verification criteria mention probes, PASS markers, stage markers, runnable checks, or `scripts/*/tests/probe-*.sh`.
+**When to run:** For migration phases, CLI/tooling phases, or any phase whose PLAN/SUMMARY/verification criteria mention probes, PASS markers, stage markers, runnable checks, or `sh/*/tests/probe-*.sh`.
 
 **Probe discovery:**
 
@@ -475,12 +475,12 @@ SUMMARY.md probe pass claims are not evidence. If a phase declares or implies pr
 find scripts -path '*/tests/probe-*.sh' -type f 2>/dev/null | sort
 
 # Phase-declared probes
-grep -R -n -E 'probe-[^[:space:]]+\.sh|scripts/.*/tests/probe-.*\.sh' "$PHASE_DIR"/*-PLAN.md "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null
+grep -R -n -E 'probe-[^[:space:]]+\.sh|sh/.*/tests/probe-.*\.sh' "$PHASE_DIR"/*-PLAN.md "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null
 ```
 
 **Execution contract:**
 
-1. Build the `PROBES` list from explicit PLAN declarations first; include conventional `scripts/*/tests/probe-*.sh` when the phase is a migration/tooling phase or the success criteria mention probes.
+1. Build the `PROBES` list from explicit PLAN declarations first; include conventional `sh/*/tests/probe-*.sh` when the phase is a migration/tooling phase or the success criteria mention probes.
 2. For every documented probe path, if the file is missing or unreadable, mark `MISSING_PROBE` and set `status: gaps_found`. Do not require the executable bit because probes run through `bash "$probe"`.
 3. Run each probe from the built `PROBES` list from the repository root:
 
@@ -497,7 +497,7 @@ done
 
 | Probe | Command | Result | Status |
 | ----- | ------- | ------ | ------ |
-| `scripts/.../probe-name.sh` | `bash "$probe"` | exit code/output | PASS / FAILED / MISSING_PROBE |
+| `sh/.../probe-name.sh` | `bash "$probe"` | exit code/output | PASS / FAILED / MISSING_PROBE |
 
 ## Step 8: Identify Human Verification Needs
 

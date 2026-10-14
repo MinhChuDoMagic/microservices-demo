@@ -4,9 +4,9 @@
 /**
  * Shared anti-divergence scanner machinery (epic #3180, ADR-3180 Decision 4).
  *
- * Extracted from `scripts/lint-plan-count-drift.cjs` (#3183) so that
- * `scripts/lint-milestone-window-drift.cjs` (#3184) and any future
- * `scripts/lint-<derivation>-drift.cjs` guard consume ONE tree-walk /
+ * Extracted from `sh/lint-plan-count-drift.cjs` (#3183) so that
+ * `sh/lint-milestone-window-drift.cjs` (#3184) and any future
+ * `sh/lint-<derivation>-drift.cjs` guard consume ONE tree-walk /
  * root-confinement / literal-tokenizer / sanitizer implementation instead of
  * each copying it verbatim — the exact generative-fix-divergence class this
  * epic exists to remove, now applied to the guards themselves (see
@@ -125,7 +125,7 @@ function readRegexLiteralAt(line, start) {
 // follows symlinks) to classify it, skipping broken links. `ctx.visitedRealDirs`
 // guards against a symlink cycle sending `walk` into infinite recursion.
 //
-// Every sibling drift guard in `scripts/` that does NOT import this module
+// Every sibling drift guard in `sh/` that does NOT import this module
 // (`lint-phase-id-drift.cjs`, `lint-package-identity-drift.cjs`,
 // `lint-portable-timeout.cjs`, `lint-test-file-count.cjs`,
 // `lint-allow-test-rule-refs.cjs`) uses the `Dirent` classification straight

@@ -33,7 +33,7 @@ const model_catalog_cjs_1 = require("./model-catalog.cjs");
 // frontmatter VALUE, not raw content — this module used to reach that via
 // `runtime-artifact-conversion.cjs`'s general-purpose
 // `extractFrontmatterAndBody`/`extractFrontmatterField`, but that module's
-// dependency chain (`command-roster.cjs` -> `scripts/fix-slash-commands.cjs`,
+// dependency chain (`command-roster.cjs` -> `sh/fix-slash-commands.cjs`,
 // a dev-only repo script) does not resolve from an installed tree — any test
 // exercising a synthetic install dir blew up at module load. `codex-agent-toml.cjs`
 // is already imported here, is a genuine leaf (node builtins only, zero

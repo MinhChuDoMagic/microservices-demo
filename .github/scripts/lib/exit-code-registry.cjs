@@ -2,10 +2,10 @@
 
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Source of truth: gsd-core/bin/shared/exit-codes.json. Regenerate with:
-//   node scripts/gen-exit-code-registry.cjs --write
+//   node sh/gen-exit-code-registry.cjs --write
 // This exact content is emitted to THREE locations — gsd-core/bin/lib/exit-code-registry.cjs,
-// scripts/lib/exit-code-registry.cjs, and hooks/lib/exit-code-registry.js (the latter two
-// committed so scripts/ and hooks/ consumers work on an unbuilt clone) — all byte-compared by
+// sh/lib/exit-code-registry.cjs, and hooks/lib/exit-code-registry.js (the latter two
+// committed so sh/ and hooks/ consumers work on an unbuilt clone) — all byte-compared by
 // `npm run lint:generated-sync` (#3905 ADR-3889 Phase 1; #3906 Phase 2 added the second copy;
 // #3911 ADR-3889 Phase 7 added the hooks/lib/ copy).
 //

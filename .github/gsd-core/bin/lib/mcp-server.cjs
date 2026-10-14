@@ -49,7 +49,7 @@ exports.SERVER_NAME = 'gsd-core';
 // mirrors the established, already-precedented resolver in
 // `runtime-artifact-conversion.cts`'s `gsdVersion()` (#1383): a top-level
 // require would throw on any runtime whose root has no package.json/VERSION,
-// and `scripts/sync-manifest-versions.cjs` is not a fit here — its
+// and `sh/sync-manifest-versions.cjs` is not a fit here — its
 // `VERSIONED_MANIFESTS` list stamps a `version` FIELD into hand-authored JSON
 // manifests (plugin.json, marketplace.json, vscode/package.json); a `.cts`
 // source constant is not a JSON document that script can round-trip through

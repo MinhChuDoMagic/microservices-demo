@@ -1,4 +1,4 @@
-// GENERATED FILE — do not hand-edit. Run `node scripts/gen-platform-conformance-tier.cjs --write` to regenerate.
+// GENERATED FILE — do not hand-edit. Run `node sh/gen-platform-conformance-tier.cjs --write` to regenerate.
 'use strict';
 
 module.exports = {

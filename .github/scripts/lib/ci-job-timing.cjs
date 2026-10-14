@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * scripts/lib/ci-job-timing.cjs
+ * sh/lib/ci-job-timing.cjs
  *
  * Pure budget-percentage arithmetic shared by the in-job near-cap check
- * (scripts/ci-check-job-near-cap.cjs) and the scheduled trending report
- * (scripts/ci-timeout-report.cjs). See #4036.
+ * (sh/ci-check-job-near-cap.cjs) and the scheduled trending report
+ * (sh/ci-timeout-report.cjs). See #4036.
  */
 
 /** A job at or above this fraction of its `timeout-minutes` cap is "near-cap". */

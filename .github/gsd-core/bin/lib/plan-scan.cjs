@@ -241,7 +241,7 @@ function scanPhasePlans(phaseDir) {
         // owner (completion) — the owner must consume plan counts, never the
         // reverse. Kept as its own, differently-scoped answer per the design's
         // "0.x split" and exempted (function-scoped, not file-scoped) in
-        // scripts/lint-completion-predicate-drift.cjs's FUNCTION_SCOPED_EXEMPTIONS.
+        // sh/lint-completion-predicate-drift.cjs's FUNCTION_SCOPED_EXEMPTIONS.
         // The field name is left unchanged (not renamed to e.g.
         // `summariesMeetPlanCount`) — scanPhasePlans has 11 direct callers, and a
         // rename's blast radius is out of this phase's declared scope; noted

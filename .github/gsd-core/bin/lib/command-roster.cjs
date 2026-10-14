@@ -27,14 +27,20 @@ const node_fs_1 = __importDefault(require("node:fs"));
 // therefore deliberately stays on real `node:fs`, unrouted — same rule,
 // applied consistently, not an inconsistency with the routed staging calls
 // elsewhere in this call tree. `readCmdNames` in
-// scripts/fix-slash-commands.cjs also uses real `node:fs` directly (that
+// sh/fix-slash-commands.cjs also uses real `node:fs` directly (that
 // script lives outside src/ and is also a standalone CLI tool), so its
 // directory-read logic is reimplemented here against real fs instead of
 // delegated to, keeping the pure regex/transform helpers below delegated as
 // before.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const slashCommandTransformer = require('../../../scripts/fix-slash-commands.cjs');
-// Mirrors scripts/fix-slash-commands.cjs's own `COMMANDS_DIR` computation
+let slashCommandTransformer;
+function getSlashCommandTransformer() {
+    if (!slashCommandTransformer) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        slashCommandTransformer = require('../../../sh/fix-slash-commands.cjs');
+    }
+    return slashCommandTransformer;
+}
+// Mirrors sh/fix-slash-commands.cjs's own `COMMANDS_DIR` computation
 // (`path.join(__dirname, '..', 'commands', 'gsd')` from repo-root/scripts) —
 // same target directory, resolved from this module's own compiled location
 // (repo-root/gsd-core/bin/lib) instead, so the walk-up depth differs.
@@ -47,7 +53,7 @@ function readGsdCommandNames() {
     }
     catch (err) {
         // Only swallow the missing-directory case — mirrors readCmdNames' own
-        // contract (scripts/fix-slash-commands.cjs).
+        // contract (sh/fix-slash-commands.cjs).
         if (err instanceof Error && err.code !== 'ENOENT')
             throw err;
         return [];
@@ -55,8 +61,8 @@ function readGsdCommandNames() {
 }
 module.exports = {
     readGsdCommandNames,
-    transformContentToHyphen: slashCommandTransformer.transformContentToHyphen,
-    transformContent: slashCommandTransformer.transformContent,
-    buildPattern: slashCommandTransformer.buildPattern,
-    buildColonPattern: slashCommandTransformer.buildColonPattern,
+    transformContentToHyphen: (...args) => getSlashCommandTransformer().transformContentToHyphen(...args),
+    transformContent: (...args) => getSlashCommandTransformer().transformContent(...args),
+    buildPattern: (...args) => getSlashCommandTransformer().buildPattern(...args),
+    buildColonPattern: (...args) => getSlashCommandTransformer().buildColonPattern(...args),
 };

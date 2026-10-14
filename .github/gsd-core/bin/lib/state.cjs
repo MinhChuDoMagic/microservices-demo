@@ -5362,7 +5362,7 @@ function cmdStateValidate(cwd, raw, opts = {}) {
     // `{valid:true, warnings:[], scope:'complete'}`: the scan ran to completion
     // and simply never looked. Read through the same owner every other field here
     // uses (ADR-3180 §7.7) — never a private `stateExtractField` call, which is
-    // what `scripts/lint-state-field-drift.cjs` counts.
+    // what `sh/lint-state-field-drift.cjs` counts.
     const lastActivity = (0, state_document_cjs_1.stateFieldValue)(fm, body, 'last_activity', 'Last activity').value;
     // NOT FILLED IN IS NOT DRIFT, and that covers three shapes, not one: absent,
     // blank, and the shipped template's `[YYYY-MM-DD] — [What happened]`
@@ -5398,7 +5398,7 @@ function cmdStateValidate(cwd, raw, opts = {}) {
         // over a remainder that no reader consumes and whose field is entirely
         // valid. Asking the owner with an EMPTY body isolates the frontmatter rung
         // without re-deriving the ladder here (which is what
-        // `scripts/lint-state-field-drift.cjs` counts).
+        // `sh/lint-state-field-drift.cjs` counts).
         const fromFrontmatter = (0, state_document_cjs_1.stateFieldValue)(fm, '', 'last_activity', 'Last activity').value;
         const dropped = fromFrontmatter !== null ? null : (0, state_document_cjs_1.stateFieldContinuation)(body, 'Last activity');
         if (dropped !== null) {

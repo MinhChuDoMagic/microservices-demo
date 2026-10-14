@@ -123,7 +123,7 @@ function deriveProgressFromRoadmap(roadmapContent) {
  * fraction (rather than a completed/total pair) calls this directly instead of
  * re-deriving `Math.min(100, Math.round(f * 100))` locally.
  *
- * Enforced by `scripts/lint-completion-ratio-drift.cjs`.
+ * Enforced by `sh/lint-completion-ratio-drift.cjs`.
  */
 function clampPercentFromFraction(fraction) {
     return Math.min(100, Math.round(fraction * 100));

@@ -91,7 +91,7 @@ function formatGsdSlash(commandName, runtime) {
 // `_setInstallRuntimeMarkerForTests` / `_resetInstallRuntimeMarkerCacheForTests`.
 // `model-resolver.cts` now imports this implementation instead of holding its
 // own copy; the two `hooks/*.js` marker readers delegate here too (through
-// `ensureRuntimeBuild()`, per `scripts/lint-hooks-runtime-build-seam.cjs`).
+// `ensureRuntimeBuild()`, per `sh/lint-hooks-runtime-build-seam.cjs`).
 let _installMarkerCache;
 /**
  * Read the per-install runtime marker, cached for the process lifetime.

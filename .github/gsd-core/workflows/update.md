@@ -221,7 +221,7 @@ CHANGELOG_TMP="/tmp/gsd-changelog-$$.md"
 curl -fsSL "https://raw.githubusercontent.com/open-gsd/gsd-core/main/CHANGELOG.md" -o "$CHANGELOG_TMP" 2>/dev/null \
   || wget -qO "$CHANGELOG_TMP" "https://raw.githubusercontent.com/open-gsd/gsd-core/main/CHANGELOG.md" 2>/dev/null
 
-GSD_CHANGESET_CLI="$GSD_DIR/scripts/changeset/cli.cjs"
+GSD_CHANGESET_CLI="$GSD_DIR/sh/changeset/cli.cjs"
 if [ ! -f "$GSD_CHANGESET_CLI" ]; then
   CHANGELOG_PREVIEW="(Changelog CLI not found at $GSD_CHANGESET_CLI — reinstall GSD to restore preview. Update will still proceed.)"
 else

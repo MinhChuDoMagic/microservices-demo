@@ -56,7 +56,7 @@ const OPTIONAL_PHASE_TAG_SOURCE = '(?:\\s*\\([^)\\n]{0,200}\\))?';
 // phase and capture its token. Enumeration/parse sites inline this into a
 // `new RegExp(...)` instead of re-deriving the grammar as a literal, so every
 // phase-token producer shares one owner. The anti-divergence guard
-// (scripts/lint-phase-id-drift.cjs) fails CI if a literal re-derivation is
+// (sh/lint-phase-id-drift.cjs) fails CI if a literal re-derivation is
 // introduced outside this module without a `// phase-id-owner:` justification.
 const PHASE_NUMBER_TOKEN_SOURCE = '\\d+[A-Z]?(?:\\.\\d+)*';
 // #2528 review: the CASE-FLEXIBLE renderings of the two sources above, for call
@@ -88,7 +88,7 @@ const CASE_FLEXIBLE_PHASE_NUMBER_TOKEN_SOURCE = PHASE_NUMBER_TOKEN_SOURCE.replac
 // dir-token grammar — the LEADING phase number stays unbounded (`\d+`), only
 // continuation segments begin with a two-digit run; consuming sites retain
 // their established suffix and boundary grammar. Shared from here so the five #2043
-// call sites cannot drift independently (see scripts/lint-phase-id-drift.cjs).
+// call sites cannot drift independently (see sh/lint-phase-id-drift.cjs).
 const PHASE_CONTINUATION_SEGMENT_SOURCE = '\\d{2}(?!\\d)';
 const PHASE_CONTINUATION_SEGMENT_PREFIX_RE = new RegExp(`^${PHASE_CONTINUATION_SEGMENT_SOURCE}`);
 function isPhaseContinuationSegment(seg) {
@@ -97,7 +97,7 @@ function isPhaseContinuationSegment(seg) {
 // #612 (PR-1): bracket-convention token/heading sources, kept next to the M-NN
 // PHASE_NUMBER_TOKEN_SOURCE so this owner file stays the single origin of every
 // phase-token grammar. `src/phase-id.cts` is exempt from the #2128 drift guard
-// (scripts/lint-phase-id-drift.cjs) by construction, and that guard fails any
+// (sh/lint-phase-id-drift.cjs) by construction, and that guard fails any
 // literal re-derivation of the token grammar elsewhere — so the downstream
 // bracket readers (PR-2: roadmap/validate/verify) must build their regexes by
 // interpolating these exports, never by copying the literal.
@@ -197,7 +197,7 @@ const BRACKET_MILESTONE_NUMERIC_SRC = BRACKET_CANONICAL_NUMERIC_SOURCE;
 // The re-typed copies were the exact drift #2761's own gate forbids — "no token
 // literal outside src/phase-id.cts" — and `check:phase-id-drift` did not see
 // them, because its detector only knew the phase-NUMBER token grammar. The
-// guard now carries a bracket rule too (scripts/lint-phase-id-drift.cjs).
+// guard now carries a bracket rule too (sh/lint-phase-id-drift.cjs).
 const BRACKET_PROJECT_CODE_SRC = '[A-Z][A-Z0-9_]*';
 const BRACKET_ID_SRC = `${BRACKET_PROJECT_CODE_SRC}\\.${BRACKET_MILESTONE_NUMERIC_SRC}`;
 // The bracket MILESTONE INTRO — `[CODE.MM]` — in the two shapes its readers

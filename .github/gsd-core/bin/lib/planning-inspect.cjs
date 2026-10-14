@@ -34,7 +34,7 @@
  * to.
  *
  * NOT a diagnostic rule, and deliberately NOT registered in
- * `scripts/lint-planning-snapshot-bypass-drift.cjs`: that guard is
+ * `sh/lint-planning-snapshot-bypass-drift.cjs`: that guard is
  * `DIAGNOSTIC_RULE_FUNCTIONS`-scoped and must be prunable to zero when #3309
  * lands. This is a query command.
  *

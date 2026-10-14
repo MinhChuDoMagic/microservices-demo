@@ -382,7 +382,7 @@ src/
 | Live service config | [e.g., "25 n8n workflows in SQLite not exported to git"] | [API patch / manual] |
 | OS-registered state | [e.g., "Windows Task Scheduler: 3 tasks with 'dev-os' in description"] | [re-register tasks] |
 | Secrets/env vars | [e.g., "SOPS key 'webhook_auth_header' — code rename only, key unchanged"] | [none / update key] |
-| Build artifacts | [e.g., "scripts/devos-cli/devos_cli.egg-info/ — stale after pyproject.toml rename"] | [reinstall package] |
+| Build artifacts | [e.g., "sh/devos-cli/devos_cli.egg-info/ — stale after pyproject.toml rename"] | [reinstall package] |
 
 **Nothing found in category:** State explicitly ("None — verified by X").
 

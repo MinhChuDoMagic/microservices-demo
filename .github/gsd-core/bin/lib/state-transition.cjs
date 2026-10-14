@@ -871,7 +871,7 @@ function beginPhaseCore(content, intent, deps) {
     const { reassemble } = beginFrontmatterReassembly(content, deps.sourcePath);
     // #3881 review, finding 5: `body` is deliberately a LITERAL `stripFrontmatter(content)`
     // assignment here rather than the helper's own `body` (which the destructure above skips) —
-    // scripts/lint-state-write-path-drift.cjs's Axis 3 backward scan is a single-hop textual
+    // sh/lint-state-write-path-drift.cjs's Axis 3 backward scan is a single-hop textual
     // pattern match, not real dataflow, and only recognizes `body = stripFrontmatter(...)` written
     // out at the call site. `stripFrontmatter` is pure and idempotent, so computing it here (in
     // addition to the helper's own internal call) changes nothing observable.
@@ -2124,7 +2124,7 @@ function milestoneCompleteCore(content, intent, deps) {
 function patchCore(content, intent) {
     const { existingFm, hasFrontmatter, fmPrefix, unparseableFm } = beginFrontmatterReassembly(content);
     // #3881 review, finding 5: see beginPhaseCore's identical comment above — `body` stays a
-    // literal `stripFrontmatter(content)` assignment here for scripts/lint-state-write-path-drift.cjs's
+    // literal `stripFrontmatter(content)` assignment here for sh/lint-state-write-path-drift.cjs's
     // Axis 3 single-hop backward scan.
     let body = stripFrontmatter(content);
     const fm = { ...existingFm };
@@ -2191,7 +2191,7 @@ function patchCore(content, intent) {
 function updateCore(content, intent) {
     const { existingFm, hasFrontmatter, reassemble } = beginFrontmatterReassembly(content);
     // #3881 review, finding 5: see beginPhaseCore's identical comment above — `body` stays a
-    // literal `stripFrontmatter(content)` assignment here for scripts/lint-state-write-path-drift.cjs's
+    // literal `stripFrontmatter(content)` assignment here for sh/lint-state-write-path-drift.cjs's
     // Axis 3 single-hop backward scan.
     const body = stripFrontmatter(content);
     // #3699 review: session-scoped fields are written through the session-scoped

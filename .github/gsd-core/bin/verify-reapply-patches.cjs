@@ -8,7 +8,7 @@
  * LLM's prose summary) survive into the merged output.
  *
  * Usage:
- *   node scripts/verify-reapply-patches.cjs \
+ *   node sh/verify-reapply-patches.cjs \
  *     --patches-dir <path>        \  # gsd-local-patches/
  *     --config-dir <path>         \  # .github (or runtime equivalent)
  *     [--pristine-dir <path>]        # gsd-pristine/; if absent, falls back to

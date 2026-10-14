@@ -1,4 +1,4 @@
-// GENERATED FILE — do not hand-edit. Run `node scripts/gen-platform-conformance-tier.cjs --target macos --write` to regenerate.
+// GENERATED FILE — do not hand-edit. Run `node sh/gen-platform-conformance-tier.cjs --target macos --write` to regenerate.
 // macOS-specific conformance tier (#4593), separate from and narrower than the general/
 // Windows-oriented tier in platform-conformance-tier.generated.cjs — see
 // docs/adr/4593-macos-conformance-tier-architecture.md for the full rationale.

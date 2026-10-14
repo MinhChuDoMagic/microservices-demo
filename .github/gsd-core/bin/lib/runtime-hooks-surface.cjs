@@ -1567,7 +1567,7 @@ function stageTransitiveHookLibs(opts) {
             // scan comment-aware. A comment naming a REAL helper — `require(
             // './lib/git-cmd.js')` in prose — still registers it and would over-stage
             // that helper. Closing that needs a comment-stripping pass; the
-            // line-based stripper in scripts/lint-hooks-runtime-build-seam.cjs is the
+            // line-based stripper in sh/lint-hooks-runtime-build-seam.cjs is the
             // precedent (its header explains why the naive two-regex strip corrupts
             // these very files), but promoting a lint-script helper into installer
             // runtime code is a larger change than this fix.

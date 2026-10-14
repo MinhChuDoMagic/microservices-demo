@@ -1291,7 +1291,7 @@ function peekLatestVersion(source, opts = {}) {
             const execNpm = opts.execOverrides?.npm ?? shellSeam.execNpm;
             let r;
             try {
-                // Mirrors scripts/check-latest-version.cjs (checkLatestVersion): `npm view <spec> version` reports
+                // Mirrors sh/check-latest-version.cjs (checkLatestVersion): `npm view <spec> version` reports
                 // the matching version(s). parsed.target is the npm package spec (parseSpec asserted it is free of
                 // shell metacharacters) and is passed UNCHANGED — for a range npm prints every matching version,
                 // for a bare name the single latest. `--` terminates options.

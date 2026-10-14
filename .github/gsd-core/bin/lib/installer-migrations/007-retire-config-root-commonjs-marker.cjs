@@ -19,7 +19,7 @@
  * How do we prove it is GSD-owned?
  *   By exact content match, NOT by the manifest. The config-root marker was
  *   never recorded in `gsd-file-manifest.json` — `writeManifest()` records
- *   `hooks/`, `agents/`, `commands/`, `scripts/`, and the native plugin, and
+ *   `hooks/`, `agents/`, `commands/`, `sh/`, and the native plugin, and
  *   has never had a `manifest.files['package.json']` entry — so
  *   `classifyArtifact('package.json')` answers `unknown` and the planner's
  *   own guard would downgrade a `remove-managed` to `preserve-user`.

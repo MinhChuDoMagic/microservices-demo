@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * #4460: distinguishes WHY scripts/check-env.cjs's npm-version check's
+ * #4460: distinguishes WHY sh/check-env.cjs's npm-version check's
  * spawnSync(npmCmd, ['--version'], ...) produced no usable output, instead
  * of collapsing every case into "npm binary not found on PATH" -- a
  * message that used to fire identically for a genuinely-missing binary AND
@@ -28,7 +28,7 @@
  * risk of a false NEGATIVE on Windows -- the exact platform this failure
  * was discovered on.
  *
- * Kept out of scripts/check-env.cjs itself (which runs its CLI unconditionally
+ * Kept out of sh/check-env.cjs itself (which runs its CLI unconditionally
  * on require, with no `require.main === module` guard) so this pure logic
  * can be required directly by tests without triggering a real environment
  * check.

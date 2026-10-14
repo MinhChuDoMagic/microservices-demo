@@ -42,7 +42,7 @@ function splitLines(content) {
 /**
  * Normalize all line endings to LF by stripping every `\r` character — not
  * only `\r\n` pairs. This is byte-for-byte the same operation as the 4
- * `scripts/gen-*.cjs` copies of `normalizeLineEndings` this module
+ * `sh/gen-*.cjs` copies of `normalizeLineEndings` this module
  * consolidates (`content.replace(/\r/g, '')`), so a lone/unpaired `\r` (old
  * Mac-style content) is stripped too. Deliberately a different contract from
  * `splitLines`, which does NOT treat a bare `\r` as a delimiter (row 6) —

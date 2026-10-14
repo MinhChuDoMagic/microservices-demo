@@ -57,7 +57,7 @@ Infer area from file paths:
 | `tests/*`, `__tests__/*` | `testing` |
 | `docs/*` | `docs` |
 | `.planning/*` | `planning` |
-| `scripts/*`, `bin/*` | `tooling` |
+| `sh/*`, `bin/*` | `tooling` |
 | No files or unclear | `general` |
 
 Use existing area from step 2 if similar match exists.

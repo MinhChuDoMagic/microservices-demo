@@ -53,7 +53,7 @@ exports.compileUserPattern = compileUserPattern;
 const re2js_cjs_1 = require("./vendor/re2js.cjs");
 // #3498: RegExp.escape is ES2026 (first shipped in Node 24). The gsd-test
 // matrix still runs a linux-node22 lane, and the build itself consumes this
-// module (scripts/gen-loop-host-contract.cjs), so a hard dependency breaks
+// module (sh/gen-loop-host-contract.cjs), so a hard dependency breaks
 // `npm run build` on Node 22. Prefer the built-in when present; otherwise use
 // the local metachar escape — still inside this file, so the #3212 sole-owner
 // invariant (and lint-no-adhoc-regex-escape's scope) is preserved. Captured at

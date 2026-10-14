@@ -78,7 +78,7 @@ grep -rn -E "it\.skip|describe\.skip|test\.skip|xit\(|xdescribe\(|xtest\(|@pytes
 
 **3. Circular test detection**
 
-Search for scripts/utilities that generate expected values by running the system under test:
+Search for sh/utilities that generate expected values by running the system under test:
 
 ```bash
 grep -rn -E "writeFileSync|writeFile|fs\.write|open\(.*w\)" "$TEST_DIRS"

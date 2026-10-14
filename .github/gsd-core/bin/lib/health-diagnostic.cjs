@@ -126,7 +126,7 @@ const runtime_slash_cjs_1 = require("./runtime-slash.cjs");
 /**
  * Evaluate an explicit `rules` array against `snapshot`, throwing if any two
  * entries share a `code` (defense in depth beside the static lint guard,
- * §8.2 rule 1, `scripts/lint-health-diagnostic-rule-table.cjs`). Separated
+ * §8.2 rule 1, `sh/lint-health-diagnostic-rule-table.cjs`). Separated
  * from `evaluateRules` so the duplicate-code guard is unit-testable against
  * a small, locally-constructed fake rule array, independent of the real
  * `RULES` table.

@@ -2,8 +2,8 @@
 
 /**
  * Suite classification by filename suffix (#4591 packaging fix — extracted
- * from scripts/run-tests.cjs so a SHIPPED script, e.g.
- * scripts/gen-platform-conformance-tier.cjs, can depend on it: run-tests.cjs
+ * from sh/run-tests.cjs so a SHIPPED script, e.g.
+ * sh/gen-platform-conformance-tier.cjs, can depend on it: run-tests.cjs
  * itself does not ship (it is a repo-development-only tool), so a shipped
  * file requiring it directly is MODULE_NOT_FOUND in a published install
  * (tests/packaging-shipped-scripts-require-only-shipped.test.cjs, #2858).
