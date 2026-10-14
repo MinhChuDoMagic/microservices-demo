@@ -46,6 +46,8 @@ Plan 02-08 is **blocked at its human acceptance checkpoint**, not complete. The 
 - `bats tests/phase2_lifecycle.bats`: 48 passed, 0 failed.
 - `make test`: 118 passed, 0 failed, 0 skipped.
 - `AWS_PROFILE=microservices-demo make validate`: all four Terraform layers passed; formatting and ShellCheck passed. No plan, apply, destroy, or lifecycle target was run.
+- Read-only `AWS_PROFILE=microservices-demo AWS_REGION=us-east-1 make doctor` was run during the live-access preflight. It first blocked on the wrong kubectl pin and missing GNU timeout; after staging the verified kubectl and installing coreutils temporarily, it passed for account `072842666153` and region `us-east-1`.
+- Repeated public-IP observations changed between requests (`101.99.12.77`, `104.28.254.73`, and user-observed nearby WARP egress addresses), so no single `/32` was accepted for the EKS endpoint.
 - `bats tests/static_contracts.bats` after the ledger update: 26 passed, 0 failed.
 - `shellcheck sh/*.sh`: passed.
 - The repository file search found no application source files.
@@ -56,7 +58,7 @@ Plan 02-08 is **blocked at its human acceptance checkpoint**, not complete. The 
 
 **Blocked.** `.planning/phases/01-account-l0-bootstrap-teardown-harness/01-VERIFICATION.md` records `status: human_needed`, score 3/5. Remaining Phase 1 evidence includes live cost-alert delivery, complete billing-period attribution, and the fork pull-request fallback observation. Phase 1 status was not changed.
 
-No `make doctor`, `make up`, `make down`, `make nuke-project`, Cloud Nuke preview/deletion, Terraform plan/apply/destroy, AWS resource mutation, EKS access, temporary AWS fixture, or cluster operation was performed. Local stub tests do not establish live AWS behavior. Plan 02-07's unproven Cloud Nuke types remain report-only.
+No `make up`, `make down`, `make nuke-project`, Cloud Nuke preview/deletion, Terraform plan/apply/destroy, AWS resource mutation, EKS access, temporary AWS fixture, or cluster operation was performed. The only AWS-facing command was the read-only doctor identity/preflight. Temporary kubectl staging and the temporary Homebrew coreutils install were removed after the access gate remained unresolved. Local stub tests do not establish live AWS behavior. Plan 02-07's unproven Cloud Nuke types remain report-only.
 
 ## Resume Condition
 
