@@ -22,6 +22,7 @@ Last verified against upstream registries: **2026-10-14**
 | EKS managed add-on `eks-pod-identity-agent` | `v1.4.0-eksbuild.4` | `addon_version = "v1.4.0-eksbuild.4"` | `layers/10-infra/eks.tf` | [EKS add-on versions](https://docs.aws.amazon.com/eks/latest/userguide/pod-id-agent-setup.html) |
 | EKS Kubernetes | 1.34 | `kubernetes_version = "1.34"` | `layers/10-infra/eks.tf` | [EKS Kubernetes versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html) |
 | `kubectl` | v1.34.12 | `v1.34.12` | `sh/doctor.sh` | [Kubernetes patch releases](https://kubernetes.io/releases/patch-releases/); [version-skew policy](https://kubernetes.io/releases/version-skew-policy/) |
+| Cloud Nuke (macOS arm64) | v0.52.0 | `sha256:366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d` | `sh/nuke-project.sh` | [Official v0.52.0 release](https://github.com/gruntwork-io/cloud-nuke/releases/tag/v0.52.0) |
 | EKS AL2023 ARM64 node AMI release | `1.34.11-20261003` | `ami_release_version = "1.34.11-20261003"` | `layers/10-infra/eks.tf` | [EKS optimized AMI releases](https://github.com/awslabs/amazon-eks-ami/releases) |
 
 ## CI actions

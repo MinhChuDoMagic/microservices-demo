@@ -4,7 +4,7 @@ BOOTSTRAP_DIR := $(ROOT)/layers/00-bootstrap
 AWS_REGION ?= us-east-1
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor fmt validate test bootstrap up down verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _apply-layer _destroy-layer
+.PHONY: help doctor fmt validate test bootstrap up down nuke-project verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _apply-layer _destroy-layer
 
 help:
 	@printf '%s\n' \
@@ -12,6 +12,7 @@ help:
 	  'bootstrap              Create and migrate the L0 state backend' \
 	  'up                     Provision L1 networking and EKS' \
 	  'down                   Safely tear down the ephemeral stack' \
+	  'nuke-project           Report uncovered resources; recovery is proof-gated' \
 	  'verify-teardown        Check the account for teardown orphans' \
 	  'test-verify-teardown   Prove the teardown verifier catches a real orphan' \
 	  'verify-no-keys         Check AWS keys and GitHub secret stores' \
@@ -123,6 +124,9 @@ down:
 	  exit 1; \
 	fi; \
 	"$$TIMEOUT_CMD" --signal=TERM --kill-after=5s 900s bash sh/down.sh
+
+nuke-project:
+	@AWS_REGION="$(AWS_REGION)" bash sh/nuke-project.sh
 
 up: doctor
 	@bash sh/up.sh
