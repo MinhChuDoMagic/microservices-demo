@@ -6,9 +6,10 @@ setup() {
   test_root="$BATS_TEST_TMPDIR/repo"
   call_log="$BATS_TEST_TMPDIR/calls.log"
   backend_hcl="$BATS_TEST_TMPDIR/backend.hcl"
-  mkdir -p "$test_bin" "$test_root/sh"
+  mkdir -p "$test_bin" "$test_root/sh" "$test_root/layers/10-infra"
   cp "$BATS_TEST_DIRNAME/../Makefile" "$test_root/Makefile"
   cp "$BATS_TEST_DIRNAME/../sh/down.sh" "$test_root/sh/down.sh" 2>/dev/null || true
+  cp "$BATS_TEST_DIRNAME/../sh/up.sh" "$test_root/sh/up.sh" 2>/dev/null || true
   cp "$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py" "$test_root/sh/run-down-with-deadline.py"
   printf '%s\n' 'bucket = "test-state-bucket"' > "$backend_hcl"
   : > "$call_log"
@@ -21,11 +22,21 @@ target=""
 layer=""
 for argument in "$@"; do
   case "$argument" in
-    _layer-state|_destroy-layer|verify-teardown) target="$argument" ;;
+    _layer-state|_init-layer|_apply-layer|_destroy-layer|verify-teardown) target="$argument" ;;
     LAYER=*) layer="${argument#LAYER=}" ;;
   esac
 done
 case "$target" in
+  _init-layer)
+    [[ "$layer" == 10-infra ]] || exit 2
+    ;;
+  _apply-layer)
+    [[ "$layer" == 10-infra ]] || exit 2
+    if [[ "${TEST_APPLY_EXIT:-0}" -ne 0 ]]; then
+      printf '%s\n' 'test apply failure' >&2
+      exit "$TEST_APPLY_EXIT"
+    fi
+    ;;
   _layer-state)
     if [[ "${TEST_BLOCK_STATE:-false}" == true && "$layer" == 10-infra ]]; then
       : > "$TEST_ENTERED"
@@ -61,6 +72,21 @@ MAKE
   cat > "$test_bin/aws" <<'AWS'
 #!/usr/bin/env bash
 set -u
+  printf '%s\n' "$*" >> "$TEST_CALL_LOG"
+  case "${1:-}:${2:-}" in
+    eks:describe-cluster)
+      printf '{"cluster":{"status":"%s"}}\n' "${TEST_CLUSTER_STATUS:-ACTIVE}"
+      exit 0
+      ;;
+    eks:describe-nodegroup)
+      printf '{"nodegroup":{"status":"%s","scalingConfig":{"desiredSize":2},"health":{"issues":[]}}}\n' "${TEST_NODEGROUP_STATUS:-ACTIVE}"
+      exit 0
+      ;;
+    eks:describe-addon)
+      printf '{"addon":{"status":"%s"}}\n' "${TEST_ADDON_STATUS:-ACTIVE}"
+      exit 0
+      ;;
+  esac
 if [[ "${TEST_AWS_EXIT:-0}" -ne 0 ]]; then
   printf '%s\n' 'AccessDenied: test state lookup failure' >&2
   exit "$TEST_AWS_EXIT"
@@ -68,6 +94,26 @@ fi
 printf '%s\n' "${TEST_AWS_RESPONSE:-}"
 AWS
   chmod +x "$test_bin/aws"
+
+  cat > "$test_bin/curl" <<'CURL'
+#!/usr/bin/env bash
+printf '%s\n' "${TEST_PUBLIC_IP:-203.0.113.10}"
+CURL
+  chmod +x "$test_bin/curl"
+
+  cat > "$test_bin/terraform" <<'TERRAFORM'
+#!/usr/bin/env bash
+set -u
+printf '%s\n' "$*" >> "$TEST_CALL_LOG"
+case "$*" in
+  *'output -raw cluster_name'*) printf '%s\n' 'microservices-demo' ;;
+  *'output -raw system_node_group_name'*) printf '%s\n' 'microservices-demo-system' ;;
+  *' init '*) exit 0 ;;
+  *' apply '*) exit "${TEST_APPLY_EXIT:-0}" ;;
+  *) printf 'unexpected terraform invocation: %s\n' "$*" >&2; exit 64 ;;
+esac
+TERRAFORM
+  chmod +x "$test_bin/terraform"
 
   export TEST_CALL_LOG="$call_log"
   export TEST_REAL_MAKE="$real_make"
@@ -77,6 +123,7 @@ AWS
   export TEST_STATE_10_infra=absent
   export TEST_STATE_20_data=absent
   export TEST_STATE_30_gitops=absent
+  export TEST_PUBLIC_IP=203.0.113.10
   export PATH="$test_bin:$PATH"
 }
 
@@ -113,6 +160,69 @@ run_layer_state() {
   [[ "$output" == *'[8/8] verify'* ]]
   [[ "$(<"$call_log")" == *'verify-teardown'* ]]
   [ ! -e "$test_root/.down.lock" ]
+}
+
+@test "Make L1 helpers use the generated backend and exact state key" {
+  run bash -c 'cd "$1" && "$2" -s BACKEND_HCL="$3" _init-layer LAYER=10-infra' _ \
+    "$test_root" "$TEST_REAL_MAKE" "$backend_hcl"
+
+  [ "$status" -eq 0 ]
+  [[ "$(<"$call_log")" == *"-backend-config=$backend_hcl"* ]]
+  [[ "$(<"$call_log")" == *'-backend-config=key=infra/terraform.tfstate'* ]]
+
+  : > "$call_log"
+  run bash -c 'cd "$1" && "$2" -s _apply-layer LAYER=10-infra OPERATOR_CIDR=203.0.113.10/32' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -eq 0 ]
+  [[ "$(<"$call_log")" == *'-var=operator_cidr=203.0.113.10/32'* ]]
+}
+
+@test "make up rejects an unreachable operator CIDR before init or apply" {
+  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.20/32 "$2" -o doctor -s up' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *'does not contain the current public IP'* ]]
+  [[ "$(<"$call_log")" != *'_init-layer'* ]]
+  [[ "$(<"$call_log")" != *'_apply-layer'* ]]
+}
+
+@test "make up applies once and waits for all required EKS components" {
+  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'make up complete'* ]]
+  [ "$(grep -c '_init-layer LAYER=10-infra' "$call_log")" -eq 1 ]
+  [ "$(grep -c '_apply-layer LAYER=10-infra' "$call_log")" -eq 1 ]
+  [ "$(grep -c 'eks describe-addon' "$call_log")" -eq 4 ]
+  [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
+}
+
+@test "make up preserves a failed apply without retry or destroy" {
+  export TEST_APPLY_EXIT=42
+
+  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *'test apply failure'* ]]
+  [ "$(grep -c '_apply-layer LAYER=10-infra' "$call_log")" -eq 1 ]
+  [[ "$(<"$call_log")" != *'eks describe-'* ]]
+  [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
+}
+
+@test "make up stops on an unhealthy node group without retry or destroy" {
+  export TEST_NODEGROUP_STATUS=DEGRADED
+
+  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *'node group'* ]]
+  [ "$(grep -c '_apply-layer LAYER=10-infra' "$call_log")" -eq 1 ]
+  [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
 }
 
 @test "empty account runs the eight named stages and preserves verifier success" {

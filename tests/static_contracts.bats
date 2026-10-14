@@ -92,7 +92,7 @@ log_group_retention_violations() {
 }
 
 @test "resources do not repeat keys already supplied by default_tags" {
-  resource_sources="$(find "$BATS_TEST_DIRNAME/../layers" -type f -name '*.tf' ! -name 'versions.tf' \
+  resource_sources="$(find "$BATS_TEST_DIRNAME/../layers" -type f -name '*.tf' ! -name 'versions.tf' ! -path '*/.terraform/*' \
     -exec grep -v '^[[:space:]]*#' {} \; 2>/dev/null)"
   matches="$(printf '%s\n' "$resource_sources" | grep -E '^[[:space:]]*(Project|Layer|ManagedBy|Environment)[[:space:]]*=' || true)"
   [ -z "$matches" ]
