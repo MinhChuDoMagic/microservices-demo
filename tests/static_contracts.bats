@@ -518,3 +518,21 @@ AWS
   [ "$migration_line" -lt "$state_line" ]
   [ "$state_line" -lt "$empty_line" ]
 }
+
+@test "project recovery remains report-only with a positive Project tag and no VPC type" {
+  makefile="$BATS_TEST_DIRNAME/../Makefile"
+  wrapper="$BATS_TEST_DIRNAME/../sh/nuke-project.sh"
+  config="$BATS_TEST_DIRNAME/../sh/cloud-nuke-project.yml"
+  versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
+  down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
+
+  grep -Fq 'nuke-project' "$makefile"
+  [ -f "$wrapper" ]
+  [ -f "$config" ]
+  grep -Fq 'Project: "microservices-demo"' "$config"
+  grep -Fq 'DELETABLE_RESOURCE_TYPES=""' "$wrapper"
+  grep -Fq '366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d' "$wrapper"
+  grep -Fq 'Cloud Nuke' "$versions_file"
+  ! grep -Eiq '(^|[[:space:]])vpc([[:space:]]|$)|^[[:space:]]*VPC:' "$config" "$wrapper"
+  ! grep -Eiq 'cloud-nuke|nuke-project' "$down_script"
+}

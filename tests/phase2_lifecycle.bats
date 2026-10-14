@@ -915,3 +915,14 @@ use_sequence_fixture() {
   [[ "$output" == *'test verifier output'* ]]
   [[ "$output" != *'Successful teardown timing'* ]]
 }
+
+@test "Cloud Nuke contract reports identical scopes without enabling unproven types" {
+  wrapper="$BATS_TEST_DIRNAME/../sh/nuke-project.sh"
+  [ -x "$wrapper" ]
+
+  run bash "$wrapper" --print-scope-contract
+
+  [ "$status" -eq 0 ]
+  jq -e '.preview_scope == .execution_scope and .resource_types == [] and .preview_mode == "--dry-run" and .execution_mode == "--force"' <<< "$output" >/dev/null
+  jq -e 'any(.preview_scope[]; . == "--region") and any(.preview_scope[]; . == "--config")' <<< "$output" >/dev/null
+}
