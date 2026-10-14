@@ -36,6 +36,13 @@ else
   ok "jq $(jq --version | sed 's/^jq-//')"
 fi
 
+TIMEOUT_CMD="$(command -v timeout || command -v gtimeout || true)"
+if [ -z "$TIMEOUT_CMD" ]; then
+  fail "GNU timeout or gtimeout not found" "Install GNU coreutils with 'brew install coreutils' (macOS), then rerun make doctor."
+else
+  ok "GNU timeout deadline tool: $(basename "$TIMEOUT_CMD")"
+fi
+
 if ! command -v kubectl >/dev/null 2>&1; then
   fail "kubectl not found" "Install kubectl ${EXPECTED_KUBECTL_VERSION} from https://kubernetes.io/releases/download/ before running lifecycle commands."
 else

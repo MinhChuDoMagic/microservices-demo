@@ -6,6 +6,8 @@ cd "$ROOT"
 
 LOCK_DIR="$ROOT/.down.lock"
 STARTED_SECONDS=$SECONDS
+LC_STARTED_SECONDS=$STARTED_SECONDS
+export LC_STARTED_SECONDS
 CURRENT_STAGE="preflight"
 LOCK_HELD=false
 STAGE_STARTED_SECONDS=()
@@ -137,11 +139,12 @@ for item in \
   IFS='|' read -r number name script <<< "$item"
   stage "$number" "$name"
   if [[ "$INFRA_STATE" == present || "$GITOPS_STATE" == present ]]; then
-    if [[ ! -x "$script" ]]; then
+    if [[ ! -f "$script" ]]; then
       fail_stage 'no verified cluster drain is available for this present or uncertain cluster; no Terraform destroy was attempted'
       exit 1
     fi
-    if ! bash "$script"; then
+    # shellcheck disable=SC1090
+    if ! ( source "$script" ); then
       fail_stage 'drain command did not prove its resource set absent; no Terraform destroy was attempted'
       exit 1
     fi

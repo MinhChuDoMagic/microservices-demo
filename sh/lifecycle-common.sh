@@ -2,9 +2,11 @@
 
 LC_AWS_OUTPUT=""
 LC_AWS_ERROR=""
-LC_AWS_ATTEMPTS=3
-export LC_POLL_ATTEMPTS=12
-export LC_POLL_INTERVAL=2
+readonly LC_AWS_ATTEMPTS=3
+readonly LC_POLL_ATTEMPTS=12
+readonly LC_POLL_INTERVAL=2
+readonly LC_DEADLINE_SECONDS=900
+export LC_POLL_ATTEMPTS LC_POLL_INTERVAL
 LC_STAGE=""
 LC_RESOURCE_TYPE=""
 LC_REGION=""
@@ -16,10 +18,22 @@ LC_VPC_ID=""
 export LC_KUBE_ERROR=""
 LC_LAST_AWS_STATE="not queried"
 LC_RESIDUAL_IDS=""
-LC_STARTED_SECONDS=0
+LC_STARTED_SECONDS="${LC_STARTED_SECONDS:-$SECONDS}"
+
+lc_monotonic_seconds() {
+  printf '%s\n' "$SECONDS"
+}
 
 lc_elapsed() {
-  printf '%ss' "$((SECONDS - LC_STARTED_SECONDS))"
+  local now
+  now="$(lc_monotonic_seconds)"
+  printf '%ss' "$((now - LC_STARTED_SECONDS))"
+}
+
+lc_deadline_expired() {
+  local now
+  now="$(lc_monotonic_seconds)"
+  ((now - LC_STARTED_SECONDS >= LC_DEADLINE_SECONDS))
 }
 
 lc_retryable_aws_error() {
@@ -42,6 +56,10 @@ lc_aws_json() {
   shift 2
 
   for ((attempt = 1; attempt <= LC_AWS_ATTEMPTS; attempt++)); do
+    if lc_deadline_expired; then
+      LC_AWS_ERROR="shared ${LC_DEADLINE_SECONDS}-second teardown deadline reached before aws ${service} ${operation}"
+      return 1
+    fi
     if output="$(AWS_MAX_ATTEMPTS=1 aws "$service" "$operation" "$@" \
       --region "$LC_REGION" --output json --cli-connect-timeout 5 --cli-read-timeout 15 2>&1)"; then
       LC_AWS_OUTPUT="$output"
@@ -54,6 +72,10 @@ lc_aws_json() {
     fi
 
     if ((attempt < LC_AWS_ATTEMPTS)) && lc_retryable_aws_error "$LC_AWS_ERROR"; then
+      if lc_deadline_expired; then
+        LC_AWS_ERROR="shared ${LC_DEADLINE_SECONDS}-second teardown deadline reached while retrying aws ${service} ${operation}"
+        return 1
+      fi
       printf 'retrying transient AWS error (%s/%s): %s\n' \
         "$attempt" "$LC_AWS_ATTEMPTS" "$LC_AWS_ERROR" >&2
       sleep 1
@@ -69,7 +91,6 @@ lc_init() {
   LC_STAGE="$1"
   LC_RESOURCE_TYPE="$2"
   LC_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
-  LC_STARTED_SECONDS=$SECONDS
 
   if ! lc_aws_json eks describe-cluster --name "$LC_CLUSTER_NAME"; then
     if [[ "$LC_AWS_ERROR" == *ResourceNotFoundException* ]]; then
