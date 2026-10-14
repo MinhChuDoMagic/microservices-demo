@@ -179,11 +179,11 @@ This is the crown jewel of the whole project. **Three of the seven steps are not
 ```
 make down:
   0. argocd app set root --sync-policy none        # stop self-heal recreating what you delete
-  1. ./scripts/drain-ingress.sh                    # k8s: delete Ingress + type=LoadBalancer Services,
+  1. ./sh/drain-ingress.sh                    # k8s: delete Ingress + type=LoadBalancer Services,
                                                    #      POLL aws elbv2 until none remain in the VPC
-  2. ./scripts/drain-nodes.sh                      # k8s: delete nodepools.karpenter.sh --all,
+  2. ./sh/drain-nodes.sh                      # k8s: delete nodepools.karpenter.sh --all,
                                                    #      POLL until no EC2 tagged karpenter.sh/nodepool
-  3. ./scripts/drain-pvcs.sh                       # k8s: delete PVCs, POLL until EBS volumes gone
+  3. ./sh/drain-pvcs.sh                       # k8s: delete PVCs, POLL until EBS volumes gone
   4. terraform -chdir=layers/30-gitops destroy
   5. terraform -chdir=layers/20-data    destroy    # RDS is the long pole: 5-10 min
   6. terraform -chdir=layers/10-infra   destroy
@@ -762,7 +762,7 @@ This is a strong recommendation specifically *because* of the teardown constrain
 │   └── 30-gitops/                # helm_release argocd + root Application. TWO resources.
 ├── modules/
 │   ├── network/  eks-platform/  saga-queue/   # saga-queue = queue+DLQ+alarm+EB rule, one call
-├── scripts/
+├── sh/
 │   ├── drain-ingress.sh          # POLLS aws elbv2 until empty
 │   ├── drain-nodes.sh            # POLLS ec2 until no karpenter.sh/nodepool instances
 │   ├── drain-pvcs.sh             # POLLS ec2 until no unattached project-tagged volumes
@@ -783,7 +783,7 @@ This is a strong recommendation specifically *because* of the teardown constrain
 **Structure rationale:**
 - `layers/` numbering **is** the apply order; reverse numbering is the destroy order. The filesystem encodes the choreography so it cannot be misremembered at 11pm.
 - `gitops/` and `layers/` are strictly disjoint. If a resource appears in both, the boundary has been violated — this is grep-able and worth a CI check.
-- `scripts/` holds the three drain steps that are *deliberately not Terraform*. Their existence as first-class files is the architecture made visible.
+- `sh/` holds the three drain steps that are *deliberately not Terraform*. Their existence as first-class files is the architecture made visible.
 - Single repo (not split app/manifests). Argo CD reads `gitops/` from the same repo. A separate manifests repo is production practice but adds a cross-repo PR dance that buys nothing for one operator; revisit at M2 if image-tag write-back becomes annoying.
 
 ---

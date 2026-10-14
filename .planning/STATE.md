@@ -6,7 +6,7 @@ current_phase: 01
 current_phase_name: Account, L0 Bootstrap & Teardown Harness
 status: executing
 stopped_at: "Phase verification human-needed; external outcomes pending"
-last_updated: "2026-10-13T08:35:40Z"
+last_updated: "2026-10-13T10:03:35Z"
 last_activity: 2026-10-13
 state_head: 12317e8
 progress:
@@ -111,7 +111,7 @@ None yet.
 - **[Phase 5] OQ1 unresolved.** RDS viability under same-day teardown — `var.use_rds` defaults false pending measured create/delete timings.
 - **[Phase 1] Cost Explorer attribution deferred.** Four keys were operator-confirmed Active on 2026-10-09; observe per-layer attribution after November's full billing month and the next refresh, on or after 2026-12-02. The member-account CLI cannot list organization tag status.
 - **[Phase 1] Fork-PR workflow observation unverified.** No forks exist; static assertions cover the fallback.
-- **[Phase 1] Phase verifier returned `human_needed` in `01-VERIFICATION.md` (1/5 roadmap truths verified).** Lifecycle, cost-alert, and billing-period evidence remains pending; the valid bootstrap destroy and real $1 cost event were not run by explicit constraint.
+- **[Phase 1] Phase verifier returned `human_needed` in `01-VERIFICATION.md` (3/5 roadmap truths verified).** Native S3 lock acquisition/release was observed during a read-only plan; the authorized live EBS hard-gate passed orphan detection, cleanup, and error handling. Cost-alert delivery and complete billing-period attribution remain pending. The valid bootstrap destroy and real $1 cost event were not run by explicit constraint.
 - **[Cross-cutting] "Infrastructure forever, never ship a feature."** No deadline means no forcing function. Phase 4's walking skeleton and Phase 6's trace moment exist as deliberate defences.
 
 ## Deferred Items
@@ -123,5 +123,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Plan 01-10 complete; phase verifier returned `human_needed` (1/5 truths verified). Current teardown, Terraform validation, trust, credential checks, live IAM guardrail reconciliation, and both published OIDC smoke workflow runs passed. Cost-alert delivery, billing-period attribution, and remaining human observations are pending. Phase 1 stays executing.
+Stopped at: Plan 01-10 complete; phase verifier returned `human_needed` (3/5 truths verified). Current teardown, Terraform validation, trust, credential checks, live IAM guardrail reconciliation, both published OIDC smoke workflow runs, native S3 lock lifecycle, and the authorized EBS teardown hard-gate passed. Cost-alert delivery, billing-period attribution, and fork-PR fallback observation remain pending. Phase 1 stays executing.
 Resume file: .planning/phases/01-account-l0-bootstrap-teardown-harness/01-10-SUMMARY.md
