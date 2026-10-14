@@ -174,7 +174,7 @@ log_group_retention_violations() {
   [[ "$eks_source" == *'addon_version = "v1.13.2-eksbuild.51"'* ]]
   [[ "$eks_source" == *'addon_version = "v1.4.0-eksbuild.4"'* ]]
   [[ "$eks_source" != *'aws-ebs-csi-driver'* ]]
-  [[ "$eks_source" == *'iam_role_name                 = "${local.cluster_name}-system"'* ]]
+  grep -Eq 'iam_role_name[[:space:]]*=[[:space:]]*"\$\{local\.cluster_name\}-system"' "$eks_file"
 }
 
 @test "L1 exact provider module add-on and AMI pins match VERSIONS.md" {

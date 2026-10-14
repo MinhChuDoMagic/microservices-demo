@@ -48,6 +48,7 @@ module "eks" {
   eks_managed_node_groups = {
     system = {
       name                           = "${local.cluster_name}-system"
+      iam_role_name                  = "${local.cluster_name}-system"
       ami_type                       = "AL2023_ARM_64_STANDARD"
       ami_release_version            = "1.34.11-20261003"
       use_latest_ami_release_version = false
