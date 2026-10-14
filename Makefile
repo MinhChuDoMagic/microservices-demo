@@ -4,12 +4,13 @@ BOOTSTRAP_DIR := $(ROOT)/layers/00-bootstrap
 AWS_REGION ?= us-east-1
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor fmt validate test bootstrap down verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _destroy-layer
+.PHONY: help doctor fmt validate test bootstrap up down verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _apply-layer _destroy-layer
 
 help:
 	@printf '%s\n' \
 	  'doctor                 Check local tools, AWS identity, region, and inputs' \
 	  'bootstrap              Create and migrate the L0 state backend' \
+	  'up                     Provision L1 networking and EKS' \
 	  'down                   Safely tear down the ephemeral stack' \
 	  'verify-teardown        Check the account for teardown orphans' \
 	  'test-verify-teardown   Prove the teardown verifier catches a real orphan' \
@@ -116,6 +117,9 @@ _write-backend-hcl:
 down: doctor
 	@python3 sh/run-down-with-deadline.py
 
+up: doctor
+	@bash sh/up.sh
+
 _layer-state:
 	@set -euo pipefail; \
 	case "$(LAYER)" in \
@@ -141,6 +145,13 @@ _init-layer:
 	esac; \
 	terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" init -input=false -reconfigure \
 	  -backend-config="$(BACKEND_HCL)" -backend-config="key=$$STATE_KEY"
+
+_apply-layer:
+	@set -euo pipefail; \
+	if [[ "$(LAYER)" != 10-infra ]]; then printf 'ERROR: unsupported apply layer: %s\n' "$(LAYER)" >&2; exit 2; fi; \
+	if [[ -z "$(OPERATOR_CIDR)" ]]; then printf '%s\n' 'ERROR: OPERATOR_CIDR is required.' >&2; exit 2; fi; \
+	terraform -chdir="$(ROOT)/layers/10-infra" apply -input=false -auto-approve \
+	  -var="operator_cidr=$(OPERATOR_CIDR)"
 
 _destroy-layer:
 	@set -euo pipefail; \
