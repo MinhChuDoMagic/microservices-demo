@@ -4,12 +4,13 @@ BOOTSTRAP_DIR := $(ROOT)/layers/00-bootstrap
 AWS_REGION ?= us-east-1
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor fmt validate test bootstrap verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl
+.PHONY: help doctor fmt validate test bootstrap down verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _destroy-layer
 
 help:
 	@printf '%s\n' \
 	  'doctor                 Check local tools, AWS identity, region, and inputs' \
 	  'bootstrap              Create and migrate the L0 state backend' \
+	  'down                   Safely tear down the ephemeral stack' \
 	  'verify-teardown        Check the account for teardown orphans' \
 	  'test-verify-teardown   Prove the teardown verifier catches a real orphan' \
 	  'verify-no-keys         Check AWS keys and GitHub secret stores' \
@@ -111,6 +112,53 @@ _write-backend-hcl:
 	  'encrypt      = true' \
 	  'use_lockfile = true' > "$(BACKEND_HCL)"
 	@grep -qF 'use_lockfile = true' "$(BACKEND_HCL)"
+
+down: doctor
+	@python3 sh/run-down-with-deadline.py
+
+_layer-state:
+	@set -euo pipefail; \
+	case "$(LAYER)" in \
+	  10-infra) STATE_KEY=infra/terraform.tfstate ;; \
+	  20-data) STATE_KEY=data/terraform.tfstate ;; \
+	  30-gitops) STATE_KEY=gitops/terraform.tfstate ;; \
+	  *) printf 'ERROR: unsupported ephemeral layer: %s\n' "$(LAYER)" >&2; exit 2 ;; \
+	esac; \
+	if [[ ! -f "$(BACKEND_HCL)" ]]; then printf 'ERROR: generated backend config is missing: %s\n' "$(BACKEND_HCL)" >&2; exit 2; fi; \
+	BUCKET="$$(sed -nE 's/^[[:space:]]*bucket[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$(BACKEND_HCL)")"; \
+	if [[ -z "$$BUCKET" ]]; then printf '%s\n' 'ERROR: generated backend config has no bucket.' >&2; exit 2; fi; \
+	OBJECTS_JSON="$$(aws s3api list-objects-v2 --bucket "$$BUCKET" --prefix "$$STATE_KEY" --max-keys 1 --output json)" || { printf 'ERROR: could not determine state for %s; refusing teardown.\n' "$(LAYER)" >&2; exit 2; }; \
+	if ! jq -e 'type == "object" and ((has("Contents") and (.Contents | type == "array")) or .KeyCount == 0)' <<< "$$OBJECTS_JSON" >/dev/null; then printf 'ERROR: malformed S3 state listing for %s; refusing teardown.\n' "$(LAYER)" >&2; exit 2; fi; \
+	if jq -e --arg key "$$STATE_KEY" 'any(.Contents[]?; .Key == $$key)' <<< "$$OBJECTS_JSON" >/dev/null; then printf '%s\n' present; else printf '%s\n' absent; fi
+
+_init-layer:
+	@set -euo pipefail; \
+	case "$(LAYER)" in \
+	  10-infra) LAYER_DIR=10-infra; STATE_KEY=infra/terraform.tfstate ;; \
+	  20-data) LAYER_DIR=20-data; STATE_KEY=data/terraform.tfstate ;; \
+	  30-gitops) LAYER_DIR=30-gitops; STATE_KEY=gitops/terraform.tfstate ;; \
+	  *) printf 'ERROR: unsupported ephemeral layer: %s\n' "$(LAYER)" >&2; exit 2 ;; \
+	esac; \
+	terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" init -input=false -reconfigure \
+	  -backend-config="$(BACKEND_HCL)" -backend-config="key=$$STATE_KEY"
+
+_destroy-layer:
+	@set -euo pipefail; \
+	case "$(LAYER)" in \
+	  10-infra|20-data|30-gitops) ;; \
+	  *) printf 'ERROR: refusing to destroy unsupported layer: %s\n' "$(LAYER)" >&2; exit 2 ;; \
+	esac; \
+	STATE="$$( $(MAKE) --no-print-directory -s _layer-state LAYER="$(LAYER)" )" || exit $$?; \
+	case "$$STATE" in \
+	  absent) printf 'Skipping %s: S3 state is confirmed absent.\n' "$(LAYER)" ;; \
+	  present) $(MAKE) --no-print-directory -s _init-layer LAYER="$(LAYER)"; \
+	    LAYER_DIR="$(LAYER)"; STATE_KEY="$(LAYER)"; \
+	    case "$(LAYER)" in 10-infra) LAYER_DIR=10-infra; STATE_KEY=infra/terraform.tfstate ;; \
+	      20-data) LAYER_DIR=20-data; STATE_KEY=data/terraform.tfstate ;; \
+	      30-gitops) LAYER_DIR=30-gitops; STATE_KEY=gitops/terraform.tfstate ;; esac; \
+	    terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" destroy -input=false -auto-approve ;; \
+	  *) printf 'ERROR: unexpected state result for %s: %s\n' "$(LAYER)" "$$STATE" >&2; exit 2 ;; \
+	esac
 
 verify-teardown: doctor
 	@set -u; \
