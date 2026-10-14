@@ -33,6 +33,8 @@ Drain recovery treats EKS states as follows:
 
 For any blocked drain, preserve the originating error, identify the stage/state and residual resources, remediate access or the named resource, then rerun `make down` from step one. A fresh run passes only drains whose full AWS resource sets are confirmed absent or terminal; a failed attempt does not automatically clean residual resources (D-03, D-04).
 
+The ELBv2 drain scopes load balancers and target groups to the L1 VPC. The NodePool drain queries only instances tagged with both `karpenter.sh/discovery=microservices-demo` and `karpenter.sh/nodepool`. The PVC drain queries only volumes tagged `kubernetes.io/cluster/microservices-demo=owned` and carrying both `kubernetes.io/created-for/pvc/name` and `kubernetes.io/created-for/pvc/namespace`; volumes without this ownership evidence are not automatically deleted by the drain.
+
 ## Network Contract
 
 The VPC uses the first two sorted available Availability Zones in `us-east-1` and these fixed subnet tiers:
