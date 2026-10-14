@@ -199,4 +199,26 @@ None of these observations gates Phase 1. Each phase-sealing proxy is named in
 | First real Cost Anomaly Detection alert | Requires 10 days of per-service history, up to 24 hours of warm-up, and up to 24 hours of data lag. | Earliest 12 days after first billable service usage; if first usage is 2026-10-08, earliest 2026-10-20. Recalculate from actual first-use date. | |
 | Whether Cost Anomaly Detection is genuinely free (Research Q1) | No offer code exists in the Price List index; absence is not proof of `$0`. The pricing page is JavaScript-rendered and not machine-scrapable. Impact if wrong is negligible (cents at worst). | Earliest 2026-11-01 after the first full billing cycle if the monitor exists during October; inspect whether the cycle shows an `AWSCostExplorer`-family line item. | |
 
-Phase 2 appends measured `make up` and `make down` wall-clock times to this same file (COST-09).
+## Phase 2 measured lifecycle runs
+
+Record only complete successful runs. Add one row per stage/action, repeating the run number and
+total duration so the measurements remain attributable. For `make down`, a run qualifies only
+when the final verifier exits `0`; failed, orphaned, interrupted, and timed-out attempts never
+belong in these tables. Keep any defect notes outside the measured series and do not attach
+estimated durations to them. Record total duration with a monotonic timer from command start to
+successful completion. Include the cluster name, EKS version, and pinned `kubectl` version in the
+context. `make down` prints per-stage and total seconds only after verifier success.
+
+The teardown deadline is a single, fixed 900-second monotonic budget from preflight through
+verification. There is no per-run argument or environment override. The 900 seconds is a limit,
+not a measured duration or a claim that teardown completes within the limit.
+
+### Successful `make up` runs
+
+| Date (UTC) | Run | Stage/action | Stage duration (s) | Total monotonic duration (s) | Cluster / version context | Verifier exit |
+|---|---:|---|---:|---:|---|---|
+
+### Successful `make down` runs
+
+| Date (UTC) | Run | Stage/action | Stage duration (s) | Total monotonic duration (s) | Cluster / version context | Verifier exit |
+|---|---:|---|---:|---:|---|---|

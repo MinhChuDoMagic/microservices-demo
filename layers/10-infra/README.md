@@ -16,6 +16,31 @@ The operator still needs valid AWS credentials and the permissions required by t
 
 ## Teardown Access And Recovery
 
+### Teardown sequence and acceptance gate
+
+`make down` applies one fixed, non-overridable 900-second monotonic deadline from preflight
+through final verification. It runs these eight numbered actions in order:
+
+1. Disable Argo auto-sync when the root application exists; a confirmed absent application is skipped.
+2. Drain Ingress load balancers and target groups.
+3. Drain Karpenter NodePool instances.
+4. Drain PVC-owned EBS volumes.
+5. Destroy `30-gitops`.
+6. Destroy `20-data`.
+7. Destroy `10-infra`.
+8. Verify teardown and preserve the verifier's clean/orphan/error result.
+
+The Phase 2 roadmap's seven named steps count the three drains, three Terraform destroys, and
+final verification; that count excludes Argo auto-sync preparation. The implementation numbers
+that preparation as action 1, so the complete operator-visible sequence has eight actions.
+Successful drains proceed directly to the next action. Any unresolved drain stops before the
+first destroy; remediate the reported resource/access issue and start a fresh `make down` from
+action 1. Do not extend or reset the deadline for an individual run.
+
+Before application code begins, complete two consecutive empty-cluster `make up` -> `make down`
+round-trips with verifier exit `0` both times. This is a hard Phase 2 gate, not a target inferred
+from local tests or timing estimates.
+
 Lifecycle commands require the exact `kubectl` pin in `VERSIONS.md`; `make doctor` rejects a different client before draining. Kubernetes supports kubectl within one minor version of the API server; this project pins a matching 1.34 patch for the EKS 1.34 control plane.
 
 The approved operator API path is the public EKS endpoint restricted to the explicit trusted IPv4 CIDR passed as `OPERATOR_CIDR` to `make up`. Never use `0.0.0.0/0`. If the workstation's public address changes or the API becomes unreachable, restore access from the trusted operator network and update the endpoint allowlist through the normal Terraform-owned `make up` path; do not widen access. After access is restored, rerun `make down` from its first step.

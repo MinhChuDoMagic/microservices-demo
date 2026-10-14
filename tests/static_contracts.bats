@@ -441,6 +441,24 @@ AWS
   grep -Fq 'key=$$STATE_KEY' <<< "$layer_helpers"
 }
 
+@test "lifecycle timing ledgers are blank and document successful-only round-trip gates" {
+  costs_file="$BATS_TEST_DIRNAME/../COSTS.md"
+  infra_readme="$BATS_TEST_DIRNAME/../layers/10-infra/README.md"
+
+  grep -Fq '### Successful `make up` runs' "$costs_file"
+  grep -Fq '### Successful `make down` runs' "$costs_file"
+  grep -Fq 'Stage duration (s)' "$costs_file"
+  grep -Fq 'Total monotonic duration (s)' "$costs_file"
+  grep -Fq 'Verifier exit' "$costs_file"
+  grep -Fq 'failed, orphaned, interrupted, and timed-out attempts never' "$costs_file"
+  grep -Fq 'single, fixed 900-second monotonic budget' "$costs_file"
+  grep -Fq 'The Phase 2 roadmap' "$infra_readme"
+  grep -Fq 'complete operator-visible sequence has eight actions' "$infra_readme"
+  grep -Fq 'two consecutive empty-cluster' "$infra_readme"
+  grep -Fq 'verifier exit `0` both times' "$infra_readme"
+  grep -Fq 'non-overridable 900-second monotonic deadline' "$infra_readme"
+}
+
 @test "teardown lock precedes every lifecycle stage and has exit and signal cleanup" {
   down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
   lock_line="$(grep -nF 'if ! mkdir "$LOCK_DIR"' "$down_script" | cut -d: -f1)"
