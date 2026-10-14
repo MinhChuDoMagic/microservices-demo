@@ -108,6 +108,10 @@ set -u
       response_name="TEST_LB_RESPONSE_${call_number}"
       response="${!response_name:-${TEST_LB_RESPONSE:-}}"
       [[ -n "$response" ]] || response='{"LoadBalancers":[]}'
+      if [[ "${TEST_LB_TRANSIENT_ALWAYS:-false}" == true ]]; then
+        printf '%s\n' 'An error occurred (ThrottlingException): test transient limit' >&2
+        exit 255
+      fi
       if [[ "${TEST_LB_TRANSIENT_ONCE:-false}" == true && "$call_number" -eq 1 ]]; then
         printf '%s\n' 'An error occurred (ThrottlingException): test transient limit' >&2
         exit 255
@@ -408,6 +412,18 @@ install_drain_scripts() {
   [ "$(grep -c '^elbv2 describe-load-balancers ' "$call_log")" -eq 3 ]
   [[ "$output" == *'retrying transient AWS error'* ]]
   [[ "$output" == *'AWS confirms no load balancers or target groups'* ]]
+}
+
+@test "Ingress drain bounds transient AWS retries" {
+  export TEST_LB_TRANSIENT_ALWAYS=true
+
+  run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
+
+  [ "$status" -eq 1 ]
+  [ "$(grep -c '^elbv2 describe-load-balancers ' "$call_log")" -eq 3 ]
+  [[ "$output" == *'ThrottlingException'* ]]
+  [[ "$output" == *'last_observed=ELBv2 describe-load-balancers error'* ]]
+  [[ "$(<"$call_log")" != *'kubectl delete'* ]]
 }
 
 @test "Ingress delete failure with residual ELB resources stops before Service deletion" {
