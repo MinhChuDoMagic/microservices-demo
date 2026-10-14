@@ -1,0 +1,68 @@
+---
+phase: 02-ephemeral-infrastructure-drain-scripts
+plan: 08
+type: execute
+status: blocked
+completed_tasks: [02-08-01]
+blocked_tasks: [02-08-02]
+requirements: [LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02]
+provides:
+  - Mutation-free local acceptance preflight results
+  - Explicit blank timing columns for all eight teardown actions
+  - Recorded blocking Phase 1 human-needed precondition
+affects: [phase-02-acceptance, cost-ledger, operator-runbook]
+key-files:
+  modified:
+    - COSTS.md
+  created:
+    - .planning/phases/02-ephemeral-infrastructure-drain-scripts/02-08-SUMMARY.md
+key-decisions:
+  - "Do not begin Phase 2 live acceptance until Phase 1 status is no longer human_needed and the gate is explicitly cleared."
+  - "Keep all live lifecycle measurements blank; local tests and validation are not AWS acceptance evidence."
+  - "Cloud Nuke resource types remain report-only until tagged/untagged behavior is empirically proven under an authorized live gate."
+verification:
+  local:
+    - "bats tests/phase2_lifecycle.bats: 48 passed, 0 failed"
+    - "make test: 118 passed, 0 failed, 0 skipped"
+    - "bats tests/static_contracts.bats: 26 passed, 0 failed after timing table update"
+    - "AWS_PROFILE=microservices-demo make validate: all four Terraform layers, formatting, and ShellCheck passed"
+    - "shellcheck sh/*.sh: passed"
+  human_gate:
+    phase_1_status: human_needed
+    phase_1_score: 3/5
+    live_acceptance: blocked
+    aws_mutation_performed: false
+    lifecycle_or_cluster_operation_performed: false
+duration: multi-session
+completed: 2026-10-14
+---
+
+# Phase 02 Plan 08 Status
+
+Plan 02-08 is **blocked at its human acceptance checkpoint**, not complete. The mutation-free preflight has been completed. The Phase 1 verification artifact and current project state both retain `human_needed` status (3/5 roadmap truths verified), so the plan's explicit precondition prohibits any live Phase 2 AWS operation.
+
+## Task 1: Local Preflight
+
+- `bats tests/phase2_lifecycle.bats`: 48 passed, 0 failed.
+- `make test`: 118 passed, 0 failed, 0 skipped.
+- `AWS_PROFILE=microservices-demo make validate`: all four Terraform layers passed; formatting and ShellCheck passed. No plan, apply, destroy, or lifecycle target was run.
+- `bats tests/static_contracts.bats` after the ledger update: 26 passed, 0 failed.
+- `shellcheck sh/*.sh`: passed.
+- The repository file search found no application source files.
+- `COSTS.md` has blank successful-run tables and now names the duration column for each of the eight teardown actions. No measurements were fabricated.
+- `layers/10-infra/README.md` already documents the eight-versus-seven reconciliation and the two consecutive clean empty-cluster round-trip gate.
+
+## Task 2: Live Acceptance
+
+**Blocked.** `.planning/phases/01-account-l0-bootstrap-teardown-harness/01-VERIFICATION.md` records `status: human_needed`, score 3/5. Remaining Phase 1 evidence includes live cost-alert delivery, complete billing-period attribution, and the fork pull-request fallback observation. Phase 1 status was not changed.
+
+No `make doctor`, `make up`, `make down`, `make nuke-project`, Cloud Nuke preview/deletion, Terraform plan/apply/destroy, AWS resource mutation, EKS access, temporary AWS fixture, or cluster operation was performed. Local stub tests do not establish live AWS behavior. Plan 02-07's unproven Cloud Nuke types remain report-only.
+
+## Resume Condition
+
+Resume the live checkpoint only after Phase 1's human-needed verification is independently resolved, the project state reflects that resolution, and the live actions are explicitly authorized. Then follow the gated procedure in `02-08-PLAN.md`; record only successful complete lifecycle runs in `COSTS.md`. Do not proceed to application code until the two consecutive verifier-clean round-trips pass.
+
+---
+*Phase: 02-ephemeral-infrastructure-drain-scripts*
+*Plan: 08 (blocked at human gate)*
+*Updated: 2026-10-14*
