@@ -2,7 +2,7 @@
 phase: "02"
 slug: "ephemeral-infrastructure-drain-scripts"
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: "2026-10-14"
 ---
@@ -37,24 +37,41 @@ created: "2026-10-14"
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| Pending planner task mapping | Pending | 0/1 | LIFE-01, LIFE-02, LIFE-06 | — | Failed or unknown AWS state never counts as clean; no application code before two clean cycles | unit + live acceptance | `bats tests/phase2_lifecycle.bats`; two live `make up`/`make down` cycles | ❌ W0 | ⬜ pending |
-| Pending planner task mapping | Pending | 0/1 | LIFE-03, LIFE-04 | — | First failed drain stops teardown before Terraform destroy; AWS terminal state is polled under one shared deadline | contract + stubbed integration | `bats tests/phase2_lifecycle.bats` | ❌ W0 | ⬜ pending |
-| Pending planner task mapping | Pending | 0/1 | NET-01, NET-02, NET-03, NET-04, NET-05, NET-07 | — | Intra subnets have no default route; interface endpoints default off; NAT routes target the persistent ENI | static + live infrastructure | `make test`; `make validate`; live network probes | ❌ W0 | ⬜ pending |
-| Pending planner task mapping | Pending | 0/1 | EKS-01, EKS-02, EKS-04, EKS-08 | — | EKS minor/add-ons are pinned; Karpenter AWS resources remain Terraform-owned | static + AWS API + live infrastructure | `make test`; `make validate`; `aws eks describe-addon-versions --region us-east-1 --kubernetes-version 1.34` | ❌ W0 | ⬜ pending |
-| Pending planner task mapping | Pending | 0/1 | OWN-02 | — | L1 contains no Kubernetes or Helm Terraform provider | static contract | `make test` | ✅ existing suite | ⬜ pending |
+Every planned task is mapped below. Automated commands are planned verifications, not completed results; all task statuses remain pending until execution.
 
-*The planner must replace provisional task mappings with the final PLAN.md task IDs and wave assignments before this strategy is considered complete.*
+| Task ID | Plan | Wave | Requirement | Verification type | Automated command | Manual gate / status |
+|---------|------|------|-------------|-------------------|-------------------|----------------------|
+| 02-01-01 | 02-01 | 1 | LIFE-02, LIFE-03, LIFE-04, LIFE-06 | TDD tracer + lifecycle integration | `bats tests/phase2_lifecycle.bats` | pending execution |
+| 02-01-02 | 02-01 | 1 | LIFE-03, LIFE-04 | Contract + concurrency | `bats tests/phase2_lifecycle.bats tests/static_contracts.bats` | pending execution |
+| 02-02-01 | 02-02 | 2 | NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-08, OWN-02 | Terraform validation | `make validate` | pending execution |
+| 02-02-02 | 02-02 | 2 | LIFE-01 | Stubbed lifecycle integration | `bats tests/phase2_lifecycle.bats` | pending execution |
+| 02-02-03 | 02-02 | 2 | NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-08, OWN-02 | Version ledger + Terraform validation; source pin parity checked in 02-03-02 | `make validate` | pending execution |
+| 02-03-01 | 02-03 | 3 | EKS-04 | Terraform validation | `make validate` | pending execution |
+| 02-03-02 | 02-03 | 3 | NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02 | Static L1 network/pin and ownership contracts + Terraform validation | `bats tests/static_contracts.bats && make validate` | pending execution |
+| 02-04-01 | 02-04 | 4 | LIFE-03, LIFE-04, EKS-02, OWN-02 | kubectl compatibility gate + state matrix | `bats tests/phase2_lifecycle.bats && shellcheck sh/doctor.sh` | kubectl compatible-version gate; pending execution |
+| 02-04-02 | 02-04 | 4 | LIFE-03, LIFE-04 | Fixture-backed drains + ShellCheck | `bats tests/phase2_lifecycle.bats && shellcheck sh/*.sh` | pending execution |
+| 02-05-01 | 02-05 | 5 | LIFE-03, LIFE-04 | AWS transition fixture harness | `bats tests/harness_selftest.bats` | pending execution |
+| 02-05-02 | 02-05 | 5 | LIFE-03, LIFE-04 | Transition/failure integration | `bats tests/phase2_lifecycle.bats && bats tests/harness_selftest.bats` | pending execution |
+| 02-06-01 | 02-06 | 6 | LIFE-02, LIFE-03, LIFE-04, LIFE-06 | Teardown orchestration integration | `bats tests/phase2_lifecycle.bats` | pending execution |
+| 02-06-02 | 02-06 | 6 | LIFE-02, LIFE-03, LIFE-04 | Deadline/retry/static contracts | `bats tests/phase2_lifecycle.bats tests/static_contracts.bats && shellcheck sh/*.sh` | pending execution |
+| 02-06-03 | 02-06 | 6 | LIFE-02, LIFE-06 | Timing ledger contract | `bats tests/static_contracts.bats` | pending execution |
+| 02-07-01 | 02-07 | 7 | LIFE-02, LIFE-03 | Recovery wrapper/static contracts | `bats tests/phase2_lifecycle.bats tests/static_contracts.bats` | pending execution |
+| 02-07-02 | 02-07 | 7 | LIFE-02, LIFE-03 | Tagged/untagged controls + no-auto-invocation | `bats tests/phase2_lifecycle.bats tests/static_contracts.bats` | pending execution |
+| 02-08-01 | 02-08 | 8 | LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02 | Local mutation-free preflight | `bats tests/phase2_lifecycle.bats && make test && make validate && shellcheck sh/*.sh` | pending execution; Phase 1 precondition remains unresolved |
+| 02-08-02 | 02-08 | 8 | LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02 | Blocking live acceptance | `bats tests/phase2_lifecycle.bats && make test && make validate` | M1-M4 pending human acceptance; blocked until Phase 1 gate passes |
+
+`nyquist_compliant: true` records complete plan/task verification coverage only; it does not mean tests ran, Wave 0 completed, or live/manual acceptance passed.
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/phase2_lifecycle.bats` — exact teardown order, partial-state handling, idempotent rerun, bounded retries, shared deadline, preserved errors, verifier exit codes, and stop-before-destroy behavior.
-- [ ] AWS EKS/ELBv2/EC2/EBS fixtures — terminal absence, transient API errors, and unknown/error states.
-- [ ] Recovery-tool safety test — tagged disposable target appears in preview; same-type untagged control does not; VPC type is absent from executable allowlist.
-- [ ] Pin a `kubectl` client compatible with EKS 1.34 before live drain acceptance.
+- [ ] Lifecycle suite and TDD-first tracer: `02-01-01` (Wave 1) creates `tests/phase2_lifecycle.bats` and proves the initial end-to-end teardown path.
+- [ ] AWS transition fixtures: `02-05-01` and `02-05-02` (Wave 5) create/replay EKS, ELBv2, EC2, and EBS transitions, errors, unknown states, and terminal absence.
+- [ ] Recovery tagged/untagged controls: `02-07-02` (Wave 7) adds tagged-target, same-type untagged-control, preview parity, and VPC-exclusion assertions.
+- [ ] kubectl compatibility gate: `02-04-01` (Wave 4) pins/checks a client compatible with EKS 1.34 before any drain use.
+
+These prerequisites are mapped to their owning tasks but have not executed; `wave_0_complete` remains `false`.
 
 ---
 
@@ -62,20 +79,19 @@ created: "2026-10-14"
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Two consecutive clean, zero-orphan up/down cycles within the wall-clock limits | LIFE-01, LIFE-02, LIFE-06 | Requires real AWS lifecycle timing and the existing account teardown verifier | Run two complete cycles on an empty cluster; record each successful duration and verifier exit 0 in `COSTS.md`; do not start application code until both pass. |
-| AWS-confirmed ALB drain while deletion is in progress | LIFE-04 | A no-op empty-cluster drain cannot prove asynchronous controller cleanup | Create a temporary non-application Ingress fixture, run `make down`, and capture the AWS-observed ALB terminal state before destroy proceeds. |
-| Recovery command stays within project-tagged resource scope | LIFE-03 | Requires a disposable tagged resource and same-type untagged control against the selected recovery tool | Preview both controls; prove only the tagged target is eligible, verify VPC is excluded, and report uncovered resources without widening scope. |
-| Operator can reach the EKS API using the approved access path | LIFE-03, LIFE-04 | Depends on the selected network and identity path, not unit-test stubs | From the normal operator environment, authenticate to the Phase 2 cluster and run the drain preflight without opening the endpoint to `0.0.0.0/0`. |
+| M1: Two consecutive clean, zero-orphan up/down cycles within wall-clock limits; owner `02-08-02` (Wave 8) | LIFE-01, LIFE-02, LIFE-06 | Requires real AWS lifecycle timing and the existing account teardown verifier | Run two complete cycles on an empty cluster; record each successful duration and verifier exit 0 in `COSTS.md`; do not start application code until both pass. **PENDING; blocked until Phase 1 gate passes.** |
+| M2: AWS-confirmed VPC-wide ELBv2 drain while a standalone ALB is removed; owner `02-08-02` (Wave 8) | LIFE-04 | A no-op empty-cluster drain cannot prove the production ELBv2 poll waits for terminal absence | After the Phase 1 gate passes, in the dedicated account and `us-east-1` after `make up`, validate Project/L1 tags and record the L1 VPC, two existing private subnets in distinct AZs, default security group, and ALB ARN. Create an internal ALB using `aws elbv2 create-load-balancer` with those subnets and the default security group, no listener or target group; confirm its ARN/VPC with `describe-load-balancers`. Run the complete `make down` in terminal 1 and confirm the Ingress drain remains blocked while this ALB is visible and Terraform destroy has not started. In terminal 2 delete only the recorded ARN; verify terminal 1 proceeds only after a fresh AWS response shows it absent, then complete all eight teardown stages and the verifier. This proves the VPC-wide ELBv2 poll/terminal-absence contract only, not controller provisioning or Ingress-to-controller events. **PENDING; all live actions remain behind the blocking human gate.** |
+| M3: Recovery command stays within project-tagged resource scope; owner `02-08-02` (Wave 8), with controls from `02-07-02` (Wave 7) | LIFE-03 | Requires a disposable tagged resource and same-type untagged control against the selected recovery tool | Preview both controls; prove only the tagged target is eligible, verify VPC is excluded, and report uncovered resources without widening scope. **PENDING.** |
+| M4: Operator reaches EKS API using approved access path; owner `02-08-02` (Wave 8), with compatibility preflight from `02-04-01` (Wave 4) | LIFE-03, LIFE-04 | Depends on the selected network and identity path, not unit-test stubs | From the normal operator environment, authenticate to the Phase 2 cluster and run the drain preflight without opening the endpoint to `0.0.0.0/0`. **PENDING.** |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter after task mapping and validation
+- [x] All 18 tasks have an automated verify; Wave 0 prerequisites are mapped to their creating tasks.
+- [x] Sampling continuity: no three consecutive tasks without automated verification.
+- [x] Wave 0 prerequisite coverage is mapped; execution remains pending (`wave_0_complete: false`).
+- [x] No watch-mode flags; planned local feedback latency remains under 60 seconds.
+- [x] Task/wave mapping and manual-gate ownership are complete (`nyquist_compliant: true` describes strategy coverage only, not completed execution or sign-off).
 
-**Approval:** pending
+**Approval:** pending; live gates M1-M4 and all task execution remain pending.
