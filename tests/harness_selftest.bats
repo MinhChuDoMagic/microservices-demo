@@ -3,6 +3,7 @@
 load 'helpers/load'
 
 setup() {
+  unset STUB_AWS_SEQUENCE_SCENARIO STUB_AWS_SEQUENCE_FIXTURE
   stub_aws_start
   STUB_AWS_FIXTURE_DIR="$BATS_TEST_TMPDIR/fixtures"
   export STUB_AWS_FIXTURE_DIR
@@ -71,4 +72,58 @@ teardown() {
 
   [ "$PATH" = "$original_path" ]
   [ ! -e "$shim_dir" ]
+}
+
+@test "sequence mode advances the response for repeated AWS operations" {
+  STUB_AWS_SEQUENCE_FIXTURE="$BATS_TEST_TMPDIR/sequences.json"
+  export STUB_AWS_SEQUENCE_FIXTURE STUB_AWS_SEQUENCE_SCENARIO=advance
+  printf '%s\n' '{"advance":{"ec2:describe-volumes":[{"json":{"Volumes":[{"VolumeId":"vol-first"}]}},{"json":{"Volumes":[{"VolumeId":"vol-second"}]}}]}}' \
+    > "$STUB_AWS_SEQUENCE_FIXTURE"
+
+  run aws ec2 describe-volumes
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"Volumes":[{"VolumeId":"vol-first"}]}' ]
+
+  run aws ec2 describe-volumes
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"Volumes":[{"VolumeId":"vol-second"}]}' ]
+}
+
+@test "sequence counters reset with a new per-test stub directory" {
+  STUB_AWS_SEQUENCE_FIXTURE="$BATS_TEST_TMPDIR/sequences.json"
+  export STUB_AWS_SEQUENCE_FIXTURE STUB_AWS_SEQUENCE_SCENARIO=reset
+  printf '%s\n' '{"reset":{"ec2:describe-volumes":[{"json":{"Volumes":[{"VolumeId":"vol-first"}]}},{"json":{"Volumes":[{"VolumeId":"vol-second"}]}}]}}' \
+    > "$STUB_AWS_SEQUENCE_FIXTURE"
+
+  run aws ec2 describe-volumes
+  [ "$output" = '{"Volumes":[{"VolumeId":"vol-first"}]}' ]
+  stub_aws_start
+  run aws ec2 describe-volumes
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"Volumes":[{"VolumeId":"vol-first"}]}' ]
+}
+
+@test "sequence error responses preserve stderr and exit status" {
+  STUB_AWS_SEQUENCE_FIXTURE="$BATS_TEST_TMPDIR/sequences.json"
+  export STUB_AWS_SEQUENCE_FIXTURE STUB_AWS_SEQUENCE_SCENARIO=error
+  printf '%s\n' '{"error":{"ec2:describe-volumes":[{"error":{"stderr":"AccessDeniedException: sequence fixture","exit":254}}]}}' \
+    > "$STUB_AWS_SEQUENCE_FIXTURE"
+
+  run aws ec2 describe-volumes
+
+  [ "$status" -eq 254 ]
+  [ "$output" = 'AccessDeniedException: sequence fixture' ]
+}
+
+@test "a missing scenario operation response fails closed" {
+  STUB_AWS_SEQUENCE_FIXTURE="$BATS_TEST_TMPDIR/sequences.json"
+  export STUB_AWS_SEQUENCE_FIXTURE STUB_AWS_SEQUENCE_SCENARIO=missing
+  printf '%s\n' '{"missing":{"ec2:describe-volumes":[{"json":{"Volumes":[]}}]}}' \
+    > "$STUB_AWS_SEQUENCE_FIXTURE"
+
+  run aws ec2 describe-instances
+
+  [ "$status" -eq 98 ]
+  [[ "$output" == *'scenario=missing operation=ec2:describe-instances call=1'* ]]
+  [[ "$output" == *'fail closed'* ]]
 }
