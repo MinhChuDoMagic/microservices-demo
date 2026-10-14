@@ -1,6 +1,9 @@
 #!/usr/bin/env bats
 
+load 'helpers/load'
+
 setup() {
+  unset STUB_AWS_SEQUENCE_SCENARIO STUB_AWS_SEQUENCE_FIXTURE
   real_make="$(command -v make)"
   test_bin="$BATS_TEST_TMPDIR/bin"
   test_root="$BATS_TEST_TMPDIR/repo"
@@ -217,6 +220,12 @@ KUBECTL
   export PATH="$test_bin:$PATH"
 }
 
+teardown() {
+  if [[ -n "${STUB_AWS_DIR:-}" ]]; then
+    stub_aws_stop
+  fi
+}
+
 run_layer_state() {
   run "$TEST_REAL_MAKE" -s "BACKEND_HCL=$TEST_BACKEND_HCL" \
     _layer-state LAYER=10-infra
@@ -251,6 +260,13 @@ install_drain_scripts() {
   for script in lifecycle-common.sh drain-ingress.sh drain-nodes.sh drain-pvcs.sh; do
     cp "$BATS_TEST_DIRNAME/../sh/$script" "$test_root/sh/$script"
   done
+}
+
+use_sequence_fixture() {
+  stub_aws_start
+  STUB_AWS_SEQUENCE_FIXTURE="$BATS_TEST_DIRNAME/fixtures/aws/phase2-lifecycle-sequences.json"
+  STUB_AWS_SEQUENCE_SCENARIO="$1"
+  export STUB_AWS_SEQUENCE_FIXTURE STUB_AWS_SEQUENCE_SCENARIO
 }
 
 @test "make down is wired to the teardown spine" {
@@ -363,71 +379,82 @@ install_drain_scripts() {
 }
 
 @test "Ingress drain waits for ELBv2 load balancers and target groups to disappear" {
-  export TEST_LB_RESPONSE_1='{"LoadBalancers":[{"LoadBalancerArn":"arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234","VpcId":"vpc-12345678","State":{"Code":"active"}}]}'
-  export TEST_LB_RESPONSE_2='{"LoadBalancers":[]}'
-  export TEST_TG_RESPONSE_1='{"TargetGroups":[{"TargetGroupArn":"arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/demo/1234","VpcId":"vpc-12345678","LoadBalancerArns":[]}]}'
-  export TEST_TG_RESPONSE_2='{"TargetGroups":[]}'
+  use_sequence_fixture ingress-pending-to-absent
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
 
   [ "$status" -eq 0 ]
-  [ "$(grep -c '^elbv2 describe-load-balancers ' "$call_log")" -eq 2 ]
-  [ "$(grep -c '^elbv2 describe-target-groups ' "$call_log")" -eq 2 ]
+  [ "$(grep -c '^elbv2 describe-load-balancers ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
+  [ "$(grep -c '^elbv2 describe-target-groups ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
+  [ "$(grep -c '^eks describe-cluster ' "$STUB_AWS_CALL_LOG")" -eq 1 ]
   [[ "$(<"$call_log")" == *'delete ingress --all --all-namespaces'* ]]
   [[ "$output" == *'AWS confirms no load balancers or target groups'* ]]
 }
 
+@test "a fresh teardown retry replays the first pending AWS responses" {
+  use_sequence_fixture ingress-pending-to-absent
+
+  run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^elbv2 describe-load-balancers ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
+
+  stub_aws_start
+  run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
+
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^elbv2 describe-load-balancers ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
+  [[ "$output" == *'AWS confirms no load balancers or target groups'* ]]
+}
+
 @test "NodePool drain waits for tagged Karpenter instances to disappear" {
-  export TEST_INSTANCE_RESPONSE_1='{"Reservations":[{"Instances":[{"InstanceId":"i-0123456789abcdef0","State":{"Name":"running"}}]}]}'
-  export TEST_INSTANCE_RESPONSE_2='{"Reservations":[]}'
+  use_sequence_fixture karpenter-pending-to-absent
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-nodes.sh"
 
   [ "$status" -eq 0 ]
-  [ "$(grep -c '^ec2 describe-instances ' "$call_log")" -eq 2 ]
-  [[ "$(<"$call_log")" == *'Name=tag:karpenter.sh/discovery,Values=microservices-demo'* ]]
+  [ "$(grep -c '^ec2 describe-instances ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
+  [[ "$(<"$STUB_AWS_CALL_LOG")" == *'Name=tag:karpenter.sh/discovery,Values=microservices-demo'* ]]
   [[ "$(<"$call_log")" == *'delete nodepools.karpenter.sh --all'* ]]
   [[ "$output" == *'AWS confirms no tagged project Karpenter instances'* ]]
 }
 
 @test "PVC drain waits for PVC-owned EBS volumes to disappear" {
-  export TEST_VOLUME_RESPONSE_1='{"Volumes":[{"VolumeId":"vol-0123456789abcdef0","State":"in-use","Tags":[{"Key":"kubernetes.io/cluster/microservices-demo","Value":"owned"},{"Key":"kubernetes.io/created-for/pvc/name","Value":"data"},{"Key":"kubernetes.io/created-for/pvc/namespace","Value":"default"}],"Attachments":[{"InstanceId":"i-0123456789abcdef0","State":"attached"}]}]}'
-  export TEST_VOLUME_RESPONSE_2='{"Volumes":[]}'
+  use_sequence_fixture pvc-pending-to-absent
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-pvcs.sh"
 
   [ "$status" -eq 0 ]
-  [ "$(grep -c '^ec2 describe-volumes ' "$call_log")" -eq 2 ]
-  [[ "$(<"$call_log")" == *'kubernetes.io/created-for/pvc/name'* ]]
+  [ "$(grep -c '^ec2 describe-volumes ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
+  [[ "$(<"$STUB_AWS_CALL_LOG")" == *'kubernetes.io/created-for/pvc/name'* ]]
   [[ "$(<"$call_log")" == *'delete pvc --all --all-namespaces'* ]]
   [[ "$output" == *'AWS confirms no tagged project PVC volumes'* ]]
 }
 
 @test "Ingress drain retries a classified transient AWS error" {
-  export TEST_LB_TRANSIENT_ONCE=true
+  use_sequence_fixture transient-retry
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
 
   [ "$status" -eq 0 ]
-  [ "$(grep -c '^elbv2 describe-load-balancers ' "$call_log")" -eq 3 ]
+  [ "$(grep -c '^elbv2 describe-load-balancers ' "$STUB_AWS_CALL_LOG")" -eq 3 ]
   [[ "$output" == *'retrying transient AWS error'* ]]
   [[ "$output" == *'AWS confirms no load balancers or target groups'* ]]
 }
 
 @test "Ingress drain bounds transient AWS retries" {
-  export TEST_LB_TRANSIENT_ALWAYS=true
+  use_sequence_fixture transient-retry-exhaustion
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
 
   [ "$status" -eq 1 ]
-  [ "$(grep -c '^elbv2 describe-load-balancers ' "$call_log")" -eq 3 ]
+  [ "$(grep -c '^elbv2 describe-load-balancers ' "$STUB_AWS_CALL_LOG")" -eq 3 ]
   [[ "$output" == *'ThrottlingException'* ]]
   [[ "$output" == *'last_observed=ELBv2 describe-load-balancers error'* ]]
   [[ "$(<"$call_log")" != *'kubectl delete'* ]]
 }
 
 @test "Ingress delete failure with residual ELB resources stops before Service deletion" {
-  export TEST_LB_RESPONSE='{"LoadBalancers":[{"LoadBalancerArn":"arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234","VpcId":"vpc-12345678","State":{"Code":"active"}}]}'
+  use_sequence_fixture ingress-delete-fail-residual
   export TEST_KUBECTL_INGRESS_DELETE_EXIT=1
   export TEST_KUBECTL_INGRESS_DELETE_ERROR='Forbidden: ingress deletion denied'
 
@@ -440,9 +467,9 @@ install_drain_scripts() {
 }
 
 @test "a permanent ELBv2 error fails the drain and prevents destroy" {
+  use_sequence_fixture elbv2-permanent-error
   install_drain_scripts
   export TEST_STATE_10_infra=present
-  export TEST_LB_ERROR='An error occurred (AccessDeniedException): denied by test'
 
   run bash "$test_root/sh/down.sh"
 
@@ -450,12 +477,13 @@ install_drain_scripts() {
   [[ "$output" == *'AccessDeniedException'* ]]
   [[ "$output" == *'No Terraform destroy was attempted'* ]]
   [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
+  [[ "$(<"$STUB_AWS_CALL_LOG")" != *'_destroy-layer'* ]]
 }
 
 @test "a failed NodePool drain stops make down before Terraform destroy" {
+  use_sequence_fixture active-node-api-unreachable
   install_drain_scripts
   export TEST_STATE_10_infra=present
-  export TEST_INSTANCE_RESPONSE_1='{"Reservations":[{"Instances":[{"InstanceId":"i-0123456789abcdef0","State":{"Name":"running"}}]}]}'
   export TEST_KUBECTL_API_EXIT=1
   export TEST_KUBECTL_ERROR='The server could not be reached: test timeout'
 
@@ -465,14 +493,15 @@ install_drain_scripts() {
   [[ "$output" == *'drain Karpenter NodePools'* ]]
   [[ "$output" == *'i-0123456789abcdef0'* ]]
   [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
+  [[ "$(<"$STUB_AWS_CALL_LOG")" != *'_destroy-layer'* ]]
 }
 
 @test "a failed PVC drain stops make down before Terraform destroy" {
+  use_sequence_fixture active-pvc-api-unreachable
   install_drain_scripts
   export TEST_STATE_10_infra=present
   export TEST_KUBECTL_API_EXIT=1
   export TEST_KUBECTL_ERROR='The server could not be reached: test timeout'
-  export TEST_VOLUME_RESPONSE_1='{"Volumes":[{"VolumeId":"vol-0123456789abcdef0","State":"in-use","Tags":[{"Key":"kubernetes.io/cluster/microservices-demo","Value":"owned"},{"Key":"kubernetes.io/created-for/pvc/name","Value":"data"},{"Key":"kubernetes.io/created-for/pvc/namespace","Value":"default"}],"Attachments":[{"InstanceId":"i-0123456789abcdef0","State":"attached"}]}]}'
 
   run bash "$test_root/sh/down.sh"
 
@@ -480,6 +509,7 @@ install_drain_scripts() {
   [[ "$output" == *'drain PVCs'* ]]
   [[ "$output" == *'vol-0123456789abcdef0'* ]]
   [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
+  [[ "$(<"$STUB_AWS_CALL_LOG")" != *'_destroy-layer'* ]]
 }
 
 @test "an unreachable API with residual Karpenter instances reports IDs and stops" {
@@ -510,8 +540,7 @@ install_drain_scripts() {
 }
 
 @test "CREATING clusters use only AWS absence proof and report residual Ingress IDs" {
-  export TEST_CLUSTER_STATUS=CREATING
-  export TEST_LB_RESPONSE_1='{"LoadBalancers":[{"LoadBalancerArn":"arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/demo/1234","VpcId":"vpc-12345678","State":{"Code":"provisioning"}}]}'
+  use_sequence_fixture eks-creating-residual
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
 
@@ -524,8 +553,7 @@ install_drain_scripts() {
 }
 
 @test "FAILED clusters stop on residual Karpenter instances without kubectl" {
-  export TEST_CLUSTER_STATUS=FAILED
-  export TEST_INSTANCE_RESPONSE_1='{"Reservations":[{"Instances":[{"InstanceId":"i-0123456789abcdef0","State":{"Name":"stopped"}}]}]}'
+  use_sequence_fixture eks-failed-residual
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-nodes.sh"
 
@@ -538,8 +566,7 @@ install_drain_scripts() {
 }
 
 @test "DEGRADED clusters preserve Kubernetes errors and PVC attachment diagnostics" {
-  export TEST_CLUSTER_STATUS=DEGRADED
-  export TEST_VOLUME_RESPONSE_1='{"Volumes":[{"VolumeId":"vol-0123456789abcdef0","State":"in-use","Tags":[{"Key":"kubernetes.io/cluster/microservices-demo","Value":"owned"},{"Key":"kubernetes.io/created-for/pvc/name","Value":"data"},{"Key":"kubernetes.io/created-for/pvc/namespace","Value":"default"}],"Attachments":[{"InstanceId":"i-0123456789abcdef0","State":"attached"}]}]}'
+  use_sequence_fixture eks-degraded-residual
   export TEST_KUBECTL_API_EXIT=1
   export TEST_KUBECTL_ERROR='Forbidden: test cluster API denial'
 
@@ -555,7 +582,7 @@ install_drain_scripts() {
 }
 
 @test "only an EKS ResourceNotFound response classifies the cluster as ABSENT" {
-  export TEST_CLUSTER_ERROR='An error occurred (ResourceNotFoundException): No cluster found'
+  use_sequence_fixture eks-absent-terminal
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
 
@@ -565,7 +592,7 @@ install_drain_scripts() {
 }
 
 @test "an EKS authorization error is UNKNOWN rather than ABSENT" {
-  export TEST_CLUSTER_ERROR='An error occurred (AccessDeniedException): describe-cluster denied'
+  use_sequence_fixture eks-authorization-error
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-nodes.sh"
 
@@ -576,7 +603,7 @@ install_drain_scripts() {
 }
 
 @test "malformed AWS volume data is never treated as an empty PVC set" {
-  export TEST_VOLUME_RESPONSE_1='{"Volumes":{}}'
+  use_sequence_fixture malformed-volume-response
 
   run bash "$BATS_TEST_DIRNAME/../sh/drain-pvcs.sh"
 
