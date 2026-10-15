@@ -71,7 +71,7 @@ Every planned task is mapped below. Automated commands are planned verifications
 - [x] Recovery tagged/untagged controls: `02-07-02` (Wave 7) adds tagged-target, same-type untagged-control, preview parity, and VPC-exclusion assertions.
 - [x] kubectl compatibility gate: `02-04-01` (Wave 4) pins/checks a client compatible with EKS 1.34 before any drain use.
 
-These prerequisites are mapped to their owning tasks but have not executed; `wave_0_complete` remains `false`.
+These prerequisites were executed and passed locally; live acceptance remains separate and blocked on the Phase 1 human-needed gate.
 
 ---
 
@@ -90,7 +90,7 @@ These prerequisites are mapped to their owning tasks but have not executed; `wav
 
 - [x] All 18 tasks have an automated verify; Wave 0 prerequisites are mapped to their creating tasks.
 - [x] Sampling continuity: no three consecutive tasks without automated verification.
-- [x] Wave 0 prerequisite coverage is mapped; execution remains pending (`wave_0_complete: false`).
+- [x] Wave 0 prerequisites executed and passed locally (`wave_0_complete: true`).
 - [x] No watch-mode flags; planned local feedback latency remains under 60 seconds.
 - [x] Task/wave mapping and manual-gate ownership are complete (`nyquist_compliant: true` describes strategy coverage only, not completed execution or sign-off).
 
