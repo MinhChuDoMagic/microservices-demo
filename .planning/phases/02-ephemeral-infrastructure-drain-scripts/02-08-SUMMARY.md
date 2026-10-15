@@ -31,7 +31,9 @@ verification:
     phase_1_status: human_needed
     phase_1_score: 3/5
     live_acceptance: blocked
-    aws_mutation_performed: false
+    aws_mutation_performed: true
+    partial_apply: true
+    credential_status: expired_sso
     lifecycle_or_cluster_operation_performed: false
 duration: multi-session
 completed: 2026-10-14
@@ -58,11 +60,13 @@ Plan 02-08 is **blocked at its human acceptance checkpoint**, not complete. The 
 
 **Blocked.** `.planning/phases/01-account-l0-bootstrap-teardown-harness/01-VERIFICATION.md` records `status: human_needed`, score 3/5. Remaining Phase 1 evidence includes live cost-alert delivery, complete billing-period attribution, and the fork pull-request fallback observation. Phase 1 status was not changed.
 
-No `make up`, `make down`, `make nuke-project`, Cloud Nuke preview/deletion, Terraform plan/apply/destroy, AWS resource mutation, EKS access, temporary AWS fixture, or cluster operation was performed. The only AWS-facing command was the read-only doctor identity/preflight. Temporary kubectl staging and the temporary Homebrew coreutils install were removed after the access gate remained unresolved. Local stub tests do not establish live AWS behavior. Plan 02-07's unproven Cloud Nuke types remain report-only.
+Three `make up` attempts were made with the approved two-entry `/32` allowlist. The first stopped during Terraform planning on an overlong generated IAM role prefix; the second stopped during planning on an invalid EKS module output reference. Neither began apply. The third passed planning and began apply, created multiple AWS resources, then failed because `module.karpenter.aws_iam_policy.controller[0]` exceeded AWS's 6,144-byte policy-size quota. No successful cluster readiness or lifecycle round was reached, and no duration was entered in `COSTS.md`.
+
+The subsequent read-only remote-state listing could not complete because the AWS SSO token expired (`InvalidGrantException`). Exact remaining resources and remote lock status are therefore unknown. No `make down`, `make nuke-project`, Cloud Nuke preview/deletion, Terraform destroy, EKS access, temporary AWS fixture, or cluster operation was performed. Pause here for SSO reauthentication; after that, do a read-only state/resource inventory before changing code or retrying apply. Plan 02-07's unproven Cloud Nuke types remain report-only.
 
 ## Resume Condition
 
-Resume the live checkpoint only after Phase 1's human-needed verification is independently resolved, the project state reflects that resolution, and the live actions are explicitly authorized. Then follow the gated procedure in `02-08-PLAN.md`; record only successful complete lifecycle runs in `COSTS.md`. Do not proceed to application code until the two consecutive verifier-clean round-trips pass.
+Resume after AWS SSO is reauthenticated. First inspect remote Terraform state and AWS inventory read-only to establish what the partial apply created and confirm lock status. Then resolve the oversized Karpenter controller policy and validate locally before any retry. The live actions are authorized with only `113.190.44.94/32` and `101.99.12.77/32`; do not widen the endpoint boundary to accommodate other rotating WARP addresses. Record only successful complete lifecycle runs in `COSTS.md`. Do not proceed to application code until the two consecutive verifier-clean round-trips pass.
 
 ---
 *Phase: 02-ephemeral-infrastructure-drain-scripts*
