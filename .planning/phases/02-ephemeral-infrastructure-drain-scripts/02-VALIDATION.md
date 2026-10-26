@@ -58,7 +58,7 @@ Every planned task is mapped below. Automated commands are planned verifications
 | 02-07-01 | 02-07 | 7 | LIFE-02, LIFE-03 | Recovery wrapper/static contracts | `bats tests/phase2_lifecycle.bats tests/static_contracts.bats` | passed locally (`make test`: 121 tests) |
 | 02-07-02 | 02-07 | 7 | LIFE-02, LIFE-03 | Tagged/untagged controls + no-auto-invocation | `bats tests/phase2_lifecycle.bats tests/static_contracts.bats` | passed locally (`make test`: 121 tests); live scope proof remains partial, deletion disabled |
 | 02-08-01 | 02-08 | 8 | LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02 | Local mutation-free preflight | `bats tests/phase2_lifecycle.bats && make test && make validate && shellcheck sh/*.sh` | passed locally; no AWS lifecycle mutation performed |
-| 02-08-02 | 02-08 | 8 | LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02 | Blocking live acceptance | `bats tests/phase2_lifecycle.bats && make test && make validate` | automated checks passed; M1-M4 pending human acceptance, blocked by Phase 1 gate |
+| 02-08-02 | 02-08 | 8 | LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02 | Blocking live acceptance | `bats tests/phase2_lifecycle.bats && make test && make validate` | automated checks passed; M1-M4 pending human acceptance (Phase 1 gate cleared 2026-10-26) |
 
 `nyquist_compliant: true` records complete plan/task verification coverage only; it does not mean tests ran, Wave 0 completed, or live/manual acceptance passed.
 
@@ -71,7 +71,7 @@ Every planned task is mapped below. Automated commands are planned verifications
 - [x] Recovery tagged/untagged controls: `02-07-02` (Wave 7) adds tagged-target, same-type untagged-control, preview parity, and VPC-exclusion assertions.
 - [x] kubectl compatibility gate: `02-04-01` (Wave 4) pins/checks a client compatible with EKS 1.34 before any drain use.
 
-These prerequisites were executed and passed locally; live acceptance remains separate and blocked on the Phase 1 human-needed gate.
+These prerequisites were executed and passed locally; live acceptance remains separate; the Phase 1 gate was cleared on 2026-10-26.
 
 ---
 
@@ -79,8 +79,8 @@ These prerequisites were executed and passed locally; live acceptance remains se
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| M1: Two consecutive clean, zero-orphan up/down cycles within wall-clock limits; owner `02-08-02` (Wave 8) | LIFE-01, LIFE-02, LIFE-06 | Requires real AWS lifecycle timing and the existing account teardown verifier | Run two complete cycles on an empty cluster; record each successful duration and verifier exit 0 in `COSTS.md`; do not start application code until both pass. **PENDING; blocked until Phase 1 gate passes.** |
-| M2: AWS-confirmed VPC-wide ELBv2 drain while a standalone ALB is removed; owner `02-08-02` (Wave 8) | LIFE-04 | A no-op empty-cluster drain cannot prove the production ELBv2 poll waits for terminal absence | After the Phase 1 gate passes, in the dedicated account and `us-east-1` after `make up`, validate Project/L1 tags and record the L1 VPC, two existing private subnets in distinct AZs, default security group, and ALB ARN. Create an internal ALB using `aws elbv2 create-load-balancer` with those subnets and the default security group, no listener or target group; confirm its ARN/VPC with `describe-load-balancers`. Run the complete `make down` in terminal 1 and confirm the Ingress drain remains blocked while this ALB is visible and Terraform destroy has not started. In terminal 2 delete only the recorded ARN; verify terminal 1 proceeds only after a fresh AWS response shows it absent, then complete all eight teardown stages and the verifier. This proves the VPC-wide ELBv2 poll/terminal-absence contract only, not controller provisioning or Ingress-to-controller events. **PENDING; all live actions remain behind the blocking human gate.** |
+| M1: Two consecutive clean, zero-orphan up/down cycles within wall-clock limits; owner `02-08-02` (Wave 8) | LIFE-01, LIFE-02, LIFE-06 | Requires real AWS lifecycle timing and the existing account teardown verifier | Run two complete cycles on an empty cluster; record each successful duration and verifier exit 0 in `COSTS.md`; do not start application code until both pass. **PENDING; Phase 1 gate cleared 2026-10-26.** |
+| M2: AWS-confirmed VPC-wide ELBv2 drain while a standalone ALB is removed; owner `02-08-02` (Wave 8) | LIFE-04 | A no-op empty-cluster drain cannot prove the production ELBv2 poll waits for terminal absence | In the dedicated account and `us-east-1` after `make up`, validate Project/L1 tags and record the L1 VPC, two existing private subnets in distinct AZs, default security group, and ALB ARN. Create an internal ALB using `aws elbv2 create-load-balancer` with those subnets and the default security group, no listener or target group; confirm its ARN/VPC with `describe-load-balancers`. Run the complete `make down` in terminal 1 and confirm the Ingress drain remains blocked while this ALB is visible and Terraform destroy has not started. In terminal 2 delete only the recorded ARN; verify terminal 1 proceeds only after a fresh AWS response shows it absent, then complete all eight teardown stages and the verifier. This proves the VPC-wide ELBv2 poll/terminal-absence contract only, not controller provisioning or Ingress-to-controller events. **PENDING; live actions remain behind the blocking human acceptance task.** |
 | M3: Recovery command stays within project-tagged resource scope; owner `02-08-02` (Wave 8), with controls from `02-07-02` (Wave 7) | LIFE-03 | Requires a disposable tagged resource and same-type untagged control against the selected recovery tool | Preview both controls; prove only the tagged target is eligible, verify VPC is excluded, and report uncovered resources without widening scope. **PENDING.** |
 | M4: Operator reaches EKS API using approved access path; owner `02-08-02` (Wave 8), with compatibility preflight from `02-04-01` (Wave 4) | LIFE-03, LIFE-04 | Depends on the selected network and identity path, not unit-test stubs | From the normal operator environment, authenticate to the Phase 2 cluster and run the drain preflight without opening the endpoint to `0.0.0.0/0`. **PENDING.** |
 
@@ -94,7 +94,7 @@ These prerequisites were executed and passed locally; live acceptance remains se
 - [x] No watch-mode flags; planned local feedback latency remains under 60 seconds.
 - [x] Task/wave mapping and manual-gate ownership are complete (`nyquist_compliant: true` describes strategy coverage only, not completed execution or sign-off).
 
-**Approval:** pending; automated local validation passed, while live gates M1-M4 remain pending and blocked by Phase 1 `human_needed` status.
+**Approval:** pending; automated local validation passed, while live gates M1-M4 remain pending (Phase 1 gate cleared 2026-10-26).
 
 ## Validation Audit 2026-10-15
 
