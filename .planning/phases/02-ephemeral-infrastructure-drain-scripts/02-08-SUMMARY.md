@@ -17,9 +17,9 @@ key-files:
   created:
     - .planning/phases/02-ephemeral-infrastructure-drain-scripts/02-08-SUMMARY.md
 key-decisions:
-  - "Do not begin Phase 2 live acceptance until Phase 1 status is no longer human_needed and the gate is explicitly cleared."
+  - "Phase 1 remains human_needed; only the explicitly authorized isolated Cloud Nuke fixture proof was performed, not lifecycle acceptance."
   - "Keep all live lifecycle measurements blank; local tests and validation are not AWS acceptance evidence."
-  - "Cloud Nuke resource types remain report-only until tagged/untagged behavior is empirically proven under an authorized live gate."
+  - "Cloud Nuke resource types remain report-only because the isolated proof required an extra marker and did not establish the committed Project-only scope or all cascade behavior."
 verification:
   local:
     - "bats tests/phase2_lifecycle.bats: 48 passed, 0 failed"
@@ -31,9 +31,10 @@ verification:
     phase_1_status: human_needed
     phase_1_score: 3/5
     live_acceptance: blocked
+    cloud_nuke_fixture_proof: partial
     aws_mutation_performed: true
     partial_apply: true
-    credential_status: expired_sso
+    credential_status: reauthenticated
     lifecycle_or_cluster_operation_performed: false
 duration: multi-session
 completed: 2026-10-14
@@ -62,11 +63,38 @@ Plan 02-08 is **blocked at its human acceptance checkpoint**, not complete. The 
 
 Three `make up` attempts were made with the approved two-entry `/32` allowlist. The first stopped during Terraform planning on an overlong generated IAM role prefix; the second stopped during planning on an invalid EKS module output reference. Neither began apply. The third passed planning and began apply, created multiple AWS resources, then failed because `module.karpenter.aws_iam_policy.controller[0]` exceeded AWS's 6,144-byte policy-size quota. No successful cluster readiness or lifecycle round was reached, and no duration was entered in `COSTS.md`.
 
-The subsequent read-only remote-state listing could not complete because the AWS SSO token expired (`InvalidGrantException`). Exact remaining resources and remote lock status are therefore unknown. No `make down`, `make nuke-project`, Cloud Nuke preview/deletion, Terraform destroy, EKS access, temporary AWS fixture, or cluster operation was performed. Pause here for SSO reauthentication; after that, do a read-only state/resource inventory before changing code or retrying apply. Plan 02-07's unproven Cloud Nuke types remain report-only.
+At the time of the initial halt, the read-only remote-state listing could not complete because the AWS SSO token expired (`InvalidGrantException`), leaving the exact resource inventory and lock status unknown. The recovery update below records the subsequent reauthenticated, read-only inspection. Plan 02-07's unproven Cloud Nuke types remain report-only.
 
 ## Resume Condition
 
-Resume after AWS SSO is reauthenticated. First inspect remote Terraform state and AWS inventory read-only to establish what the partial apply created and confirm lock status. Then resolve the oversized Karpenter controller policy and validate locally before any retry. The live actions are authorized with only `113.190.44.94/32` and `101.99.12.77/32`; do not widen the endpoint boundary to accommodate other rotating WARP addresses. Record only successful complete lifecycle runs in `COSTS.md`. Do not proceed to application code until the two consecutive verifier-clean round-trips pass.
+The state and AWS inventory inspection is complete, and the Karpenter policy-size failure has a locally validated fix. Phase 2 live acceptance remains blocked by Phase 1's `human_needed` status and the halted Plan 02-07 dependency. The approved operator CIDRs remain `113.190.44.94/32` and `101.99.12.77/32`; do not widen the endpoint boundary to accommodate rotating WARP egress. Record only successful complete lifecycle runs in `COSTS.md`. Do not proceed to application code until the two consecutive verifier-clean round-trips pass.
+
+## Recovery Update (2026-10-15)
+
+- AWS identity was reauthenticated for account `072842666153` in `us-east-1`.
+- The remote `infra/terraform.tfstate` object is present, Terraform state lists the infrastructure resources, and no `infra/terraform.tfstate.tflock` object is present.
+- The tagged L1 VPC `vpc-0dde207eb624a3151` exists. EKS cluster `microservices-demo` is `ACTIVE` at Kubernetes `1.34`; its system managed node group is `CREATE_FAILED` with `NodeCreationFailure`, while two backing `t4g.medium` instances are still running. The tracked NAT `t4g.nano` instance is also running.
+- `sh/verify-teardown.sh` reports 59 outstanding findings. These include the active cluster, four security groups, six IAM roles, one log group, and three running instances; the account is not clean.
+- Set `enable_inline_policy = true` on the pinned Karpenter module to address its documented managed-policy size limit. The focused Karpenter contract, all 27 `tests/static_contracts.bats` tests, and `terraform -chdir=layers/10-infra validate` pass.
+- At the time of this recovery snapshot, no additional AWS resource mutation, Terraform apply/destroy, lifecycle operation, Cloud Nuke operation, or Kubernetes API operation was performed. No lifecycle timings were added.
+
+## Isolated Cloud Nuke Proof Follow-up (2026-10-15)
+
+- Mutation-free local preflight rerun: `bats tests/phase2_lifecycle.bats` passed 49 tests; `make test` passed 120 tests; `AWS_PROFILE=microservices-demo AWS_REGION=us-east-1 make validate` validated all four Terraform layers and passed formatting/ShellCheck. No AWS lifecycle or Terraform mutation command was run.
+- The user authorized a narrowly scoped disposable EC2 tagged-target/untagged-control test despite Phase 1 remaining `human_needed`. No broader cleanup or lifecycle operation was authorized or run.
+- Checksum-verified Cloud Nuke v0.52.0 used identical preview and execution filters: `--region us-east-1 --resource-type ec2 --newer-than 1h --include-tag 'Project=microservices-demo' --include-tag 'Phase2NukeProof=.+'`. Preview selected exactly `i-08ad82f3e1e6b80b5`; execution deleted only that target (1 found, 1 deleted, 0 failures). Untagged control `i-040ea9890807affbd` remained running and was then terminated by exact ID as test cleanup.
+- Fresh EC2 inspection confirmed both fixtures terminated. The verifier's current `ORPHANS (63)` output lists three running EC2 resources: two EKS node-group instances and the existing NAT instance. It also lists the terminated tagged target ID in its separate `tagged` category. The reported attached EBS volume belongs to NAT; the previously reported fixture volume ID returned `InvalidVolume.NotFound`.
+- The exact repository path `AWS_PROFILE=microservices-demo AWS_REGION=us-east-1 AWS_PAGER='' make nuke-project` passed account/region preflight, made no Cloud Nuke preview/deletion call, and returned exit 1 with 63 findings, including the terminated target ID in the `tagged` category. This is report-only behavior, not clean teardown acceptance.
+- The fixture proof is partial: the extra `Phase2NukeProof` filter kept the live target set isolated, while the committed Project-only EC2 filter matches the existing NAT instance. The two running EKS node-group instances do not show that Project tag in their observed tags. EC2 therefore remains report-only. EKS node group remains `CREATE_FAILED` with `NodeCreationFailure`.
+- No `make up`, `make down`, Terraform apply/destroy, node-group change, or Kubernetes operation was performed; lifecycle measurements remain blank and Phase 2 remains blocked. No verifier findings were cleaned up.
+
+## Authorized Lifecycle Resume Attempt (2026-10-15)
+
+- The user explicitly authorized full Phase 2 live acceptance despite Phase 1 remaining `human_needed`. The existing approved operator CIDRs remain `113.190.44.94/32` and `101.99.12.77/32`; neither was changed.
+- `make doctor` passed when run with the previously checksum-verified kubectl v1.34.12 staged ahead of system kubectl v1.37.0. Account `072842666153`, region `us-east-1`, Terraform v1.16.4, and other doctor inputs passed.
+- The current public egress reported by `checkip.amazonaws.com` was `104.28.222.76`, outside both approved CIDRs. The `make up` preflight therefore cannot pass. No CIDR was widened and no apply or lifecycle command was run.
+- A read-only L1 Terraform plan with only the approved CIDRs returned `6 to add, 0 to change, 1 to destroy`: three managed add-ons, the inline Karpenter controller role policy, the system node group, and a replacement for the tainted NAT Auto Scaling Group. Terraform released the state lock. This is not an apply authorization for an unapproved egress; the NAT replacement and existing `CREATE_FAILED` node group remain pending.
+- Resume condition: run from a trusted operator egress already covered by an approved CIDR, or obtain explicit approval for a stable revised CIDR before any provisioning. Do not use a rotating WARP address as an assumed stable `/32`. Phase 2 remains blocked; no timing or clean-round evidence was added.
 
 ---
 *Phase: 02-ephemeral-infrastructure-drain-scripts*

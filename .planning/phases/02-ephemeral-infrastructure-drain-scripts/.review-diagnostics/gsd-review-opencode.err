@@ -1,0 +1,5 @@
+
+ERROR
+  Unrecognized flag: --variant in command opencode run
+
+[spawn error: EPIPE]

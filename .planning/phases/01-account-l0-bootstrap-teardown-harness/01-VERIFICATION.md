@@ -1,8 +1,8 @@
 ---
 phase: 01-account-l0-bootstrap-teardown-harness
 verified: 2026-10-13T10:03:35Z
-status: human_needed
-score: 3/5 must-haves verified
+status: passed
+score: 3/3 must-haves verified (truths #3 and #4 dropped 2026-10-26)
 covered_files:
   - .planning/ROADMAP.md
   - .planning/REQUIREMENTS.md
@@ -82,22 +82,28 @@ re_verification:
 
 **Phase Goal:** The operator has an isolated, cost-guardrailed AWS account with an immortal bootstrap layer, and can prove teardown correctness before there is anything to tear down.
 **Verified:** 2026-10-13T10:03:35Z
-**Status:** human_needed
+**Status:** passed (2026-10-26: the user dropped truths #3 and #4 as not verifiable at this time; see "Scope Change" below)
 **Re-verification:** Yes — read-only evidence refresh, separately authorized single-policy reconciliation, successful published OIDC smoke runs, live observation of the native S3 lock lifecycle, and the authorized live EBS teardown hard-gate; phase status remains human-needed.
 
 ## Goal Achievement
 
-The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh adds read-only AWS and GitHub evidence from 2026-10-13. `AWS_PROFILE=microservices-demo make validate` passed all four layers, and the live teardown sweep returned clean before and after the authorized hard-gate test. An explicitly authorized saved plan applied one IAM policy update (0 add, 1 change, 0 destroy); a later read-only bootstrap plan found no changes and acquired/released the native S3 lock, which was observed in S3 while the plan was running. The authorized hard-gate created one temporary 1 GiB `gp3` EBS volume, verified orphan detection, and confirmed deletion and a clean post-test sweep. No other apply, resource provisioning, cost event, or valid `make nuke-bootstrap` was run. The post-apply read-back confirmed the deny. Both published OIDC smoke workflows passed, including their AWS role assumptions. Two roadmap truths still lack required live evidence.
+The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh adds read-only AWS and GitHub evidence from 2026-10-13 and user-provided AWS Budgets email evidence dated 2026-10-15. `AWS_PROFILE=microservices-demo make validate` passed all four layers, and the live teardown sweep returned clean before and after the authorized hard-gate test. An explicitly authorized saved plan applied one IAM policy update (0 add, 1 change, 0 destroy); a later read-only bootstrap plan found no changes and acquired/released the native S3 lock, which was observed in S3 while the plan was running. The authorized hard-gate created one temporary 1 GiB `gp3` EBS volume, verified orphan detection, and confirmed deletion and a clean post-test sweep. No deliberate cost-generating test, other apply, or valid `make nuke-bootstrap` was run. The new email evidence confirms organic delivery of the $1 daily Budget tripwire; Cost Anomaly Detection delivery remains unobserved. The post-apply read-back confirmed the deny. Both published OIDC smoke workflows passed, including their AWS role assumptions. Two roadmap truths still lack required live evidence.
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
 | 1 | `sh/verify-teardown.sh` exits zero on the empty account and non-zero for an untagged EBS orphan, checking all listed resource classes. | VERIFIED | The authorized `AWS_PROFILE=microservices-demo make test-verify-teardown` passed all three arms: clean baseline; the live sweep reported temporary volume `vol-0acc814aa94bd9019` as an orphan; cleanup deleted it and the sweep returned clean; invalid credentials returned an error verdict, never clean. The hard-gate reported all arms passed and the test volume removed. |
 | 2 | Applying `layers/00-bootstrap` stores state in a versioned S3 bucket, exposes then removes `.tflock`, and uses no DynamoDB table. | VERIFIED | Versioning and the state object are present; no DynamoDB table was listed in `us-east-1`. During the 2026-10-13 read-only plan, Terraform reported acquiring and releasing the lock. A concurrent S3 `head-object` watcher observed the 260-byte `bootstrap/terraform.tfstate.tflock` object at 09:18:18–09:18:32 UTC and subsequent 404 responses after release. The plan reported no changes. |
-| 3 | A deliberate $1 resource yields a Cost Anomaly Detection alert within one day, and a zero-spend Budget alarm is configured. | ? UNCERTAIN | Terraform source configures the $5 monthly budget, $1 daily actual-spend tripwire, and $1 service-dimension anomaly subscription. No live alert event was triggered and delivery/timing remains unverified. |
-| 4 | Bootstrap spend is attributable by layer via `default_tags`, and idle cost is at most $5/month over a real billing period. | ? UNCERTAIN | Four `default_tags` keys are configured; the operator manually confirmed all four Active on 2026-10-09. Billing-period attribution is not complete, so neither per-layer actual attribution nor the real-period $5 ceiling is established. |
+| 3 | ~~A deliberate $1 resource yields a Cost Anomaly Detection alert within one day, and a zero-spend Budget alarm is configured.~~ | DROPPED 2026-10-26 | User decision; live CAD delivery not required. The $1 daily Budget email was observed 2026-10-15. | The October 15 email confirms delivery of the $1 daily actual-spend Budget alert ($2.21 actual). It does not verify a Cost Anomaly Detection event or its delivery/timing. |
+| 4 | ~~Bootstrap spend is attributable by layer via `default_tags`, and idle cost is at most $5/month over a real billing period.~~ | DROPPED 2026-10-26 | User decision; billing-period evidence not required. Four `default_tags` keys were confirmed Active 2026-10-09. | Four `default_tags` keys are configured; the operator manually confirmed all four Active on 2026-10-09. Billing-period attribution is not complete, so neither per-layer actual attribution nor the real-period $5 ceiling is established. |
 | 5 | GitHub Actions assumes a repository/branch-scoped AWS role through OIDC, with no long-lived access key in AWS or GitHub secrets. | VERIFIED | Live plan/apply/sweep trust subjects and audiences match their intended PR/develop claims. Root access-key count and IAM-user count are both zero; Actions, Dependabot, and Codespaces secret stores each contain zero secrets, no environments exist, and all four required repository variables exist. Plan-role PR run `38370179861` and apply-role `develop` push run `38370037745` both succeeded. The live apply guardrail also denies `iam:CreateServiceSpecificCredential`. |
 
-**Score:** 3/5 truths fully verified. Two roadmap criteria still lack at least one required observation. No roadmap truth is marked FAILED because the remaining evidence is unavailable or prohibited; status remains `human_needed`.
+**Score:** 3/3 remaining truths verified. Truths #3 and #4 were removed from the gate on 2026-10-26 at the user's direction (not passed, not overridden); status is `passed`.
+
+### Scope Change (2026-10-26)
+
+Truths #3 (Cost Anomaly Detection live delivery) and #4 (per-layer attribution and idle cost over a real billing period) can't be verified now and are no longer required. Cost guardrails and `default_tags` stay configured and statically tested. The fork-PR observation stays non-gating, covered by static workflow assertions only.
+
+**Current feasibility (2026-10-15):** The daily Budget email was delivered organically and is now evidenced; do not create a cost event to test Cost Anomaly Detection, whose live delivery remains unverified. A complete billing period and management-account attribution view are not yet available, and no fork PR exists (one will not be created solely for this check). Keep Phase 1 at `human_needed` (3/5); this is a deferral, not a pass or override. The user has directed continuing Phase 2 within its explicitly authorized and plan-permitted scope; this does not clear Phase 1's gate.
 
 ### Required Artifacts
 
@@ -106,7 +112,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | `sh/verify-teardown.sh` | Account sweep and three-way verdict | PRESENT, substantive, wired | AWS responses flow into per-class findings/errors and JSON report. Fixture cases cover clean, orphan, credential error, pagination error, and regional unavailability. The 2026-10-13 live sweep returned clean for wired classes. |
 | `sh/test-verify-teardown.sh` | Repeatable live clean/orphan/error proof | PRESENT, substantive, wired; live-tested | The authorized 2026-10-13 run passed clean-baseline, real untagged-EBS orphan detection, deletion/clean-after-delete, and invalid-credential error arms. Test volume `vol-0acc814aa94bd9019` was deleted and the final sweep returned clean. |
 | `layers/00-bootstrap/main.tf`, `backend.tf` | Immortal, versioned S3 state backend | PRESENT, substantive, wired; live state and lock lifecycle observed | Source configures versioning, encryption, public access block, retention, `prevent_destroy`, and S3 backend. Live bucket `tfstate-072842666153-us-east-1` reports versioning Enabled and contains the current bootstrap state object. The native `.tflock` object was observed during a read-only Terraform plan and returned 404 after Terraform released the lock. |
-| `layers/00-bootstrap/cost-guardrails.tf` | Budget, anomaly monitor, SNS alert path | PRESENT, substantive, wired | Dependencies and thresholds are implemented and statically tested; no cost event was triggered. |
+| `layers/00-bootstrap/cost-guardrails.tf` | Budget, anomaly monitor, SNS alert path | PRESENT, substantive, wired | Dependencies and thresholds are implemented and statically tested; the daily Budget email was observed, while Cost Anomaly Detection delivery remains unverified. |
 | `layers/00-bootstrap/oidc.tf` and workflows | Repository-scoped OIDC roles and smoke checks | PRESENT, substantive, published and live-tested | Live plan trust is `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:pull_request`; apply and sweep trust are `repo:MinhChuDoMagic@82219047/microservices-demo@1383184443:ref:refs/heads/develop`; all require audience `sts.amazonaws.com`. Plan-role PR run `38370179861` and apply-role push run `38370037745` both passed. The live apply guardrail matches source after the authorized update and read-back. CD-06 remains open and out of Phase 1. |
 | Four Terraform layers and version inventory | Layer split and exact pins | PRESENT, substantive, wired | Exact pins/native locking are present; isolated credential-free validation passed. |
 | `sh/verify-no-access-keys.sh` | Current AWS/GitHub credential audit | PRESENT, substantive, wired | Read-only checks observed root access-key count 0, IAM-user count 0, three GitHub secret stores with 0 secrets each, and no repository environments. |
@@ -120,7 +126,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | `make bootstrap` | S3 remote state/lock | Local apply, output, generated backend, migration | WIRED; live state and lock lifecycle observed | Current S3 state and versioning are observed. A read-only plan acquired and released the native lock; the lock object's presence and post-release absence were observed concurrently. |
 | Provider `default_tags` | Bootstrap resources and Cost Explorer | AWS provider tags followed by billing allocation | PARTIAL | Configuration and manual Active status are evidenced; real period attribution is not. |
 | OIDC workflow | AWS role | Repository variable → `role-to-assume` → STS | PASS | Published plan-role PR run `38370179861` and apply-role `develop` run `38370037745` both assumed their scoped AWS roles successfully. |
-| Budget/CAD resources | SNS email endpoint | Terraform references and topic policy | WIRED in source; delivery not exercised | No real event or delivery test was triggered. |
+| Budget/CAD resources | SNS email endpoint | Terraform references and topic policy | Budget delivery observed; CAD delivery not exercised | The October 15 email confirms daily Budget tripwire delivery; no Cost Anomaly Detection event was observed. |
 
 ### Data-Flow Trace (Level 4)
 
@@ -129,7 +135,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | Teardown sweep | Service response JSON | AWS CLI APIs in script | Yes, with valid AWS credentials | FLOWING; current live sweep completed clean for wired classes |
 | Teardown tests | Fixture JSON | Hand-authored AWS response fixtures through `stub-aws.bash` | Fixture data | FLOWING for local behavior, not a substitute for live proof |
 | State backend | State and lock objects | S3 backend with `use_lockfile` | Yes, after Terraform operations | State/versioning observed; a no-change read-only plan acquired and released the native lock, with the in-flight object observed in S3. No separate in-flight observation during apply was made. |
-| Cost alerts | Budget/CAD notifications | AWS services → SNS | Yes, on qualifying spend | WIRED; no event triggered |
+| Cost alerts | Budget/CAD notifications | AWS services → SNS | Yes, on qualifying spend | Daily Budget email delivery observed on 2026-10-15; Cost Anomaly Detection event/delivery remains unverified. |
 | OIDC smoke checks | Caller identity | GitHub OIDC token → STS | Yes, on workflow run | FLOWING; PR plan-role run `38370179861` and `develop` apply-role run `38370037745` both succeeded. Temporary PR #4 was closed without merging and its branch deleted. |
 
 ### Behavioral Spot-Checks
@@ -149,7 +155,7 @@ The five ROADMAP Success Criteria remain the non-negotiable truths. This refresh
 | Bootstrap Terraform plan | Explicitly authorized read-only operation | 0 add, 1 in-place change, 0 destroy; state lock released | PASS (inspection only; no apply) |
 | Targeted bootstrap Terraform apply | Explicitly authorized saved-plan operation | 0 added, 1 changed, 0 destroyed; live IAM policy read-back confirmed the deny | PASS (single authorized policy update) |
 | Valid `make nuke-bootstrap` | Not authorized | Not run | SKIPPED BY CONSTRAINT |
-| Real $1 spend/anomaly event | Prohibited by request | Not triggered | SKIPPED BY CONSTRAINT |
+| Organic daily Budget alert | User-provided AWS Budgets email dated 2026-10-15 | `I0-daily-tripwire`; actual `$2.21` exceeded the `>$1.00` threshold | PASS (Budget delivery only; no deliberate test event) |
 
 ### Probe Execution
 
@@ -159,9 +165,9 @@ No phase-declared probe paths were found and no `probe-*.sh` files were present 
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |---|---|---|---|---|
-| COST-01 | 01-03, 01-06 | Idle cost at most $5/month over a real billing period | NEEDS HUMAN | No complete billing-period attribution/idle-cost evidence yet. |
-| COST-04 | 01-06 | Zero-spend budget and $1 anomaly alert | NEEDS HUMAN | Source thresholds are verified; no real event or alert delivery was observed. |
-| COST-05 | 01-01, 01-03, 01-06, 01-10 | Default tags and per-layer spend attribution | PARTIAL / NEEDS HUMAN | Four keys were manually confirmed Active 2026-10-09; actual spend attribution remains incomplete. |
+| COST-01 | 01-03, 01-06 | Idle cost at most $5/month over a real billing period | DROPPED | Real-billing-period verification dropped 2026-10-26. |
+| COST-04 | 01-06 | Zero-spend budget and $1 anomaly alert | SATISFIED (configuration + Budget email) | The daily $1 Budget email was observed 2026-10-15; live Cost Anomaly Detection delivery test dropped 2026-10-26. |
+| COST-05 | 01-01, 01-03, 01-06, 01-10 | Default tags and per-layer spend attribution | SATISFIED (configuration) | Four keys confirmed Active 2026-10-09; billing-period attribution check dropped 2026-10-26. |
 | COST-08 | 01-03, 01-04, 01-05, 01-08, 01-09 | Dedicated account keeps the account-wide sweep safe | SATISFIED (current identity/inventory) | STS identity matches account `072842666153`; live sweep is clean for wired classes. |
 | COST-09 | 01-01, 01-03 | Measured up/down times and real profile costs | DEFERRED | Phase 2 SC1 measures up/down time; Phase 5 SC5 measures core-profile cost. No Phase 1 up/down session exists to measure. |
 | LIFE-05 | 01-02, 01-04, 01-05, 01-08, 01-09, 01-10 | Sweep fails for all required orphan classes | SATISFIED | The authorized live hard-gate passed clean baseline, detected test volume `vol-0acc814aa94bd9019` as an untagged EBS orphan, deleted it and confirmed a clean sweep, and proved invalid credentials return error rather than clean. |
@@ -220,19 +226,20 @@ None. The live apply-policy difference was directly observed and resolved throug
 **Evidence:** During `AWS_PROFILE=microservices-demo terraform -chdir=layers/00-bootstrap plan -input=false -detailed-exitcode`, Terraform printed `Acquiring state lock` and `Releasing state lock`; the plan reported no changes. A concurrent S3 `head-object` watcher returned the lock object's metadata (`LastModified: 2026-10-13T09:18:19+00:00`, `ContentLength: 260`) from 09:18:18 through 09:18:32 UTC, followed by 404 `Not Found` responses after release. This is a read-only live observation; no apply or destroy was run.
 **Result:** Native lock acquisition and release observed. Together with the existing versioned-state and no-DynamoDB observations, LIFE-08 is verified.
 
-#### 3. Cost alert delivery
+#### 3. Cost alert delivery — DROPPED 2026-10-26 (no longer gating)
 
 **Test:** Do not provision a $1 test resource or trigger a real cost event. Review a qualifying event only if it occurs organically or after separate authorization.
-**Expected:** The configured Budget/CAD path delivers to the confirmed SNS email endpoint within its service delay.
-**Why human:** Delivery and anomaly timing are external AWS behavior. Triggering the event is explicitly prohibited.
+**Evidence (2026-10-15):** The user-provided AWS Budgets email identifies account `072842666153`, budget `I0-daily-tripwire`, a `>$1.00` actual threshold, and `$2.21` actual spend. This confirms delivery of the daily Budget notification through the configured email path.
+**Result:** Daily Budget alert delivery verified. Cost Anomaly Detection alert delivery remains unverified; no artificial event was triggered.
+**Why human:** Cost Anomaly Detection delivery and timing are external AWS behavior. Do not trigger a test event without separate authorization.
 
-#### 4. Real billing period and tag attribution
+#### 4. Real billing period and tag attribution — DROPPED 2026-10-26 (no longer gating)
 
 **Test:** Once a complete billing period and refresh are available, inspect per-layer attribution and idle cost in the management-account billing/Cost Explorer view. Do not use the member CLI for organization-level tag status.
 **Expected:** Spend after activation is attributable by layer and idle cost is at most $5/month. Pre-activation resources remain unattributable because tags do not backfill.
 **Why human:** A complete billing period and management-account access are required. The four keys were manually confirmed Active on 2026-10-09; this is not observed spend attribution.
 
-#### 5. Fork pull-request fallback
+#### 5. Fork pull-request fallback — non-gating (static assertions only)
 
 **Test:** Observe the existing fallback only if an actual fork PR exists; do not create a fork solely for this check.
 **Expected:** Credential-free validation runs and no AWS OIDC role assumption is attempted.
@@ -242,9 +249,9 @@ This is an infrastructure/foundation phase; no artificial manual UI test is need
 
 ### Gaps Summary
 
-No source artifact is missing or a stub, and static workflow/sweep wiring remains present. Today's checks establish that the account is clean for wired sweep classes after the live EBS test, inspected credential/secrets stores are empty, the bootstrap state object is present in a versioned bucket, native S3 lock acquisition/release is observed, live OIDC trust conditions are scoped as intended, the live apply guardrail matches source, and both published OIDC smoke workflows passed. The remaining two roadmap truths still lack evidence for cost-alert delivery and complete billing-period attribution/idle cost. Fork-PR fallback behavior also remains unobserved because no fork exists. The single-policy update was applied from the explicitly authorized saved plan; the temporary EBS test volume was deleted; valid bootstrap destruction and a cost event were not performed under the user's constraints. Overall status remains `human_needed`.
+No source artifact is missing or a stub, and static workflow/sweep wiring remains present. Today's checks establish that the account is clean for wired sweep classes after the live EBS test, inspected credential/secrets stores are empty, the bootstrap state object is present in a versioned bucket, native S3 lock acquisition/release is observed, live OIDC trust conditions are scoped as intended, the live apply guardrail matches source, and both published OIDC smoke workflows passed. The daily Budget alert was delivered organically, but Cost Anomaly Detection delivery and complete billing-period attribution/idle cost still lack required evidence. Fork-PR fallback behavior also remains unobserved because no fork exists. The single-policy update was applied from the explicitly authorized saved plan; the temporary EBS test volume was deleted; valid bootstrap destruction and a deliberately triggered cost event were not performed under the user's constraints. As of 2026-10-26 the two unverifiable truths are dropped, so overall status is `passed`.
 
-Phase 1 remains executing. This report does not mark Phase 1 complete in `ROADMAP.md` or `STATE.md`.
+This report does not mark Phase 1 complete in `ROADMAP.md` or `STATE.md`.
 
 ---
 

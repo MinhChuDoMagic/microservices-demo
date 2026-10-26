@@ -60,8 +60,8 @@ order). Two deviations are documented in "Deviations from Research" below.
 
   1. Operator can run `sh/verify-teardown.sh` against the empty account and see it exit zero, and can make it exit non-zero by manually creating a single untagged EBS volume — proving the sweep actually checks ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
   2. Operator can apply `layers/00-bootstrap` and see Terraform state land in a versioned S3 bucket with a `<key>.tflock` object appearing during apply and disappearing after — with no DynamoDB table anywhere
-  3. Operator can deliberately provision a $1 resource and receive a Cost Anomaly Detection alert within one day, and see a zero-spend Budget alarm configured
-  4. Operator can attribute every bootstrap resource's spend by layer in Cost Explorer via `default_tags`, and confirm idle cost sits at or below $5/month against a real billing period
+  3. ~~Operator can deliberately provision a $1 resource and receive a Cost Anomaly Detection alert within one day~~ *(dropped 2026-10-26: live delivery not required)* — a zero-spend Budget alarm and the anomaly monitor are configured
+  4. ~~Operator can attribute every bootstrap resource's spend by layer in Cost Explorer and confirm idle cost at or below $5/month against a real billing period~~ *(dropped 2026-10-26: billing-period evidence not required)* — `default_tags` are configured
   5. GitHub Actions can assume an AWS role via OIDC with a trust policy scoped to this repository and branch, and no long-lived access key exists anywhere in the account or in GitHub secrets
 
 **Plans**: 10/10 plans executed

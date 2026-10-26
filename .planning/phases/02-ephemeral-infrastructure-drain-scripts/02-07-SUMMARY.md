@@ -21,7 +21,7 @@ commits: 3
 plan_head_before: cbfbb05d0f355f619f2f09410adbf369351f87b8
 
 tech-stack:
-  added: [Cloud Nuke v0.52.0 release pin; not installed or invoked]
+  added: [Cloud Nuke v0.52.0 release pin; checksum-verified binary staged and used for isolated live proof]
   patterns: [fixed account/region preflight, shared preview/execution scope arguments, empty fail-closed deletion allowlist]
 
 key-files:
@@ -29,7 +29,7 @@ key-files:
   modified: [Makefile, VERSIONS.md, tests/phase2_lifecycle.bats, tests/static_contracts.bats]
 
 key-decisions:
-  - "Keep all Cloud Nuke types report-only until disposable tagged-target, same-type untagged-control, and cascade behavior are empirically verified."
+  - "Keep all Cloud Nuke types report-only: the isolated EC2 test used an extra unique marker, did not validate the committed Project-only wrapper scope, and did not establish every cascade behavior."
 
 requirements-completed: []
 coverage:
@@ -46,10 +46,10 @@ coverage:
     requirement: LIFE-03
     verification:
       - kind: manual_procedural
-        ref: "Phase 2 Validation M3; not run because the Phase 1 human approval gate is uncleared"
-        status: unknown
+        ref: "Authorized isolated EC2 fixture test; unique marker added to Project tag filter"
+        status: partial
     human_judgment: true
-    rationale: "Mocks and local contracts do not prove Cloud Nuke's real AWS target selection or cascade behavior."
+    rationale: "Real Cloud Nuke selected and deleted one tagged EC2 fixture while preserving an untagged control, but the committed Project-only scope would also select live infrastructure and the full filter/cascade acceptance is not established."
 
 duration: not-measured
 completed: 2026-10-14
@@ -58,7 +58,7 @@ status: halted
 
 # Phase 02-07: Scoped Project Recovery Summary
 
-**A separate Cloud Nuke v0.52.0 recovery entry point is pinned and report-only; no resource type can delete until live scope proof passes.**
+**A separate Cloud Nuke v0.52.0 recovery entry point is pinned and report-only; an isolated EC2 filter proof passed, but no resource type is enabled for deletion.**
 
 ## Performance
 
@@ -94,7 +94,7 @@ No plan metadata commit is included here; the user prohibited STATE/ROADMAP upda
 
 ## Official Source Facts
 
-- The official GitHub release is `v0.52.0`, published 2026-06-13. Its `cloud-nuke_darwin_arm64` asset reports SHA-256 `366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d`; this matches the release asset metadata.
+- The official GitHub release is `v0.52.0`, published 2026-06-13. Its `cloud-nuke_darwin_arm64` asset reports SHA-256 `366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d`; this matches the release asset metadata. The checksum-verified binary was staged outside the repository for the isolated proof.
 - The v0.52.0 CLI guide documents `cloud-nuke aws --dry-run` for preview and `--force` to skip confirmation. `--region`, `--resource-type`, and `--config` are accepted by `aws`; `inspect-aws` does not accept `--config`, so using `aws --dry-run` preserves the same config scope for preview and execution.
 - The configuration guide documents per-resource `include.tags`; tag keys are case-sensitive and tag values are lowercased before regex matching. The `ec2` resource type is listed in the release's supported-resources matrix.
 - The CLI guide documents VPC cleanup of dependent ENIs, VPC endpoints, subnets, route tables, network ACLs, and security groups. VPC is excluded.
@@ -122,11 +122,20 @@ None. The plan's empirical safety rule and the user's live-operations gate requi
 - `make test`: passed, 118 fixture/local-stub tests, including verifier tests that report unallowlisted orphan resources.
 - `shellcheck sh/*.sh`: passed.
 - `bash -n sh/nuke-project.sh` and contract-only scope JSON assertions: passed.
-- No Cloud Nuke preview, AWS resource mutation, disposable resource creation, real `make nuke-project`, `make down`, `make up`, or Terraform apply/destroy was run.
+- Before the follow-up proof, no Cloud Nuke preview, AWS resource mutation, disposable resource creation, real `make nuke-project`, `make down`, `make up`, or Terraform apply/destroy was run.
+
+## Authorized Isolated EC2 Proof (2026-10-15)
+
+- Used checksum-verified Cloud Nuke v0.52.0 (`366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d`) with `--region us-east-1 --resource-type ec2 --newer-than 1h --include-tag 'Project=microservices-demo' --include-tag 'Phase2NukeProof=.+'` for both preview and execution.
+- Preview listed exactly one disposable tagged target, `i-08ad82f3e1e6b80b5`; execution found one, deleted one, and reported zero failures. The untagged control, `i-040ea9890807affbd`, remained running after target deletion, then was terminated separately by exact ID as fixture cleanup.
+- A fresh EC2 query confirmed both fixture instances terminated. The verifier still lists the tagged target ID in its `tagged` findings despite its terminated state; it is not among the three running EC2 findings. The reported attached EBS volume belongs to the pre-existing NAT instance, and the previously reported fixture volume ID returned `InvalidVolume.NotFound`.
+- This proves the real CLI's EC2 tag selection with the unique marker and untagged control. It does **not** prove the repository's Project-only configuration is safe: the live NAT instance carries `Project=microservices-demo` and would be selected by that config. The two running EKS node-group instances do not show that Project tag in their observed tags. The proof also does not establish all EC2 cascade behavior. EC2 remains report-only and `DELETABLE_RESOURCE_TYPES` remains empty.
+- Ran `AWS_PROFILE=microservices-demo AWS_REGION=us-east-1 AWS_PAGER='' make nuke-project`. The wrapper passed account/region preflight, stated it would invoke no Cloud Nuke preview or deletion, then returned verifier exit 1 for 63 findings; the tagged target's terminated instance ID is still listed in the verifier's `tagged` category. No broader infrastructure was changed.
+- The EKS node group remains `CREATE_FAILED` (`NodeCreationFailure`). No `make up`, `make down`, Terraform apply/destroy, or cluster operation was run.
 
 ## Remaining Human-Gated Proof
 
-The Phase 1 human approval is not cleared. Therefore no Cloud Nuke resource type is deletable and M3 remains unresolved. After the gate clears and explicit live testing is authorized, test each proposed type against a disposable Project-tagged target and same-type untagged control, inspect cascade behavior, verify VPC remains excluded, and only then consider adding a type to the deletion allowlist. Local stubs/contracts establish argument construction only; they are not empirical proof. Until then, run the existing verifier for uncovered-resource reports and handle findings explicitly.
+Phase 1 remains `human_needed`; the user authorized only the isolated EC2 fixture test recorded above. No Cloud Nuke type is deletable and M3 remains unresolved. To enable a type, first establish that the committed Project-only configuration selects only intended disposable targets and same-type untagged controls remain excluded, then inspect cascade behavior and verify VPC remains excluded. The current Project-only EC2 filter would include the live NAT instance, so widening the deletion allowlist is unsafe. Local stubs/contracts establish argument construction only; they are not empirical proof. Until the scope is safe, run the existing verifier for uncovered-resource reports and handle findings explicitly.
 
 `LIFE-02` and `LIFE-03` are not marked complete by this summary.
 
