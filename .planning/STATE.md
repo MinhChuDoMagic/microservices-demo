@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: Practice Platform
 current_phase: 02
 current_phase_name: Ephemeral Infrastructure & Drain Scripts
-status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-10-15T03:31:22.148Z"
-last_activity: 2026-10-14
-last_activity_desc: Phase 02 execution started
-state_head: 152eb72d2ea912296b3b1cfc924bbbc07a5b06d8
+status: planning
+stopped_at: Phase 3 context gathered
+last_updated: "2026-10-27T07:12:14.354Z"
+last_activity: 2026-10-27
+last_activity_desc: Phase 1 complete, transitioned to Phase 02
+state_head: aeda0984f83984ab91fb524e42a702d89f2588c8
 progress:
   total_phases: 14
-  completed_phases: 0
+  completed_phases: 2
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -28,24 +28,25 @@ See: .planning/PROJECT.md (updated 2026-09-24)
 
 ## Current Position
 
-Phase: 02 (Ephemeral Infrastructure & Drain Scripts) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 02
-Last activity: 2026-10-14 — Phase 02 execution started
+Phase: 02 — Ephemeral Infrastructure & Drain Scripts
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-27 — Phase 1 complete, transitioned to Phase 02
 
-Progress: 100%
+Progress: [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
 **Velocity:**
 
- Total plans completed: 10
+ Total plans completed: 18
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 2 | 8 | - | - |
+| 1 | 10 | - | - |
 
 **Recent Trend:**
 
@@ -76,7 +77,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [Roadmap]: Teardown harness precedes all provisioning — `verify-teardown.sh` is the Phase 1 deliverable, written before there is anything to tear down
-- [Roadmap]: Hard gate at Phase 2 — two consecutive zero-orphan `make up`/`make down` round-trips on an empty cluster before any application code
+- [Roadmap]: Hard gate at Phase 2 — one zero-orphan `make up`/`make down` round-trip on an empty cluster before any application code (reduced from two on 2026-10-26)
 - [Roadmap]: Minimal Prometheus + Tempo land in Phase 5, before the second service — a distributed saga cannot be debugged without traces
 - [Roadmap]: Security and policy deliberately late (Phase 10) — added early, every bug looks like a policy bug
 - [Roadmap]: `catalog` and `cart` placed in Phase 11, closing a coverage gap in the research build order (they were never explicitly placed, yet Phase 12's canary presupposes `catalog`)
@@ -122,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-14T03:13:43.703Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-ephemeral-infrastructure-drain-scripts/02-CONTEXT.md
+Last session: 2026-10-27T07:12:14.272Z
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/03-service-scaffolding-ci-pipeline/03-CONTEXT.md
