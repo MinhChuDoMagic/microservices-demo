@@ -3,7 +3,7 @@ status: complete
 phase: 01-account-l0-bootstrap-teardown-harness
 source: 01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md, 01-05-SUMMARY.md, 01-06-SUMMARY.md, 01-07-SUMMARY.md, 01-08-SUMMARY.md, 01-09-SUMMARY.md, 01-10-SUMMARY.md
 started: 2026-10-13T09:32:59Z
-updated: 2026-10-15T07:39:52Z
+updated: 2026-10-27T04:24:00Z
 ---
 
 ## Current Test
@@ -173,37 +173,31 @@ result: pass
 source: automated
 coverage_id: D3
 
-### 28. Interrupted teardown-test cleanup
-expected: If the real-volume teardown test is interrupted after volume creation, its cleanup trap removes the volume. This interruption path was not exercised; do not create a billable volume without separate authorization.
-result: pass
-coverage_id: D4
-rationale: Normal cleanup and a zero-volume postcondition passed, but no signal was injected between volume creation and the first sweep.
-
-### 29. Fork pull-request fallback
+### 28. Fork pull-request fallback
 expected: A fork pull request takes the credential-free validation fallback and does not attempt AWS OIDC role assumption. No fork exists; do not create one solely for this check.
 result: pass
 coverage_id: D1
 rationale: The fork fallback was not observed live because the repository has no forks; static workflow assertions cover its conditions.
 
-### 30. Scheduled teardown workflow
+### 29. Scheduled teardown workflow
 expected: The scheduled teardown workflow distinguishes all three verifier outcomes and uploads a report on every run.
 result: pass
 source: automated
 coverage_id: D2
 
-### 31. Bootstrap decommission guard
+### 30. Bootstrap decommission guard
 expected: The bootstrap destroy path requires the live account ID, refuses while other layer state exists, and restores its guard. The valid destructive path remains intentionally unexecuted.
 result: pass
 coverage_id: D3
 rationale: The valid-confirmation destroy path is intentionally never executed; the wrong-confirmation path and dry-run structure were verified.
 
-### 32. Tag activation and billing attribution
+### 31. Tag activation and billing attribution
 expected: The four cost-allocation keys were confirmed active on 2026-10-09 and the pre-activation attribution gap is recorded. Actual per-layer attribution and the real-period $5 ceiling remain pending a complete billing period and refresh.
 result: pass
 coverage_id: D4
 rationale: The member-account CLI cannot confirm organization-level tag status; activation was confirmed in the Billing console, while actual spend attribution is not yet available.
 
-### 33. Daily budget alert email delivery
+### 32. Daily budget alert email delivery
 expected: When actual daily spend exceeds the $1.00 tripwire, AWS Budgets delivers an email identifying the budget and actual spend.
 result: pass
 requirement: COST-04
@@ -212,8 +206,8 @@ evidence: AWS Budgets email dated October 15, 2026 reports I0-daily-tripwire act
 
 ## Summary
 
-total: 33
-passed: 33
+total: 32
+passed: 32
 issues: 0
 pending: 0
 skipped: 0

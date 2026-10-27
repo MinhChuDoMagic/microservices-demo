@@ -164,6 +164,10 @@ for ADDON in vpc-cni kube-proxy coredns eks-pod-identity-agent; do
   fi
 done
 
+if ! aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}" >/dev/null; then
+  fail 1 'kubeconfig setup' 'aws eks update-kubeconfig failed.' 'Without it make down drains cannot reach the Kubernetes API; run the command from layers/10-infra/README.md, then rerun make up.'
+fi
+
 ELAPSED_SECONDS=$((SECONDS - STARTED_SECONDS))
 printf 'make up complete: cluster %s and its system node group and four required add-ons are healthy (%ss).\n' \
   "$CLUSTER_NAME" "$ELAPSED_SECONDS"

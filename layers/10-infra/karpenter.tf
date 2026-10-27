@@ -1,11 +1,12 @@
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "21.26.0"
+  version = "21.29.0"
 
   cluster_name = module.eks.cluster_name
   region       = var.region
 
   create_iam_role                        = true
+  enable_inline_policy                   = true
   create_pod_identity_association        = true
   create_node_iam_role                   = true
   create_access_entry                    = true

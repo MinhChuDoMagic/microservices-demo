@@ -92,7 +92,7 @@ capability manifest, which may be third-party — and `gates[].check` is **not**
 executable surfaces the install consent prompt discloses (`hooks`, command modules,
 `mcpServers`, reviewer lanes), so a capability can be consented to as declarative-only and
 still reach a shell through a gate. Check the query value you read from `activeHooks` against
-`^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)*$` yourself, IN-CONTEXT — **never** by pasting it into a
+`^[a-z][a-z0-9.-]*( [a-z][a-z0-9.-]*)*$` yourself, IN-CONTEXT — **never** by pasting it into a
 shell command to be tested there, because a value carrying a quote, `;`, a `` ` ``, `$(`, or a
 newline would terminate the assignment and run as its own statement before any shell-side
 check could execute. A value that fails is a malformed manifest: record a warning, route it

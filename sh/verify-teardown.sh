@@ -785,6 +785,69 @@ check_s3_buckets() {
   done < <(jq -c '(if type == "array" then .[] else .Buckets[]? end)' <<< "$response")
 }
 
+# The tagging index lags deletions; skip an ARN only when its service API positively reports it gone.
+tagged_arn_confirmed_gone() {
+  local arn="$1"
+  local region="$2"
+  local arn_region
+  local service
+  local resource
+  local rtype
+  local rid
+  local output
+
+  arn_region="$(cut -d: -f4 <<< "$arn")"
+  [[ -n "$arn_region" ]] || arn_region="$region"
+  service="$(cut -d: -f3 <<< "$arn")"
+  resource="$(cut -d: -f6- <<< "$arn")"
+  rtype="${resource%%/*}"
+  rid="${resource#*/}"
+
+  case "${service}:${rtype}" in
+    ec2:instance)
+      output="$(aws ec2 describe-instances --region "$arn_region" --instance-ids "$rid" \
+        --query 'Reservations[].Instances[].State.Name' --output text 2>&1)" \
+        && { [[ -z "$output" || "$output" == terminated ]] && return 0; return 1; }
+      ;;
+    ec2:volume)
+      output="$(aws ec2 describe-volumes --region "$arn_region" --volume-ids "$rid" --output text 2>&1)" \
+        && return 1
+      ;;
+    ec2:network-interface)
+      output="$(aws ec2 describe-network-interfaces --region "$arn_region" --network-interface-ids "$rid" --output text 2>&1)" \
+        && return 1
+      ;;
+    ec2:security-group)
+      output="$(aws ec2 describe-security-groups --region "$arn_region" --group-ids "$rid" --output text 2>&1)" \
+        && return 1
+      ;;
+    ec2:vpc-endpoint)
+      output="$(aws ec2 describe-vpc-endpoints --region "$arn_region" --vpc-endpoint-ids "$rid" \
+        --query 'VpcEndpoints[].State' --output text 2>&1)" \
+        && { [[ -z "$output" || "$output" == Deleted ]] && return 0; return 1; }
+      ;;
+    ec2:vpc)
+      output="$(aws ec2 describe-vpcs --region "$arn_region" --vpc-ids "$rid" --output text 2>&1)" \
+        && return 1
+      ;;
+    ec2:subnet)
+      output="$(aws ec2 describe-subnets --region "$arn_region" --subnet-ids "$rid" --output text 2>&1)" \
+        && return 1
+      ;;
+    eks:cluster)
+      output="$(aws eks describe-cluster --region "$arn_region" --name "$rid" --output text 2>&1)" \
+        && return 1
+      ;;
+    eks:podidentityassociation)
+      output="$(aws eks describe-pod-identity-association --region "$arn_region" \
+        --cluster-name "${rid%%/*}" --association-id "${rid#*/}" --output text 2>&1)" \
+        && return 1
+      ;;
+    *) return 1 ;;
+  esac
+  [[ "$output" == *NotFound* ]]
+}
+
 tag_layer_scan() {
   local region="$1"
   local scope_prefix="${2:-}"
@@ -822,6 +885,10 @@ tag_layer_scan() {
       id="${arn##*/}"
       raw_tags="$(jq -c '.Tags // .tags // []' <<< "$item")"
       if is_immortal "$id" "$arn" "$raw_tags"; then
+        continue
+      fi
+      if tagged_arn_confirmed_gone "$arn" "$region"; then
+        printf 'verify-teardown: note [%s] %s is gone; ignoring stale tag-index entry\n' "$region" "$arn" >&2
         continue
       fi
       tags="$(jq -c 'reduce (. // [])[] as $tag ({}; .[$tag.Key]=$tag.Value)' <<< "$raw_tags")"

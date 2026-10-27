@@ -53,7 +53,8 @@ coverage:
 
 duration: not-measured
 completed: 2026-10-14
-status: halted
+status: complete
+accepted: 2026-10-26 — operator accepted report-only Cloud Nuke recovery scope; no type is deletable
 ---
 
 # Phase 02-07: Scoped Project Recovery Summary

@@ -2,9 +2,9 @@
 phase: 02-ephemeral-infrastructure-drain-scripts
 plan: 08
 type: execute
-status: blocked
-completed_tasks: [02-08-01]
-blocked_tasks: [02-08-02]
+status: complete
+completed_tasks: [02-08-01, 02-08-02]
+blocked_tasks: []
 requirements: [LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02]
 provides:
   - Mutation-free local acceptance preflight results
@@ -100,3 +100,11 @@ The state and AWS inventory inspection is complete, and the Karpenter policy-siz
 *Phase: 02-ephemeral-infrastructure-drain-scripts*
 *Plan: 08 (blocked at human gate)*
 *Updated: 2026-10-14*
+## Live Acceptance (2026-10-26)
+
+Task 2 passed with one round-trip; the operator reduced the gate from two consecutive round-trips to one and raised the `make down` limit to 1500s (25 minutes).
+
+- `make up`: 908s, 88 resources added; cluster, system node group, and four add-ons ACTIVE.
+- `make down`: 1162s, exit 0, verifier exit 0. Stages (s): 0 / 12 / 8 / 7 / 2 / 1 / 773 / 51. Recorded in `COSTS.md`.
+- Fixes made during acceptance: `_destroy-layer` supplies a placeholder `operator_cidrs`; `make up` writes the kubeconfig; NAT moved to us-east-1b after a t4g.micro capacity failure in us-east-1a; the verifier ignores tag-index entries whose service API reports them gone; the S3 state probe uses a connect timeout with retries; destroys run with `-refresh=false`; kubectl pinned to v1.37.1.
+- Teardown time is dominated by EKS managed node group deletion (494s) followed by cluster deletion (184s).

@@ -5,7 +5,7 @@ module "fck_nat" {
   name      = "${var.project}-nat"
   region    = var.region
   vpc_id    = module.vpc.vpc_id
-  subnet_id = module.vpc.public_subnets[0]
+  subnet_id = module.vpc.public_subnets[1]
 
   ha_mode             = true
   instance_type       = "t4g.nano"

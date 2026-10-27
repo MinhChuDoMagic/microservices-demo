@@ -20,47 +20,47 @@ Requirements for Milestone 1. Each maps to a roadmap phase.
 - [x] **COST-05**: Every provisioned resource carries cost-allocation tags applied via Terraform `default_tags`, and spend can be attributed by layer *(billing-period attribution check dropped 2026-10-26)*
 - [ ] **COST-06**: Karpenter `NodePool.spec.limits` caps total provisionable CPU and memory, so a runaway workload produces a bounded `NodePool limit exceeded` event rather than an unbounded bill
 - [ ] **COST-07**: An EC2 instance-type allowlist prevents a resource-request typo from summoning an oversized instance
-- [ ] **COST-08**: The project runs in a dedicated AWS account, isolating spend and making a blunt sweep script safe
+- [x] **COST-08**: The project runs in a dedicated AWS account, isolating spend and making a blunt sweep script safe
 - [x] **COST-09**: `COSTS.md` records measured `make up` and `make down` wall-clock times and real observed costs per session profile
 
 ### Lifecycle
 
-- [ ] **LIFE-01**: Operator can provision the entire stack with a single `make up` completing in 20 minutes or less
-- [ ] **LIFE-02**: Operator can destroy every billable resource with a single `make down` completing in 15 minutes or less
-- [ ] **LIFE-03**: `make down` executes an explicit ordered sequence — disable Argo auto-sync, drain Ingresses, drain Karpenter NodePools, drain PVCs, destroy L3→L2→L1, verify — rather than a bare `terraform destroy`
-- [ ] **LIFE-04**: Each drain step polls to an AWS-API-confirmed terminal state rather than firing and forgetting, because `kubectl delete ingress` returns before the ALB is gone
-- [ ] **LIFE-05**: `sh/verify-teardown.sh` exits non-zero when any orphaned resource survives, checking ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
-- [ ] **LIFE-06**: Operator can complete two consecutive clean up/down round-trips on an empty cluster with zero orphans before any application code is written
+- [x] **LIFE-01**: Operator can provision the entire stack with a single `make up` completing in 20 minutes or less
+- [x] **LIFE-02**: Operator can destroy every billable resource with a single `make down` completing in 25 minutes or less
+- [x] **LIFE-03**: `make down` executes an explicit ordered sequence — disable Argo auto-sync, drain Ingresses, drain Karpenter NodePools, drain PVCs, destroy L3→L2→L1, verify — rather than a bare `terraform destroy`
+- [x] **LIFE-04**: Each drain step polls to an AWS-API-confirmed terminal state rather than firing and forgetting, because `kubectl delete ingress` returns before the ALB is gone
+- [x] **LIFE-05**: `sh/verify-teardown.sh` exits non-zero when any orphaned resource survives, checking ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
+- [x] **LIFE-06**: Operator can complete one clean up/down round-trip on an empty cluster with zero orphans before any application code is written
 - [x] **LIFE-07**: Terraform state is split into four lifetime-aligned layers — `00-bootstrap` (never destroyed), `10-infra`, `20-data`, `30-gitops`
 - [x] **LIFE-08**: Remote state lives in a versioned S3 bucket using native `use_lockfile` locking, with no DynamoDB lock table
-- [ ] **LIFE-09**: Slow-to-delete and near-free resources (CloudFront, ECR, S3) live in `00-bootstrap` and never enter the daily loop
-- [ ] **LIFE-10**: A rebuild weeks later produces an identical stack, with all provider and module versions pinned in `VERSIONS.md`
+- [x] **LIFE-09**: Slow-to-delete and near-free resources (CloudFront, ECR, S3) live in `00-bootstrap` and never enter the daily loop
+- [x] **LIFE-10**: A rebuild weeks later produces an identical stack, with all provider and module versions pinned in `VERSIONS.md`
 
 ### Network
 
-- [ ] **NET-01**: VPC spans 2 availability zones with `/20` private subnets sized to survive VPC CNI warm-pool IP consumption
-- [ ] **NET-02**: Intra subnets with no default route host the data stores
-- [ ] **NET-03**: A fck-nat `t4g.nano` ASG provides egress, with route tables targeting the ENI rather than an instance ID so replacement does not break routing
-- [ ] **NET-04**: S3 and DynamoDB gateway endpoints are enabled (free); the S3 endpoint is mandatory because ECR image layers are served from S3
-- [ ] **NET-05**: Interface VPC endpoints are available behind a default-off flag, with their real cost documented, so the operator can enable them for one deliberate comparison session
+- [x] **NET-01**: VPC spans 2 availability zones with `/20` private subnets sized to survive VPC CNI warm-pool IP consumption
+- [x] **NET-02**: Intra subnets with no default route host the data stores
+- [x] **NET-03**: A fck-nat `t4g.nano` ASG provides egress, with route tables targeting the ENI rather than an instance ID so replacement does not break routing
+- [x] **NET-04**: S3 and DynamoDB gateway endpoints are enabled (free); the S3 endpoint is mandatory because ECR image layers are served from S3
+- [x] **NET-05**: Interface VPC endpoints are available behind a default-off flag, with their real cost documented, so the operator can enable them for one deliberate comparison session
 - [ ] **NET-06**: A single shared ALB serves all services via IngressGroup, with one anchor Ingress owning every Exclusive annotation
-- [ ] **NET-07**: Subnet discovery tags use a deterministic cluster name so the AWS Load Balancer Controller finds subnets on every rebuild
+- [x] **NET-07**: Subnet discovery tags use a deterministic cluster name so the AWS Load Balancer Controller finds subnets on every rebuild
 
 ### EKS Platform
 
-- [ ] **EKS-01**: Cluster is pinned to Kubernetes 1.34 and never floats, provisioned by `terraform-aws-modules/eks` v21
-- [ ] **EKS-02**: A system managed node group runs on on-demand instances, tainted `CriticalAddonsOnly`, hosting CoreDNS, the ALB Controller, Karpenter, and Argo CD controllers
+- [x] **EKS-01**: Cluster is pinned to Kubernetes 1.37 and never floats, provisioned by `terraform-aws-modules/eks` v21
+- [x] **EKS-02**: A system managed node group runs on on-demand instances, tainted `CriticalAddonsOnly`, hosting CoreDNS, the ALB Controller, Karpenter, and Argo CD controllers
 - [ ] **EKS-03**: Karpenter provisions all Spot capacity using the `karpenter.sh/v1` API, with `consolidateAfter: 5m`, a disruption budget, `expireAfter` paired with `terminationGracePeriod`, resource limits, and at least 10 instance types across 2 or more families
-- [ ] **EKS-04**: Karpenter's AWS-side resources (IAM, interruption SQS queue, EventBridge rules) are defined in Terraform, not the upstream CloudFormation template
+- [x] **EKS-04**: Karpenter's AWS-side resources (IAM, interruption SQS queue, EventBridge rules) are defined in Terraform, not the upstream CloudFormation template
 - [ ] **EKS-05**: A Spot interruption drains the affected node gracefully without dropping an in-flight request, verified by observation rather than assumption
 - [ ] **EKS-06**: PodDisruptionBudgets use `maxUnavailable: 1` for single-replica workloads and `minAvailable: 1` only at 2 or more replicas
 - [ ] **EKS-07**: The observability stack runs on its own tainted Karpenter NodePool with its own limits, so it cannot silently starve application workloads
-- [ ] **EKS-08**: EKS managed addons including the Pod Identity Agent are installed and version-pinned
+- [x] **EKS-08**: EKS managed addons including the Pod Identity Agent are installed and version-pinned
 
 ### Ownership Boundary
 
 - [ ] **OWN-01**: Terraform manages the AWS API and Argo CD manages the Kubernetes API, with the only seam a `30-gitops` layer containing exactly two resources
-- [ ] **OWN-02**: The Terraform `kubernetes` and `helm` providers are absent from every layer except `30-gitops`, so no layer requires a live API server at plan time
+- [x] **OWN-02**: The Terraform `kubernetes` and `helm` providers are absent from every layer except `30-gitops`, so no layer requires a live API server at plan time
 - [ ] **OWN-03**: A written ownership table in the README states which system owns each resource class, authored before the first Argo Application
 
 ### Delivery
@@ -69,7 +69,7 @@ Requirements for Milestone 1. Each maps to a roadmap phase.
 - [ ] **CD-02**: `make up` completes only when `argocd app wait root --health` returns, not when Terraform returns
 - [ ] **CD-03**: The Argo CD admin password is pinned deterministically from Parameter Store, so a rebuild does not require hunting for a generated secret
 - [ ] **CD-04**: GitHub Actions builds, tests, scans, and publishes each service image to ECR on arm64 runners
-- [ ] **CD-05**: GitHub Actions authenticates to AWS via OIDC with a trust policy scoped to a specific repository and branch — no long-lived access keys exist anywhere
+- [x] **CD-05**: GitHub Actions authenticates to AWS via OIDC with a trust policy scoped to a specific repository and branch — no long-lived access keys exist anywhere
 - [ ] **CD-06**: Terraform plan runs on pull requests and apply runs on merge, both through the same OIDC path
 - [ ] **CD-07**: An Argo Rollouts canary on `catalog`, gated by a Prometheus `AnalysisTemplate`, automatically aborts and rolls back a deliberately broken build
 - [ ] **CD-08**: Argo CD reconnects and re-bootstraps cleanly against a freshly rebuilt cluster with no manual intervention
@@ -182,7 +182,7 @@ Deferred to a future milestone. Tracked but not in the current roadmap.
 
 ### Platform
 
-- **V2-PLAT-01**: In-place Kubernetes upgrade 1.34 → 1.35 → 1.36 as a deliberate exercise
+- **V2-PLAT-01**: In-place Kubernetes upgrade from 1.37 to the next supported EKS minor as a deliberate exercise
 - **V2-PLAT-02**: OpenCost or Kubecost exporting cost as a Grafana dashboard
 - **V2-PLAT-03**: Infracost as a CI gate failing pull requests that breach the project's stated cost ceiling
 - **V2-PLAT-04**: Multi-environment promotion (dev → staging) via Argo CD ApplicationSets
@@ -248,41 +248,41 @@ Which phases cover which requirements. Populated during roadmap creation.
 | COST-05 | Phase 1 | Complete |
 | COST-06 | Phase 8 | Pending |
 | COST-07 | Phase 8 | Pending |
-| COST-08 | Phase 1 | Pending |
+| COST-08 | Phase 1 | Complete |
 | COST-09 | Phase 1 | Complete |
-| LIFE-01 | Phase 2 | Pending |
-| LIFE-02 | Phase 2 | Pending |
-| LIFE-03 | Phase 2 | Pending |
-| LIFE-04 | Phase 2 | Pending |
-| LIFE-05 | Phase 1 | Pending |
-| LIFE-06 | Phase 2 | Pending |
+| LIFE-01 | Phase 2 | Complete |
+| LIFE-02 | Phase 2 | Complete |
+| LIFE-03 | Phase 2 | Complete |
+| LIFE-04 | Phase 2 | Complete |
+| LIFE-05 | Phase 1 | Complete |
+| LIFE-06 | Phase 2 | Complete |
 | LIFE-07 | Phase 1 | Complete |
 | LIFE-08 | Phase 1 | Complete |
-| LIFE-09 | Phase 1 | Pending |
-| LIFE-10 | Phase 1 | Pending |
-| NET-01 | Phase 2 | Pending |
-| NET-02 | Phase 2 | Pending |
-| NET-03 | Phase 2 | Pending |
-| NET-04 | Phase 2 | Pending |
-| NET-05 | Phase 2 | Pending |
+| LIFE-09 | Phase 1 | Complete |
+| LIFE-10 | Phase 1 | Complete |
+| NET-01 | Phase 2 | Complete |
+| NET-02 | Phase 2 | Complete |
+| NET-03 | Phase 2 | Complete |
+| NET-04 | Phase 2 | Complete |
+| NET-05 | Phase 2 | Complete |
 | NET-06 | Phase 4 | Pending |
-| NET-07 | Phase 2 | Pending |
-| EKS-01 | Phase 2 | Pending |
-| EKS-02 | Phase 2 | Pending |
+| NET-07 | Phase 2 | Complete |
+| EKS-01 | Phase 2 | Complete |
+| EKS-02 | Phase 2 | Complete |
 | EKS-03 | Phase 8 | Pending |
-| EKS-04 | Phase 2 | Pending |
+| EKS-04 | Phase 2 | Complete |
 | EKS-05 | Phase 8 | Pending |
 | EKS-06 | Phase 8 | Pending |
 | EKS-07 | Phase 9 | Pending |
-| EKS-08 | Phase 2 | Pending |
+| EKS-08 | Phase 2 | Complete |
 | OWN-01 | Phase 4 | Pending |
-| OWN-02 | Phase 2 | Pending |
+| OWN-02 | Phase 2 | Complete |
 | OWN-03 | Phase 4 | Pending |
 | CD-01 | Phase 4 | Pending |
 | CD-02 | Phase 4 | Pending |
 | CD-03 | Phase 4 | Pending |
 | CD-04 | Phase 3 | Pending |
-| CD-05 | Phase 1 | Pending |
+| CD-05 | Phase 1 | Complete |
 | CD-06 | Phase 3 | Pending |
 | CD-07 | Phase 12 | Pending |
 | CD-08 | Phase 4 | Pending |

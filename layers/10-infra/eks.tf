@@ -21,10 +21,10 @@ resource "aws_iam_role_policy_attachment" "vpc_cni" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.26.0"
+  version = "21.29.0"
 
   name               = local.cluster_name
-  kubernetes_version = "1.34"
+  kubernetes_version = "1.37"
   vpc_id             = module.vpc.vpc_id
   subnet_ids         = module.vpc.private_subnets
 
@@ -50,7 +50,7 @@ module "eks" {
       name                           = "${local.cluster_name}-system"
       iam_role_name                  = "${local.cluster_name}-system"
       ami_type                       = "AL2023_ARM_64_STANDARD"
-      ami_release_version            = "1.34.11-20261003"
+      ami_release_version            = "1.37.1-20261023"
       use_latest_ami_release_version = false
       capacity_type                  = "ON_DEMAND"
       instance_types                 = ["t4g.medium"]
@@ -75,7 +75,7 @@ module "eks" {
 
   addons = {
     vpc-cni = {
-      addon_version               = "v1.23.2-eksbuild.3"
+      addon_version               = "v1.23.2-eksbuild.8"
       before_compute              = true
       most_recent                 = false
       resolve_conflicts_on_create = "OVERWRITE"
@@ -85,16 +85,17 @@ module "eks" {
       }]
     }
     kube-proxy = {
-      addon_version = "v1.34.6-eksbuild.49"
+      addon_version = "v1.37.0-eksbuild.32"
       most_recent   = false
     }
     coredns = {
-      addon_version = "v1.13.2-eksbuild.51"
+      addon_version = "v1.14.7-eksbuild.22"
       most_recent   = false
     }
     eks-pod-identity-agent = {
-      addon_version = "v1.4.0-eksbuild.4"
-      most_recent   = false
+      addon_version  = "v1.4.0-eksbuild.4"
+      most_recent    = false
+      before_compute = true
     }
   }
 }

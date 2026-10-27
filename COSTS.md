@@ -211,16 +211,18 @@ context. `make down` prints per-stage and total seconds only after verifier succ
 The `Stage duration (s)` values for teardown are recorded in the corresponding numbered action
 columns below; do not collapse them into an estimated aggregate.
 
-The teardown deadline is a single, fixed 900-second monotonic budget from preflight through
-verification. There is no per-run argument or environment override. The 900 seconds is a limit,
+The teardown deadline is a single, fixed 1500-second monotonic budget from preflight through
+verification. There is no per-run argument or environment override. The 1500 seconds is a limit,
 not a measured duration or a claim that teardown completes within the limit.
 
 ### Successful `make up` runs
 
 | Date (UTC) | Run | Stage/action | Stage duration (s) | Total monotonic duration (s) | Cluster / version context | Verifier exit |
 |---|---:|---|---:|---:|---|---|
+| 2026-10-26 | 1 | Terraform apply and readiness (whole `make up`) | 908 | 908 | microservices-demo / EKS 1.34 / kubectl v1.37.1 | n/a |
 
 ### Successful `make down` runs
 
 | Date (UTC) | Run | 1 Disable Argo auto-sync (s) | 2 Drain Ingresses (s) | 3 Drain NodePools (s) | 4 Drain PVCs (s) | 5 Destroy 30-gitops (s) | 6 Destroy 20-data (s) | 7 Destroy 10-infra (s) | 8 Verify (s) | Total monotonic duration (s) | Cluster / version context | Verifier exit |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 2026-10-26 | 1 | 0 | 12 | 8 | 7 | 2 | 1 | 773 | 51 | 1162 | microservices-demo / EKS 1.34 / kubectl v1.37.1 | 0 |

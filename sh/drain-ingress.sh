@@ -83,8 +83,28 @@ if ! lc_probe_kubernetes_api; then
 fi
 
 DELETE_ERROR=""
-if ! lc_kubectl delete ingress --all --all-namespaces --ignore-not-found --wait=false --request-timeout=20s; then
+if ! INGRESS_JSON="$(kubectl get ingress --all-namespaces -o json --request-timeout=20s 2>&1)"; then
+  LC_KUBE_ERROR="$INGRESS_JSON"
   DELETE_ERROR="$LC_KUBE_ERROR"
+else
+  if ! INGRESS_TARGETS="$(jq -r '.items[] | if (.metadata.namespace | type) == "string" and (.metadata.name | type) == "string" then [.metadata.namespace, .metadata.name] | @tsv else error("Ingress is missing its namespace or name") end' \
+    <<< "$INGRESS_JSON" 2>&1)"; then
+    DELETE_ERROR="malformed kubectl get ingress response: ${INGRESS_TARGETS}"
+  else
+    while IFS=$'\t' read -r namespace name; do
+      [[ -z "$namespace" || -z "$name" ]] && continue
+      if ! lc_kubectl delete ingress "$name" --namespace "$namespace" \
+        --ignore-not-found --wait=false --request-timeout=20s; then
+        if [[ -n "$DELETE_ERROR" ]]; then
+          DELETE_ERROR="${DELETE_ERROR}; ${LC_KUBE_ERROR}"
+        else
+          DELETE_ERROR="$LC_KUBE_ERROR"
+        fi
+      fi
+    done <<< "$INGRESS_TARGETS"
+  fi
+fi
+if [[ -n "$DELETE_ERROR" ]]; then
   if ! ingress_snapshot; then
     lc_fail "$REMEDIATION" "$LC_AWS_ERROR; ${DELETE_ERROR}"
     exit 1
@@ -94,13 +114,33 @@ if ! lc_kubectl delete ingress --all --all-namespaces --ignore-not-found --wait=
     exit 1
   fi
 fi
-if ! lc_kubectl delete service --all --all-namespaces --field-selector spec.type=LoadBalancer \
-  --ignore-not-found --wait=false --request-timeout=20s; then
+if ! SERVICE_JSON="$(kubectl get service --all-namespaces --field-selector spec.type=LoadBalancer \
+  -o json --request-timeout=20s 2>&1)"; then
+  LC_KUBE_ERROR="$SERVICE_JSON"
   if [[ -n "$DELETE_ERROR" ]]; then
     DELETE_ERROR="${DELETE_ERROR}; ${LC_KUBE_ERROR}"
   else
     DELETE_ERROR="$LC_KUBE_ERROR"
   fi
+elif ! SERVICE_TARGETS="$(jq -r '.items[] | if (.metadata.namespace | type) == "string" and (.metadata.name | type) == "string" then [.metadata.namespace, .metadata.name] | @tsv else error("Service is missing its namespace or name") end' \
+  <<< "$SERVICE_JSON" 2>&1)"; then
+  if [[ -n "$DELETE_ERROR" ]]; then
+    DELETE_ERROR="${DELETE_ERROR}; malformed kubectl get LoadBalancer Service response: ${SERVICE_TARGETS}"
+  else
+    DELETE_ERROR="malformed kubectl get LoadBalancer Service response: ${SERVICE_TARGETS}"
+  fi
+else
+  while IFS=$'\t' read -r namespace name; do
+    [[ -z "$namespace" || -z "$name" ]] && continue
+    if ! lc_kubectl delete service "$name" --namespace "$namespace" \
+      --ignore-not-found --wait=false --request-timeout=20s; then
+      if [[ -n "$DELETE_ERROR" ]]; then
+        DELETE_ERROR="${DELETE_ERROR}; ${LC_KUBE_ERROR}"
+      else
+        DELETE_ERROR="$LC_KUBE_ERROR"
+      fi
+    fi
+  done <<< "$SERVICE_TARGETS"
 fi
 
 for ((attempt = 1; attempt <= LC_POLL_ATTEMPTS; attempt++)); do

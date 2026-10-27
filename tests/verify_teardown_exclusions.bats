@@ -239,3 +239,27 @@ use_fixture_overlay() {
   [ "$(grep -c 'resourcegroupstaggingapi get-resources' "$STUB_AWS_CALL_LOG")" -eq 1 ]
   ! grep -Fq -- '--pagination-token' "$STUB_AWS_CALL_LOG"
 }
+
+@test "tag scan ignores an ARN only when its service API reports it gone" {
+  awk '/^tagged_arn_confirmed_gone\(\) \{/{f=1} f{print} f && /^\}/{exit}' \
+    "$BATS_TEST_DIRNAME/../sh/verify-teardown.sh" > "$BATS_TEST_TMPDIR/gone.sh"
+  run bash -c '
+    source "$1"
+    aws() {
+      case "$*" in
+        *"describe-instances"*i-terminated*) printf "terminated\n" ;;
+        *"describe-volumes"*vol-gone*) echo "InvalidVolume.NotFound" >&2; return 254 ;;
+        *"describe-pod-identity-association"*) echo "ResourceNotFoundException: No cluster found" >&2; return 254 ;;
+        *"describe-volumes"*vol-live*) printf "vol-live\n" ;;
+        *"describe-security-groups"*) echo "AccessDenied" >&2; return 254 ;;
+      esac
+    }
+    tagged_arn_confirmed_gone arn:aws:ec2:us-east-1:1:instance/i-terminated us-east-1 || exit 10
+    tagged_arn_confirmed_gone arn:aws:ec2:us-east-1:1:volume/vol-gone us-east-1 || exit 11
+    tagged_arn_confirmed_gone arn:aws:eks:us-east-1:1:podidentityassociation/c/a-1 us-east-1 || exit 12
+    ! tagged_arn_confirmed_gone arn:aws:ec2:us-east-1:1:volume/vol-live us-east-1 || exit 13
+    ! tagged_arn_confirmed_gone arn:aws:ec2:us-east-1:1:security-group/sg-1 us-east-1 || exit 14
+    ! tagged_arn_confirmed_gone arn:aws:s3:::bucket us-east-1 || exit 15
+  ' _ "$BATS_TEST_TMPDIR/gone.sh"
+  [ "$status" -eq 0 ]
+}
