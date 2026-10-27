@@ -16,8 +16,8 @@ fail() {
   exit "$exit_code"
 }
 
-if [[ -z "${OPERATOR_CIDR:-}" ]]; then
-  fail 2 'operator CIDR preflight' 'OPERATOR_CIDR is required.' 'Set OPERATOR_CIDR to the trusted public IPv4 CIDR for this workstation, then rerun make up.'
+if [[ -z "${OPERATOR_CIDRS:-}" ]]; then
+  fail 2 'operator CIDR preflight' 'OPERATOR_CIDRS is required.' 'Set OPERATOR_CIDRS to a comma-separated list of trusted public IPv4 CIDRs, then rerun make up.'
 fi
 
 if ! command -v curl >/dev/null 2>&1; then
@@ -28,8 +28,26 @@ if ! PUBLIC_IP="$(curl --fail --silent --show-error https://checkip.amazonaws.co
   fail 2 'operator CIDR preflight' 'Could not determine the current public IPv4 address.' 'Restore network access to checkip.amazonaws.com and rerun make up.'
 fi
 
-if ! python3 -c 'import ipaddress, sys; network = ipaddress.ip_network(sys.argv[1], strict=False); address = ipaddress.ip_address(sys.argv[2]); sys.exit(0 if network.version == 4 and address.version == 4 and network.prefixlen != 0 and address in network else 1)' "$OPERATOR_CIDR" "$PUBLIC_IP"; then
-  fail 2 'operator CIDR preflight' "${OPERATOR_CIDR} is invalid, world-open, or does not contain the current public IP ${PUBLIC_IP}." 'Set OPERATOR_CIDR to the current trusted public IPv4 CIDR, then rerun make up.'
+if ! OPERATOR_CIDRS_JSON="$(python3 -c '
+import ipaddress
+import json
+import sys
+
+try:
+    networks = [ipaddress.ip_network(item.strip(), strict=True) for item in sys.argv[1].split(",")]
+    address = ipaddress.ip_address(sys.argv[2])
+    if not networks or address.version != 4:
+        raise ValueError
+    if any(network.version != 4 or network.prefixlen == 0 for network in networks):
+        raise ValueError
+    if len(set(networks)) != len(networks) or not any(address in network for network in networks):
+        raise ValueError
+except ValueError:
+    sys.exit(1)
+
+print(json.dumps([str(network) for network in networks]))
+' "$OPERATOR_CIDRS" "$PUBLIC_IP")"; then
+  fail 2 'operator CIDR preflight' "${OPERATOR_CIDRS} is invalid, world-open, or does not contain the current public IP ${PUBLIC_IP}." 'Set OPERATOR_CIDRS to trusted public IPv4 CIDRs that include the current operator egress, then rerun make up.'
 fi
 
 cd "$ROOT" || fail 2 'repository setup' 'Could not enter the repository root.' 'Rerun make up from a valid checkout.'
@@ -41,7 +59,7 @@ else
   fail "$rc" 'L1 Terraform init' 'Backend initialization failed; no apply was attempted.' 'Inspect the Terraform/backend error, correct it, then rerun make up.'
 fi
 
-if make --no-print-directory -s _apply-layer LAYER=10-infra OPERATOR_CIDR="$OPERATOR_CIDR"; then
+if make --no-print-directory -s _apply-layer LAYER=10-infra OPERATOR_CIDRS_JSON="$OPERATOR_CIDRS_JSON"; then
   :
 else
   rc=$?
@@ -145,6 +163,10 @@ for ADDON in vpc-cni kube-proxy coredns eks-pod-identity-agent; do
     fail "$rc" "EKS add-on readiness ($ADDON)" 'Add-on status or health did not reach ACTIVE.' 'Inspect the add-on status and health issues; remediate the cause, then explicitly rerun make up.'
   fi
 done
+
+if ! aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}" >/dev/null; then
+  fail 1 'kubeconfig setup' 'aws eks update-kubeconfig failed.' 'Without it make down drains cannot reach the Kubernetes API; run the command from layers/10-infra/README.md, then rerun make up.'
+fi
 
 ELAPSED_SECONDS=$((SECONDS - STARTED_SECONDS))
 printf 'make up complete: cluster %s and its system node group and four required add-ons are healthy (%ss).\n' \

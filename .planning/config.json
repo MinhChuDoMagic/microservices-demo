@@ -91,5 +91,8 @@
   },
   "resolve_model_ids": "omit",
   "mode": "yolo",
-  "granularity": "fine"
+  "granularity": "fine",
+  "planning": {
+    "chunked_parallel": true
+  }
 }

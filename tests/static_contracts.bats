@@ -106,9 +106,10 @@ log_group_retention_violations() {
 
   source="$(grep -v '^[[:space:]]*#' "$karpenter_file")"
   [[ "$source" == *'terraform-aws-modules/eks/aws//modules/karpenter'* ]]
-  [[ "$source" == *'version = "21.26.0"'* ]]
+  [[ "$source" == *'version = "21.29.0"'* ]]
   [[ "$source" == *'cluster_name = module.eks.cluster_name'* ]]
   [[ "$source" == *'create_instance_profile = true'* ]]
+  [[ "$source" == *'enable_inline_policy = true'* ]]
   [[ "$source" == *'create_pod_identity_association = true'* ]]
   [[ "$source" == *'enable_spot_termination = true'* ]]
   [[ "$source" == *'node_iam_role_name'*'${local.cluster_name}-karpenter-node'* ]]
@@ -137,7 +138,7 @@ log_group_retention_violations() {
   [[ "$vpc_source" == *'"kubernetes.io/role/elb"                      = "1"'* ]]
   [[ "$vpc_source" == *'"kubernetes.io/role/internal-elb"             = "1"'* ]]
   [[ "$vpc_source" == *'"karpenter.sh/discovery"                      = local.cluster_name'* ]]
-  [[ "$nat_source" == *'instance_type       = "t4g.nano"'* ]]
+  [[ "$nat_source" == *'instance_type       = "t4g.nano"'* ]] || return 1
   [[ "$nat_source" == *'update_route_tables = true'* ]]
   [[ "$nat_source" == *'route_tables_ids = {'* ]]
   [[ "$nat_source" == *'module.vpc.private_route_table_ids[0]'* ]]
@@ -159,9 +160,9 @@ log_group_retention_violations() {
   [[ "$vpc_source" == *'route_table_ids = module.vpc.private_route_table_ids'* ]]
   [[ "$endpoint_variable" == *'default     = false'* ]]
   [[ "$vpc_source" == *'count   = var.enable_interface_endpoints ? 1 : 0'* ]]
-  [[ "$eks_source" == *'version = "21.26.0"'* ]]
-  [[ "$eks_source" == *'kubernetes_version = "1.34"'* ]]
-  [[ "$eks_source" == *'endpoint_public_access_cidrs = [var.operator_cidr]'* ]]
+  [[ "$eks_source" == *'version = "21.29.0"'* ]]
+  [[ "$eks_source" == *'kubernetes_version = "1.37"'* ]]
+  [[ "$eks_source" == *'endpoint_public_access_cidrs = var.operator_cidrs'* ]]
   [[ "$eks_source" == *'capacity_type                  = "ON_DEMAND"'* ]]
   [[ "$eks_source" == *'min_size                       = 2'* ]]
   [[ "$eks_source" == *'desired_size                   = 2'* ]]
@@ -169,16 +170,30 @@ log_group_retention_violations() {
   [[ "$eks_source" == *'value  = "true"'* ]]
   [[ "$eks_source" == *'effect = "NO_SCHEDULE"'* ]]
   [ "$(grep -Ec 'karpenter.sh/discovery"[[:space:]]*=[[:space:]]*local.cluster_name' "$eks_file")" -eq 2 ]
-  [[ "$eks_source" == *'addon_version               = "v1.23.2-eksbuild.3"'* ]]
-  [[ "$eks_source" == *'addon_version = "v1.34.6-eksbuild.49"'* ]]
-  [[ "$eks_source" == *'addon_version = "v1.13.2-eksbuild.51"'* ]]
+  [[ "$eks_source" == *'addon_version               = "v1.23.2-eksbuild.8"'* ]]
+  [[ "$eks_source" == *'addon_version = "v1.37.0-eksbuild.32"'* ]]
+  [[ "$eks_source" == *'addon_version = "v1.14.7-eksbuild.22"'* ]]
   [[ "$eks_source" == *'addon_version = "v1.4.0-eksbuild.4"'* ]]
+  identity_agent_addon="$(sed -n '/    eks-pod-identity-agent = {/,/^    }/p' "$eks_file")"
+  [[ "$identity_agent_addon" == *'before_compute = true'* ]]
   [[ "$eks_source" != *'aws-ebs-csi-driver'* ]]
+  grep -Eq 'iam_role_name[[:space:]]*=[[:space:]]*"\$\{local\.cluster_name\}-system"' "$eks_file"
 }
 
 @test "L1 exact provider module add-on and AMI pins match VERSIONS.md" {
   infra_dir="$BATS_TEST_DIRNAME/../layers/10-infra"
   versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
+  grep -Fxq '1.17.0' "$BATS_TEST_DIRNAME/../.terraform-version"
+  grep -Fq '| Terraform CLI | 1.17.0 |' "$versions_file"
+  for layer_versions in "$BATS_TEST_DIRNAME"/../layers/*/versions.tf; do
+    grep -Fq 'required_version = "= 1.17.0"' "$layer_versions"
+    grep -Fq 'version = "= 6.70.0"' "$layer_versions"
+  done
+  for layer_lock in "$BATS_TEST_DIRNAME"/../layers/*/.terraform.lock.hcl; do
+    grep -Eq 'version[[:space:]]*=[[:space:]]*"6.70.0"' "$layer_lock"
+  done
+  grep -Fq '| `hashicorp/aws` | 6.70.0 |' "$versions_file"
+  grep -Fq 'version     = "6.70.0"' "$infra_dir/.terraform.lock.hcl"
   for provider in cloudinit time tls; do
     grep -Fq "source  = \"hashicorp/$provider\"" "$infra_dir/versions.tf"
   done
@@ -188,21 +203,27 @@ log_group_retention_violations() {
   grep -Fq '| `hashicorp/cloudinit` | 2.4.1 |' "$versions_file"
   grep -Fq '| `hashicorp/time` | 0.14.2 |' "$versions_file"
   grep -Fq '| `hashicorp/tls` | 4.4.1 |' "$versions_file"
-
   grep -Fq 'version = "6.7.3"' "$infra_dir/vpc.tf"
   grep -Fq 'version = "1.6.1"' "$infra_dir/nat.tf"
-  grep -Fq 'version = "21.26.0"' "$infra_dir/eks.tf"
-  grep -Fq 'version = "21.26.0"' "$infra_dir/karpenter.tf"
+  grep -Fq 'version = "21.29.0"' "$infra_dir/eks.tf"
+  grep -Fq 'version = "21.29.0"' "$infra_dir/karpenter.tf"
   grep -Fq '| `terraform-aws-modules/vpc` | 6.7.3 |' "$versions_file"
   grep -Fq '| `RaJiska/fck-nat` | 1.6.1 |' "$versions_file"
-  grep -Fq '| `terraform-aws-modules/eks` | 21.26.0 |' "$versions_file"
-  grep -Fq 'ami_release_version            = "1.34.11-20261003"' "$infra_dir/eks.tf"
-  grep -Fq '| EKS AL2023 ARM64 node AMI release | `1.34.11-20261003` |' "$versions_file"
-  for addon_version in v1.23.2-eksbuild.3 v1.34.6-eksbuild.49 v1.13.2-eksbuild.51 v1.4.0-eksbuild.4; do
+  grep -Fq '| `terraform-aws-modules/eks` | 21.29.0 |' "$versions_file"
+  grep -Fq 'ami_release_version            = "1.37.1-20261023"' "$infra_dir/eks.tf"
+  grep -Fq '| EKS AL2023 ARM64 node AMI release | `1.37.1-20261023` |' "$versions_file"
+  grep -Fq '| EKS Kubernetes | 1.37 |' "$versions_file"
+  for addon_version in v1.23.2-eksbuild.8 v1.37.0-eksbuild.32 v1.14.7-eksbuild.22 v1.4.0-eksbuild.4; do
     grep -Fq "$addon_version" "$infra_dir/eks.tf"
     grep -Fq "$addon_version" "$versions_file"
   done
   [ "$(grep -Ec 'most_recent[[:space:]]*=([[:space:]]*)false' "$infra_dir/eks.tf")" -eq 4 ]
+}
+
+@test "system node group output extracts name from the EKS module node_group_id" {
+  outputs_file="$BATS_TEST_DIRNAME/../layers/10-infra/outputs.tf"
+
+  grep -Fq 'split(":", module.eks.eks_managed_node_groups["system"].node_group_id)[1]' "$outputs_file"
 }
 
 @test "Terraform Kubernetes and Helm providers are restricted to 30-gitops" {
@@ -303,6 +324,7 @@ log_group_retention_violations() {
   grep -Fq 'github.event.pull_request.head.repo.full_name != github.repository' "$plan_workflow"
   grep -Fq 'terraform fmt' "$plan_workflow"
   grep -Fq 'terraform validate' "$plan_workflow"
+  [ "$(grep -Fc 'terraform_version: 1.17.0' "$plan_workflow")" -eq 2 ]
   grep -Fq 'name: OIDC plan-role smoke check' "$plan_workflow"
   grep -Fq 'does not run `terraform plan`' "$plan_workflow"
   grep -Fq 'requirement CD-06' "$plan_workflow"
@@ -310,6 +332,7 @@ log_group_retention_violations() {
   grep -Fq 'branches: [develop]' "$apply_workflow"
   grep -Fq 'vars.AWS_APPLY_ROLE_ARN' "$apply_workflow"
   grep -Fq 'vars.AWS_ACCOUNT_ID' "$apply_workflow"
+  grep -Fq 'terraform_version: 1.17.0' "$apply_workflow"
   grep -Fq 'cancel-in-progress: false' "$apply_workflow"
   grep -Fq 'name: OIDC apply-role smoke check' "$apply_workflow"
   grep -Fq 'does not run `terraform apply`' "$apply_workflow"
@@ -422,9 +445,9 @@ AWS
 
   grep -Eq '^down:[[:space:]]*$' "$makefile"
   grep -Fq 'command -v timeout || command -v gtimeout' <<< "$down_target"
-  grep -Fq -- '--kill-after=5s 900s bash sh/down.sh' <<< "$down_target"
+  grep -Fq -- '--kill-after=5s 1500s bash sh/down.sh' <<< "$down_target"
   [[ "$down_target" != *'--foreground'* ]]
-  grep -Fq 'LC_DEADLINE_SECONDS=900' "$common_script"
+  grep -Fq 'LC_DEADLINE_SECONDS=1500' "$common_script"
   grep -Fq 'lc_deadline_expired' "$common_script"
   [ ! -e "$BATS_TEST_DIRNAME/../sh/run-down-with-deadline.py" ]
   [[ "$down_target" != *'DOWN_TIMEOUT'* ]]
@@ -451,12 +474,12 @@ AWS
   grep -Fq 'Total monotonic duration (s)' "$costs_file"
   grep -Fq 'Verifier exit' "$costs_file"
   grep -Fq 'failed, orphaned, interrupted, and timed-out attempts never' "$costs_file"
-  grep -Fq 'single, fixed 900-second monotonic budget' "$costs_file"
+  grep -Fq 'single, fixed 1500-second monotonic budget' "$costs_file"
   grep -Fq 'The Phase 2 roadmap' "$infra_readme"
   grep -Fq 'complete operator-visible sequence has eight actions' "$infra_readme"
-  grep -Fq 'two consecutive empty-cluster' "$infra_readme"
-  grep -Fq 'verifier exit `0` both times' "$infra_readme"
-  grep -Fq 'non-overridable 900-second monotonic deadline' "$infra_readme"
+  grep -Fq 'one empty-cluster' "$infra_readme"
+  grep -Fq 'round-trip with verifier exit `0`' "$infra_readme"
+  grep -Fq 'non-overridable 1500-second monotonic deadline' "$infra_readme"
 }
 
 @test "teardown lock precedes every lifecycle stage and has exit and signal cleanup" {
@@ -517,4 +540,26 @@ AWS
   empty_line="$(grep -nF 'empty-versioned-bucket.sh' <<< "$target" | cut -d: -f1)"
   [ "$migration_line" -lt "$state_line" ]
   [ "$state_line" -lt "$empty_line" ]
+}
+
+@test "project recovery remains report-only with a positive Project tag and no VPC type" {
+  makefile="$BATS_TEST_DIRNAME/../Makefile"
+  wrapper="$BATS_TEST_DIRNAME/../sh/nuke-project.sh"
+  config="$BATS_TEST_DIRNAME/../sh/cloud-nuke-project.yml"
+  versions_file="$BATS_TEST_DIRNAME/../VERSIONS.md"
+  down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
+
+  grep -Fq 'nuke-project' "$makefile"
+  [ -f "$wrapper" ]
+  [ -f "$config" ]
+  grep -Fq 'Project: "microservices-demo"' "$config"
+  grep -Fq 'readonly DELETABLE_RESOURCE_TYPES=""' "$wrapper"
+  grep -Fq 'REPORT_ONLY_RESOURCE_TYPES="ec2"' "$wrapper"
+  grep -Fq '366d209ce427d25342542f4304bc1eb6987daa6561823e761336bc9edfdb710d' "$wrapper"
+  grep -Fq 'Cloud Nuke' "$versions_file"
+  grep -Fq -- '--dry-run' "$wrapper"
+  grep -Fq -- '--force' "$wrapper"
+  grep -Fq 'shasum -a 256' "$wrapper"
+  ! grep -Eiq '(^|[[:space:]])vpc([[:space:]]|$)|^[[:space:]]*VPC:' "$config" "$wrapper"
+  ! grep -Eiq 'cloud-nuke|nuke-project' "$down_script"
 }

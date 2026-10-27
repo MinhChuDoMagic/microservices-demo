@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v1.0
 milestone_name: Practice Platform
-current_phase: 2
+current_phase: 02
 current_phase_name: Ephemeral Infrastructure & Drain Scripts
-status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-10-14T04:55:13.686Z"
-last_activity: 2026-10-14
-last_activity_desc: Phase 2 planning complete
-state_head: f5075c4dc4409208defbf5817af26dabd8138a0c
+status: planning
+stopped_at: Phase 3 context gathered
+last_updated: "2026-10-27T07:12:14.354Z"
+last_activity: 2026-10-27
+last_activity_desc: Phase 1 complete, transitioned to Phase 02
+state_head: aeda0984f83984ab91fb524e42a702d89f2588c8
 progress:
   total_phases: 14
-  completed_phases: 0
+  completed_phases: 2
   total_plans: 18
-  completed_plans: 10
+  completed_plans: 18
 ---
 
 # Project State
@@ -24,28 +24,29 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-24)
 
 **Core value:** Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-to-end in a system that can be stood up and completely destroyed on the same day for a few dollars — if teardown or rebuild breaks, the entire practice loop dies with it.
-**Current focus:** Phase 01 — Account, L0 Bootstrap & Teardown Harness
+**Current focus:** Phase 02 — Ephemeral Infrastructure & Drain Scripts
 
 ## Current Position
 
-Phase: 2 (Ephemeral Infrastructure & Drain Scripts) — READY TO EXECUTE
-Plan: 10 of 10
-Status: Plan complete; phase verification human-needed
-Last activity: 2026-10-14 — Phase 2 planning complete
+Phase: 02 — Ephemeral Infrastructure & Drain Scripts
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-27 — Phase 1 complete, transitioned to Phase 02
 
-Progress: 100%
+Progress: [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
 **Velocity:**
 
- Total plans completed: 10
+ Total plans completed: 18
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 2 | 8 | - | - |
+| 1 | 10 | - | - |
 
 **Recent Trend:**
 
@@ -76,7 +77,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [Roadmap]: Teardown harness precedes all provisioning — `verify-teardown.sh` is the Phase 1 deliverable, written before there is anything to tear down
-- [Roadmap]: Hard gate at Phase 2 — two consecutive zero-orphan `make up`/`make down` round-trips on an empty cluster before any application code
+- [Roadmap]: Hard gate at Phase 2 — one zero-orphan `make up`/`make down` round-trip on an empty cluster before any application code (reduced from two on 2026-10-26)
 - [Roadmap]: Minimal Prometheus + Tempo land in Phase 5, before the second service — a distributed saga cannot be debugged without traces
 - [Roadmap]: Security and policy deliberately late (Phase 10) — added early, every bug looks like a policy bug
 - [Roadmap]: `catalog` and `cart` placed in Phase 11, closing a coverage gap in the research build order (they were never explicitly placed, yet Phase 12's canary presupposes `catalog`)
@@ -110,10 +111,9 @@ None yet.
 - **[Phase 5/6] OQ5: OTel trace context across EventBridge.** Resolved in approach (manual `traceparent` in the envelope), unverified in practice. Three of four researchers flagged this as the most likely thing to silently break the flagship demo. Watch for the Link-vs-Parent false negative.
 - **[Phase 9] OQ2/OQ4 unresolved.** Prometheus TSDB dies nightly but burn-rate alerting needs multi-day history; platform footprint estimates (2.1 / 2.5–4 / 3.5–6.5 GiB) are unmeasured hypotheses.
 - **[Phase 5] OQ1 unresolved.** RDS viability under same-day teardown — `var.use_rds` defaults false pending measured create/delete timings.
-- **[Phase 1] Cost Explorer attribution deferred.** Four keys were operator-confirmed Active on 2026-10-09; observe per-layer attribution after November's full billing month and the next refresh, on or after 2026-12-02. The member-account CLI cannot list organization tag status.
-- **[Phase 1] Fork-PR workflow observation unverified.** No forks exist; static assertions cover the fallback.
-- **[Phase 1] Phase verifier returned `human_needed` in `01-VERIFICATION.md` (3/5 roadmap truths verified).** Native S3 lock acquisition/release was observed during a read-only plan; the authorized live EBS hard-gate passed orphan detection, cleanup, and error handling. Cost-alert delivery and complete billing-period attribution remain pending. The valid bootstrap destroy and real $1 cost event were not run by explicit constraint.
+- **[Phase 1] Fork-PR workflow observation unverified (non-gating).** No forks exist; static assertions cover the fallback.
 - **[Cross-cutting] "Infrastructure forever, never ship a feature."** No deadline means no forcing function. Phase 4's walking skeleton and Phase 6's trace moment exist as deliberate defences.
+- [Phase 1] Phase verifier status is `passed` in 01-VERIFICATION.md (3/3 remaining truths) as of 2026-10-26: the user dropped truth #3 (Cost Anomaly Detection live delivery) and truth #4 (billing-period attribution and idle cost) as not verifiable. Native S3 lock acquisition/release was observed during a read-only plan; the authorized live EBS hard-gate passed orphan detection, cleanup, and error handling. The valid bootstrap destroy and real $1 cost event were not run by explicit constraint.
 
 ## Deferred Items
 
@@ -123,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-14T03:13:43.703Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-ephemeral-infrastructure-drain-scripts/02-CONTEXT.md
+Last session: 2026-10-27T07:12:14.272Z
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/03-service-scaffolding-ci-pipeline/03-CONTEXT.md

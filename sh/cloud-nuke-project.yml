@@ -1,0 +1,5 @@
+# Policy template only. No resource type is deletable until its live controls pass.
+EC2:
+  include:
+    tags:
+      Project: "microservices-demo"

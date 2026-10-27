@@ -5,8 +5,8 @@
 This roadmap builds a day-2 operations practice rig wearing an e-commerce costume. It is sequenced
 around a single constraint: **the stack must die cleanly every night and come back tomorrow.**
 Accordingly it inverts the intuitive order — the teardown verifier is written before there is
-anything to tear down (Phase 1), and a hard gate of two consecutive zero-orphan `up`/`down`
-round-trips on an empty cluster blocks all application code (Phase 2). From there the project
+anything to tear down (Phase 1), and a hard gate of one zero-orphan `up`/`down`
+round-trip on an empty cluster blocks all application code (Phase 2). From there the project
 drives the thinnest possible vertical slice through every architectural layer — Argo CD and a
 walking skeleton through the real ALB (Phase 4), the event envelope plus minimal Prometheus and
 Tempo *before* the second service (Phase 5), and then the flagship: one unbroken trace spanning
@@ -34,8 +34,8 @@ order). Two deviations are documented in "Deviations from Research" below.
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Account, L0 Bootstrap & Teardown Harness** - Immortal layer, cost guardrails, and `verify-teardown.sh` written before anything exists to tear down
-- [ ] **Phase 2: Ephemeral Infrastructure & Drain Scripts** - VPC, EKS 1.34, system node group, drain scripts — gated on two clean zero-orphan round-trips
+- [x] **Phase 1: Account, L0 Bootstrap & Teardown Harness** - Immortal layer, cost guardrails, and `verify-teardown.sh` written before anything exists to tear down (completed 2026-10-27)
+- [x] **Phase 2: Ephemeral Infrastructure & Drain Scripts** - VPC, EKS 1.37, system node group, drain scripts — gated on one clean zero-orphan round-trip (completed 2026-10-26)
 - [ ] **Phase 3: Service Scaffolding & CI Pipeline** - Six Spring Boot skeletons on a shared parent POM, arm64 GitHub Actions build/scan/publish (∥ Phase 2)
 - [ ] **Phase 4: GitOps Seam & Walking Skeleton** - Argo CD app-of-apps, shared ALB IngressGroup, first HTTP request through real infrastructure
 - [ ] **Phase 5: Event Backbone & Minimal Observability** - Event envelope contract, Prometheus + Tempo, `order` and `inventory` deployed
@@ -59,10 +59,12 @@ order). Two deviations are documented in "Deviations from Research" below.
 **Success Criteria** (what must be TRUE):
 
   1. Operator can run `sh/verify-teardown.sh` against the empty account and see it exit zero, and can make it exit non-zero by manually creating a single untagged EBS volume — proving the sweep actually checks ALBs, target groups, controller-created security groups, EC2 instances, EBS volumes, snapshots, Elastic IPs, ENIs, and CloudWatch log groups
-  2. Operator can apply `layers/00-bootstrap` and see Terraform state land in a versioned S3 bucket with a `<key>.tflock` object appearing during apply and disappearing after — with no DynamoDB table anywhere
-  3. Operator can deliberately provision a $1 resource and receive a Cost Anomaly Detection alert within one day, and see a zero-spend Budget alarm configured
-  4. Operator can attribute every bootstrap resource's spend by layer in Cost Explorer via `default_tags`, and confirm idle cost sits at or below $5/month against a real billing period
+  2. Operator can run a remote-backed plan for `layers/00-bootstrap` and observe a `<key>.tflock` object while Terraform holds the lock, followed by its removal; state is versioned and no DynamoDB lock table is configured *(scope changed 2026-10-27: apply-time observation is deferred, not a phase gate)*
+  3. ~~Operator can deliberately provision a $1 resource and receive a Cost Anomaly Detection alert within one day~~ *(dropped 2026-10-26: live delivery not required)* — a zero-spend Budget alarm and the anomaly monitor are configured
+  4. ~~Operator can attribute every bootstrap resource's spend by layer in Cost Explorer and confirm idle cost at or below $5/month against a real billing period~~ *(dropped 2026-10-26: billing-period evidence not required)* — `default_tags` are configured
   5. GitHub Actions can assume an AWS role via OIDC with a trust policy scoped to this repository and branch, and no long-lived access key exists anywhere in the account or in GitHub secrets
+
+**Scope change (2026-10-27)**: The existing read-only plan observation satisfies the S3 lock lifecycle gate; observing the lock during apply is deferred. Live signal-injection testing of the teardown hard-gate cleanup trap is also removed from Phase 1 acceptance. The cleanup trap remains implemented; neither deferred behavior is claimed as newly tested.
 
 **Plans**: 10/10 plans executed
 
@@ -85,20 +87,20 @@ Plans:
 
 ### Phase 2: Ephemeral Infrastructure & Drain Scripts
 
-**Goal**: The operator can stand up and completely destroy the full ephemeral infrastructure layer within the wall-clock budget, twice in a row, with zero orphans — before a single line of application code exists
+**Goal**: The operator can stand up and completely destroy the full ephemeral infrastructure layer within the wall-clock budget, with zero orphans — before a single line of application code exists
 **Depends on**: Phase 1
 **Requirements**: LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-06, NET-01, NET-02, NET-03, NET-04, NET-05, NET-07, EKS-01, EKS-02, EKS-04, EKS-08, OWN-02
 **Success Criteria** (what must be TRUE):
 
-  1. Operator can run `make up` and reach a healthy EKS 1.34 cluster in 20 minutes or less, and `make down` back to a verified-empty account in 15 minutes or less, with both wall-clock times logged to `COSTS.md`
-  2. Operator can run two consecutive `make up` → `make down` round-trips on an empty cluster and see `verify-teardown.sh` exit zero both times
+  1. Operator can run `make up` and reach a healthy EKS 1.37 cluster in 20 minutes or less, and `make down` back to a verified-empty account in 25 minutes or less, with both wall-clock times logged to `COSTS.md`
+  2. Operator can run one `make up` → `make down` round-trip on an empty cluster and see `verify-teardown.sh` exit zero
   3. Operator can observe `make down` executing seven named ordered steps, with each drain step polling to an AWS-API-confirmed terminal state — demonstrable by killing the ALB mid-drain and watching the script wait rather than proceed
   4. Operator can confirm a pod receives an IP from a `/20` private subnet, that data-store subnets have no default route, and that egress traverses the fck-nat `t4g.nano` ENI — verified by replacing the instance and watching routing survive
   5. Operator can `grep -r "provider \"kubernetes\"\|provider \"helm\"" layers/` and find zero matches outside `30-gitops`, so no layer requires a live API server at plan time
 
 **Plans**: TBD
 **Research flag**: ⏭️ Standard patterns — EKS module v21 and VPC module v6 are well documented. **But read `UPGRADE-21.0.md` first**; every v19/v20 tutorial is wrong (`aws-auth` removed, Karpenter IRSA path removed, OIDC issuer host changed).
-**Hard gate**: ✅ **Two consecutive clean round-trips, empty cluster, zero orphans, within the time budget. No application code until this passes.**
+**Hard gate**: ✅ **One clean round-trip, empty cluster, zero orphans, within the time budget. No application code until this passes.** (Reduced from two round-trips on 2026-10-26 by operator decision.)
 **Parallel with**: Phase 3 (service scaffolding needs no cluster)
 **Pitfalls addressed**: 9, 10, 12, 18, 19, 40
 **Note**: `make up`/`make down` wall-clock instrumentation starts here and feeds the OQ1 decision in Phase 5. A regression past 25 minutes is a defect, not an annoyance.
@@ -356,7 +358,7 @@ P1 ──┬──▶ P2 ──▶ P4 ──▶ P5 ──▶ P6 ★ ──▶ P7
 | Gate | Phase | Condition |
 |------|-------|-----------|
 | **Teardown verifier exists** | 1 | `verify-teardown.sh` written and demonstrably able to fail, before anything is provisioned |
-| **Two clean round-trips** | 2 | Two consecutive `make up` → `make down` on an empty cluster, zero orphans, ≤20 min up / ≤15 min down. **No application code until this passes.** |
+| **One clean round-trip** | 2 | One `make up` → `make down` on an empty cluster, zero orphans, ≤20 min up / ≤25 min down. **No application code until this passes.** |
 | **Walking skeleton** | 4 | ALB serves traffic in a browser AND `make down` is still clean |
 | **The trace moment** | 6 | One `traceID` contains spans from all four services, asserted automatically against the Tempo API |
 | **Runbook per scenario** | 13 | A scenario is not complete until a cold reader could follow its runbook |
@@ -426,8 +428,8 @@ Three smaller placement judgements worth naming:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Account, L0 Bootstrap & Teardown Harness | 7/10 | In Progress|  |
-| 2. Ephemeral Infrastructure & Drain Scripts | 0/TBD | Not started | - |
+| 1. Account, L0 Bootstrap & Teardown Harness | 10/10 | Complete    | 2026-10-27 |
+| 2. Ephemeral Infrastructure & Drain Scripts | 8/8 | Complete    | 2026-10-26 |
 | 3. Service Scaffolding & CI Pipeline | 0/TBD | Not started | - |
 | 4. GitOps Seam & Walking Skeleton | 0/TBD | Not started | - |
 | 5. Event Backbone & Minimal Observability | 0/TBD | Not started | - |

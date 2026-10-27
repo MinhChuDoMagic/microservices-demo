@@ -23,7 +23,7 @@ setup() {
 set -euo pipefail
 printf '%s\n' "$*" >> "$TEST_TIMEOUT_LOG"
 printf 'timeout:%s\n' "$*" >> "$TEST_CALL_LOG"
-[[ "$1" == '--signal=TERM' && "$2" == '--kill-after=5s' && "$3" == '900s' ]]
+[[ "$1" == '--signal=TERM' && "$2" == '--kill-after=5s' && "$3" == '1500s' ]]
 shift 3
 exec "$@"
 TIMEOUT
@@ -209,16 +209,34 @@ esac
 TERRAFORM
   chmod +x "$test_bin/terraform"
 
+  cat > "$test_bin/cloud-nuke" <<'CLOUDNUKE'
+#!/usr/bin/env bash
+printf 'cloud-nuke %s\n' "$*" >> "$TEST_CALL_LOG"
+CLOUDNUKE
+  chmod +x "$test_bin/cloud-nuke"
+
   cat > "$test_bin/kubectl" <<'KUBECTL'
 #!/usr/bin/env bash
   printf '%s\n' "$*" >> "$TEST_CALL_LOG"
   if [[ "${1:-}" == version ]]; then
-    printf '{"clientVersion":{"gitVersion":"%s"}}\n' "${TEST_KUBECTL_VERSION:-v1.34.12}"
+    printf '{"clientVersion":{"gitVersion":"%s"}}\n' "${TEST_KUBECTL_VERSION:-v1.37.1}"
     exit 0
   fi
   if [[ "${TEST_KUBECTL_API_EXIT:-0}" -ne 0 ]]; then
     printf '%s\n' "${TEST_KUBECTL_ERROR:-The Kubernetes API is unreachable}" >&2
     exit "$TEST_KUBECTL_API_EXIT"
+  fi
+  if [[ "${1:-}" == get && "${2:-}" == ingress && "$*" == *--all-namespaces* ]]; then
+    ingress_json="${TEST_KUBECTL_INGRESS_LIST_JSON:-}"
+    [[ -n "$ingress_json" ]] || ingress_json='{"items":[]}'
+    printf '%s\n' "$ingress_json"
+    exit 0
+  fi
+  if [[ "${1:-}" == get && "${2:-}" == service && "$*" == *spec.type=LoadBalancer* ]]; then
+    service_json="${TEST_KUBECTL_LB_SERVICE_LIST_JSON:-}"
+    [[ -n "$service_json" ]] || service_json='{"items":[]}'
+    printf '%s\n' "$service_json"
+    exit 0
   fi
   if [[ "${1:-}" == delete && "${2:-}" == ingress && "${TEST_KUBECTL_INGRESS_DELETE_EXIT:-0}" -ne 0 ]]; then
     printf '%s\n' "${TEST_KUBECTL_INGRESS_DELETE_ERROR:-Forbidden: ingress deletion denied}" >&2
@@ -337,7 +355,7 @@ use_sequence_fixture() {
   down_script="$BATS_TEST_DIRNAME/../sh/down.sh"
 
   grep -Eq '^down:' "$makefile"
-  grep -Fq '900s' "$makefile"
+  grep -Fq '1500s' "$makefile"
   grep -Fq 'sh/down.sh' "$makefile"
   [ -x "$down_script" ]
 }
@@ -347,7 +365,7 @@ use_sequence_fixture() {
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$(wc -l < "$timeout_log" | tr -d ' ')" -eq 1 ]
-  [[ "$(<"$timeout_log")" == *'--signal=TERM --kill-after=5s 900s bash sh/down.sh'* ]]
+  [[ "$(<"$timeout_log")" == *'--signal=TERM --kill-after=5s 1500s bash sh/down.sh'* ]]
   timeout_line="$(grep -n '^timeout:' "$call_log" | cut -d: -f1)"
   doctor_line="$(grep -nF -- '-s doctor' "$call_log" | cut -d: -f1)"
   [ "$timeout_line" -lt "$doctor_line" ]
@@ -406,15 +424,15 @@ use_sequence_fixture() {
   [[ "$(<"$call_log")" == *'-backend-config=key=infra/terraform.tfstate'* ]]
 
   : > "$call_log"
-  run bash -c 'cd "$1" && "$2" -s _apply-layer LAYER=10-infra OPERATOR_CIDR=203.0.113.10/32' _ \
+  run bash -c 'cd "$1" && "$2" -s _apply-layer LAYER=10-infra OPERATOR_CIDRS_JSON='"'"'["203.0.113.10/32","198.51.100.20/32"]'"'"'' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -eq 0 ]
-  [[ "$(<"$call_log")" == *'-var=operator_cidr=203.0.113.10/32'* ]]
+  [[ "$(<"$call_log")" == *'-var=operator_cidrs=["203.0.113.10/32","198.51.100.20/32"]'* ]]
 }
 
 @test "make up rejects an unreachable operator CIDR before init or apply" {
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.20/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.20/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -ne 0 ]
@@ -423,8 +441,22 @@ use_sequence_fixture() {
   [[ "$(<"$call_log")" != *'_apply-layer'* ]]
 }
 
+@test "make up accepts and forwards multiple explicit operator CIDRs" {
+  export TEST_PUBLIC_IP=198.51.100.20
+
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32,198.51.100.20/32 "$2" -o doctor -s up' _ \
+    "$test_root" "$TEST_REAL_MAKE"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'make up complete'* ]]
+  terraform_calls="$(<"$call_log")"
+  [[ "$terraform_calls" == *'operator_cidrs='* ]]
+  [[ "$terraform_calls" == *'203.0.113.10/32'* ]]
+  [[ "$terraform_calls" == *'198.51.100.20/32'* ]]
+}
+
 @test "make up applies once and waits for all required EKS components" {
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -eq 0 ]
@@ -438,7 +470,7 @@ use_sequence_fixture() {
 @test "make up preserves a failed apply without retry or destroy" {
   export TEST_APPLY_EXIT=42
 
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -ne 0 ]
@@ -451,7 +483,7 @@ use_sequence_fixture() {
 @test "make up stops on an unhealthy node group without retry or destroy" {
   export TEST_NODEGROUP_STATUS=DEGRADED
 
-  run bash -c 'cd "$1" && OPERATOR_CIDR=203.0.113.10/32 "$2" -o doctor -s up' _ \
+  run bash -c 'cd "$1" && OPERATOR_CIDRS=203.0.113.10/32 "$2" -o doctor -s up' _ \
     "$test_root" "$TEST_REAL_MAKE"
 
   [ "$status" -ne 0 ]
@@ -464,7 +496,7 @@ use_sequence_fixture() {
   prepare_doctor_root
   run "$test_root/sh/doctor.sh"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"kubectl v1.34.12"* ]]
+  [[ "$output" == *"kubectl v1.37.1"* ]]
   [[ "$output" == *"GNU timeout"* ]]
 }
 
@@ -487,11 +519,11 @@ use_sequence_fixture() {
 
 @test "doctor rejects kubectl outside the EKS server skew window" {
   prepare_doctor_root
-  export TEST_KUBECTL_VERSION=v1.37.0
+  export TEST_KUBECTL_VERSION=v1.39.0
   run "$test_root/sh/doctor.sh"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"kubectl v1.37.0"* ]]
-  [[ "$output" == *"EKS Kubernetes 1.34"* ]]
+  [[ "$output" == *"kubectl v1.39.0"* ]]
+  [[ "$output" == *"EKS Kubernetes 1.37"* ]]
 }
 
 @test "Ingress drain waits for ELBv2 load balancers and target groups to disappear" {
@@ -503,8 +535,23 @@ use_sequence_fixture() {
   [ "$(grep -c '^elbv2 describe-load-balancers ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
   [ "$(grep -c '^elbv2 describe-target-groups ' "$STUB_AWS_CALL_LOG")" -eq 2 ]
   [ "$(grep -c '^eks describe-cluster ' "$STUB_AWS_CALL_LOG")" -eq 1 ]
-  [[ "$(<"$call_log")" == *'delete ingress --all --all-namespaces'* ]]
+  [[ "$(<"$call_log")" == *'get ingress --all-namespaces -o json'* ]]
   [[ "$output" == *'AWS confirms no load balancers or target groups'* ]]
+}
+
+@test "Ingress drain deletes listed Ingresses and LoadBalancer Services by namespace and name" {
+  use_sequence_fixture ingress-pending-to-absent
+  export TEST_KUBECTL_INGRESS_LIST_JSON='{"items":[{"metadata":{"namespace":"apps","name":"web"}},{"metadata":{"namespace":"monitoring","name":"metrics"}}]}'
+  export TEST_KUBECTL_LB_SERVICE_LIST_JSON='{"items":[{"metadata":{"namespace":"apps","name":"public-api"}}]}'
+
+  run bash "$BATS_TEST_DIRNAME/../sh/drain-ingress.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$(<"$call_log")" == *'delete ingress web --namespace apps'* ]]
+  [[ "$(<"$call_log")" == *'delete ingress metrics --namespace monitoring'* ]]
+  [[ "$(<"$call_log")" == *'delete service public-api --namespace apps'* ]]
+  ! [[ "$(<"$call_log")" == *'delete ingress --all'* ]]
+  ! [[ "$(<"$call_log")" == *'delete service --all'* ]]
 }
 
 @test "a fresh teardown retry replays the first pending AWS responses" {
@@ -583,28 +630,29 @@ use_sequence_fixture() {
   [ "$status" -eq 0 ]
 }
 
-@test "shared deadline helper distinguishes before exact and after 900 seconds" {
+@test "shared deadline helper distinguishes before exact and after 1500 seconds" {
   common_file="$BATS_TEST_DIRNAME/../sh/lifecycle-common.sh"
   run bash -c '
     source "$1"
     declare -F lc_deadline_expired >/dev/null || { printf "%s\n" "deadline helper is missing"; exit 1; }
     lc_monotonic_seconds() { printf "%s\n" "$FAKE_MONOTONIC_SECONDS"; }
     LC_STARTED_SECONDS=100
-    FAKE_MONOTONIC_SECONDS=999
+    FAKE_MONOTONIC_SECONDS=1599
     if lc_deadline_expired; then exit 10; fi
-    [[ "$(lc_elapsed)" == 899s ]] || exit 11
-    FAKE_MONOTONIC_SECONDS=1000
+    [[ "$(lc_elapsed)" == 1499s ]] || exit 11
+    FAKE_MONOTONIC_SECONDS=1600
     lc_deadline_expired || exit 12
-    [[ "$(lc_elapsed)" == 900s ]] || exit 13
-    FAKE_MONOTONIC_SECONDS=1001
+    [[ "$(lc_elapsed)" == 1500s ]] || exit 13
+    FAKE_MONOTONIC_SECONDS=1601
     lc_deadline_expired || exit 14
-    [[ "$(lc_elapsed)" == 901s ]] || exit 15
+    [[ "$(lc_elapsed)" == 1501s ]] || exit 15
   ' _ "$common_file"
   [ "$status" -eq 0 ]
 }
 
 @test "Ingress delete failure with residual ELB resources stops before Service deletion" {
   use_sequence_fixture ingress-delete-fail-residual
+  export TEST_KUBECTL_INGRESS_LIST_JSON='{"items":[{"metadata":{"namespace":"apps","name":"web"}}]}'
   export TEST_KUBECTL_INGRESS_DELETE_EXIT=1
   export TEST_KUBECTL_INGRESS_DELETE_ERROR='Forbidden: ingress deletion denied'
 
@@ -644,6 +692,7 @@ use_sequence_fixture() {
   [[ "$output" == *'i-0123456789abcdef0'* ]]
   [[ "$(<"$call_log")" != *'_destroy-layer'* ]]
   [[ "$(<"$STUB_AWS_CALL_LOG")" != *'_destroy-layer'* ]]
+  [[ "$(<"$call_log")" != *'cloud-nuke'* ]]
 }
 
 @test "a failed PVC drain stops make down before Terraform destroy" {
@@ -782,6 +831,7 @@ use_sequence_fixture() {
   expected_destroy_order="$(printf '%s\n' 'destroy:30-gitops' 'destroy:20-data' 'destroy:10-infra')"
   [ "$destroy_order" = "$expected_destroy_order" ]
   [[ "$(<"$call_log")" == *'verify-teardown'* ]]
+  [[ "$(<"$call_log")" != *'cloud-nuke'* ]]
   [[ "$output" == *'Successful teardown timing: total='*'stage_8='*'verifier_exit=0'* ]]
   [ ! -e "$test_root/.down.lock" ]
 }
@@ -914,4 +964,17 @@ use_sequence_fixture() {
   [ "$status" -eq 2 ]
   [[ "$output" == *'test verifier output'* ]]
   [[ "$output" != *'Successful teardown timing'* ]]
+}
+
+@test "Cloud Nuke contract reports identical scopes without enabling unproven types" {
+  wrapper="$BATS_TEST_DIRNAME/../sh/nuke-project.sh"
+  [ -x "$wrapper" ]
+
+  run bash "$wrapper" --print-scope-contract
+
+  [ "$status" -eq 0 ]
+  jq -e '.contract_only and (.invocation_allowed == false) and (.preview_scope == .execution_scope) and (.deletable_resource_types == []) and (.preview_argv[1] == "--dry-run") and (.execution_argv[1] == "--force")' <<< "$output" >/dev/null
+  jq -e '.tag_filter == {"Project":"microservices-demo"} and (.untagged_control_eligible == false) and (.report_only_resource_types == ["ec2"]) and (.vpc_included == false)' <<< "$output" >/dev/null
+  jq -e 'any(.preview_scope[]; . == "--region") and any(.preview_scope[]; . == "--config") and any(.preview_scope[]; . == "--resource-type") and any(.preview_scope[]; . == "ec2")' <<< "$output" >/dev/null
+  [[ "$(<"$call_log")" != *'cloud-nuke'* ]]
 }

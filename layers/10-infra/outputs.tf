@@ -10,5 +10,5 @@ output "vpc_id" {
 
 output "system_node_group_name" {
   description = "Name of the required on-demand system node group."
-  value       = module.eks.eks_managed_node_groups["system"].node_group_name
+  value       = split(":", module.eks.eks_managed_node_groups["system"].node_group_id)[1]
 }

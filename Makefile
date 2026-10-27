@@ -4,7 +4,7 @@ BOOTSTRAP_DIR := $(ROOT)/layers/00-bootstrap
 AWS_REGION ?= us-east-1
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor fmt validate test bootstrap up down verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _apply-layer _destroy-layer
+.PHONY: help doctor fmt validate test bootstrap up down nuke-project verify-teardown test-verify-teardown verify-no-keys unlock nuke-bootstrap _write-backend-hcl _layer-state _init-layer _apply-layer _destroy-layer
 
 help:
 	@printf '%s\n' \
@@ -12,6 +12,7 @@ help:
 	  'bootstrap              Create and migrate the L0 state backend' \
 	  'up                     Provision L1 networking and EKS' \
 	  'down                   Safely tear down the ephemeral stack' \
+	  'nuke-project           Report uncovered resources; recovery is proof-gated' \
 	  'verify-teardown        Check the account for teardown orphans' \
 	  'test-verify-teardown   Prove the teardown verifier catches a real orphan' \
 	  'verify-no-keys         Check AWS keys and GitHub secret stores' \
@@ -122,11 +123,15 @@ down:
 	  printf '%s\n' 'ERROR: GNU timeout is required to enforce the make down deadline.' >&2; \
 	  exit 1; \
 	fi; \
-	"$$TIMEOUT_CMD" --signal=TERM --kill-after=5s 900s bash sh/down.sh
+	"$$TIMEOUT_CMD" --signal=TERM --kill-after=5s 1500s bash sh/down.sh
+
+nuke-project:
+	@AWS_REGION="$(AWS_REGION)" bash sh/nuke-project.sh
 
 up: doctor
 	@bash sh/up.sh
 
+# Connect timeout plus retries: a stalled TCP connect to S3 otherwise blocks ~60s per attempt.
 _layer-state:
 	@set -euo pipefail; \
 	case "$(LAYER)" in \
@@ -138,7 +143,7 @@ _layer-state:
 	if [[ ! -f "$(BACKEND_HCL)" ]]; then printf 'ERROR: generated backend config is missing: %s\n' "$(BACKEND_HCL)" >&2; exit 2; fi; \
 	BUCKET="$$(sed -nE 's/^[[:space:]]*bucket[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$(BACKEND_HCL)")"; \
 	if [[ -z "$$BUCKET" ]]; then printf '%s\n' 'ERROR: generated backend config has no bucket.' >&2; exit 2; fi; \
-	OBJECTS_JSON="$$(aws s3api list-objects-v2 --bucket "$$BUCKET" --prefix "$$STATE_KEY" --max-keys 1 --output json)" || { printf 'ERROR: could not determine state for %s; refusing teardown.\n' "$(LAYER)" >&2; exit 2; }; \
+	OBJECTS_JSON="$$(AWS_RETRY_MODE=standard AWS_MAX_ATTEMPTS=5 aws s3api list-objects-v2 --bucket "$$BUCKET" --prefix "$$STATE_KEY" --max-keys 1 --cli-connect-timeout 5 --cli-read-timeout 15 --output json)" || { printf 'ERROR: could not determine state for %s; refusing teardown.\n' "$(LAYER)" >&2; exit 2; }; \
 	if ! jq -e 'type == "object" and ((has("Contents") and (.Contents | type == "array")) or .KeyCount == 0)' <<< "$$OBJECTS_JSON" >/dev/null; then printf 'ERROR: malformed S3 state listing for %s; refusing teardown.\n' "$(LAYER)" >&2; exit 2; fi; \
 	if jq -e --arg key "$$STATE_KEY" 'any(.Contents[]?; .Key == $$key)' <<< "$$OBJECTS_JSON" >/dev/null; then printf '%s\n' present; else printf '%s\n' absent; fi
 
@@ -156,9 +161,9 @@ _init-layer:
 _apply-layer:
 	@set -euo pipefail; \
 	if [[ "$(LAYER)" != 10-infra ]]; then printf 'ERROR: unsupported apply layer: %s\n' "$(LAYER)" >&2; exit 2; fi; \
-	if [[ -z "$(OPERATOR_CIDR)" ]]; then printf '%s\n' 'ERROR: OPERATOR_CIDR is required.' >&2; exit 2; fi; \
+	if [[ -z "$(OPERATOR_CIDRS_JSON)" ]]; then printf '%s\n' 'ERROR: OPERATOR_CIDRS is required.' >&2; exit 2; fi; \
 	terraform -chdir="$(ROOT)/layers/10-infra" apply -input=false -auto-approve \
-	  -var="operator_cidr=$(OPERATOR_CIDR)"
+	  -var='operator_cidrs=$(OPERATOR_CIDRS_JSON)'
 
 _destroy-layer:
 	@set -euo pipefail; \
@@ -174,7 +179,8 @@ _destroy-layer:
 	    case "$(LAYER)" in 10-infra) LAYER_DIR=10-infra; STATE_KEY=infra/terraform.tfstate ;; \
 	      20-data) LAYER_DIR=20-data; STATE_KEY=data/terraform.tfstate ;; \
 	      30-gitops) LAYER_DIR=30-gitops; STATE_KEY=gitops/terraform.tfstate ;; esac; \
-	    terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" destroy -input=false -auto-approve ;; \
+	    if [[ "$$LAYER_DIR" == 10-infra ]]; then export TF_VAR_operator_cidrs='["192.0.2.1/32"]'; fi; \
+	    terraform -chdir="$(ROOT)/layers/$$LAYER_DIR" destroy -input=false -auto-approve -refresh=false ;; \
 	  *) printf 'ERROR: unexpected state result for %s: %s\n' "$(LAYER)" "$$STATE" >&2; exit 2 ;; \
 	esac
 

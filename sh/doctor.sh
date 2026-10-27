@@ -2,7 +2,7 @@
 set -uo pipefail
 
 readonly EXPECTED_REGION="us-east-1"
-readonly EXPECTED_KUBECTL_VERSION="v1.34.12"
+readonly EXPECTED_KUBECTL_VERSION="v1.37.1"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT
 
@@ -50,9 +50,9 @@ else
   if ! KUBECTL_VERSION="$(jq -er '.clientVersion.gitVersion' <<<"$KUBECTL_JSON" 2>/dev/null)"; then
     fail "kubectl client version could not be parsed" "Expected JSON from 'kubectl version --client -o json'; output: $(printf '%s' "$KUBECTL_JSON" | tr '\n' ' ' | cut -c1-160)"
   elif [ "$KUBECTL_VERSION" != "$EXPECTED_KUBECTL_VERSION" ]; then
-    fail "kubectl ${KUBECTL_VERSION} does not match the project pin ${EXPECTED_KUBECTL_VERSION}" "EKS Kubernetes 1.34 requires a kubectl client within one minor version. Install the pinned client before using make down."
+    fail "kubectl ${KUBECTL_VERSION} does not match the project pin ${EXPECTED_KUBECTL_VERSION}" "EKS Kubernetes 1.37 lifecycle commands require the pinned client (see VERSIONS.md) before using make down."
   else
-    ok "kubectl ${KUBECTL_VERSION} (EKS Kubernetes 1.34)"
+    ok "kubectl ${KUBECTL_VERSION} (EKS Kubernetes 1.37)"
   fi
 fi
 

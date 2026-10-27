@@ -21,7 +21,7 @@ Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-
 - [ ] Entire stack provisioned by Terraform with remote state in S3 using native `use_lockfile` locking plus bucket versioning, surviving teardown
 - [ ] Terraform split into four lifetime-aligned layers — `00-bootstrap` (never destroyed), `10-infra`, `20-data`, `30-gitops` (daily)
 - [ ] `make up` lifecycle provisioning the full stack in ≤ 20 minutes
-- [ ] `make down` lifecycle as an explicit 7-step sequence — disable Argo auto-sync → drain Ingresses → drain Karpenter NodePools → drain PVCs → destroy L3→L2→L1 → verify — with each drain polling to an AWS-API-confirmed terminal state, completing in ≤ 15 minutes
+- [ ] `make down` lifecycle as an explicit 7-step sequence — disable Argo auto-sync → drain Ingresses → drain Karpenter NodePools → drain PVCs → destroy L3→L2→L1 → verify — with each drain polling to an AWS-API-confirmed terminal state, completing in ≤ 25 minutes
 - [ ] `sh/verify-teardown.sh` exiting non-zero on any orphaned resource, written before there is anything to tear down
 - [ ] Session profiles with `$/session` as the primary budget unit — Profile A `core` (~$0.22/hr, the default), Profile B `full` (~$0.29–0.33/hr, occasional), Profile C `managed`
 - [ ] Idle cost ≤ ~$5/month
@@ -30,7 +30,7 @@ Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-
 
 **EKS Platform**
 
-- [ ] EKS cluster pinned to Kubernetes 1.34, provisioned via `terraform-aws-modules/eks` v21
+- [ ] EKS cluster pinned to Kubernetes 1.37, provisioned via `terraform-aws-modules/eks` v21
 - [ ] System managed node group on **on-demand** instances, tainted `CriticalAddonsOnly` — Karpenter cannot provision the node it runs on
 - [ ] Karpenter (v1 API) provisioning all Spot capacity, with `consolidateAfter: 5m`, disruption budgets, `expireAfter` paired with `terminationGracePeriod`, `limits`, and ≥10 instance types across ≥2 families
 - [ ] Spot interruption handling via a Terraform-managed SQS interruption queue and EventBridge rules
@@ -139,7 +139,7 @@ Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-
 
 - **Budget**: Idle cost ≤ ~$5/month. Active cost is budgeted **per session, not per hour** — Profile A `core` ~$0.22/hr covers ~80% of sessions; Profile B `full` may reach ~$0.33/hr and is bounded by session length instead. The EKS control plane alone is 42–47% of hourly cost, so no instance-type tuning rescues a cluster left running — session discipline is the real lever
 - **Account and billing**: Run the project in a newly created, dedicated AWS Organizations member account. The management account/payer stays outside Terraform and this repository; it owns consolidated payment, organization-level Cost Explorer enablement, cost-allocation tag management, and centralized root access. The member account sees only its own cost and usage data, subject to management-account access controls. Centrally credential-less member root accounts do not require `AccountMFAEnabled=1`; if member root credentials exist, require MFA. Keep account-specific IDs in the gitignored pin file, not in tracked project documents.
-- **Lifecycle**: Every resource must be destroyable and reproducible on the same day — anything that cannot be cleanly torn down and rebuilt is a design defect, not an inconvenience. `make up` ≤ 20 minutes, `make down` ≤ 15 minutes; wall-clock is the scarcest resource in the project
+- **Lifecycle**: Every resource must be destroyable and reproducible on the same day — anything that cannot be cleanly torn down and rebuilt is a design defect, not an inconvenience. `make up` ≤ 20 minutes, `make down` ≤ 25 minutes; wall-clock is the scarcest resource in the project
 - **Ownership boundary**: Terraform owns the AWS API, Argo CD owns the Kubernetes API, with exactly one seam — a two-resource `30-gitops` layer that installs Argo CD and nothing else. The Terraform `kubernetes`/`helm` providers need a live API server at plan time, and on destroy that server may already be gone, wedging state
 - **Tech stack**: Java Spring Boot for containerized services, Python for Lambdas, Terraform for all infrastructure, React + Vite for the frontend — plays to existing strength so learning budget goes to AWS and Kubernetes
 - **Tech stack**: No expensive managed services (MSK, Managed Grafana, NAT Gateway, multi-AZ RDS, interface VPC endpoints) — cost model dominates service selection
@@ -162,7 +162,7 @@ Every AWS, Kubernetes, and DevOps concept in this project must be practiced end-
 | fck-nat instance (t4g.nano), gateway endpoints only | Cuts ~$32/month to ~$3/month and forces genuine understanding of VPC routing. Interface endpoints were initially assumed to be the cheap alternative to NAT — they are not at this scale (~$7.30/month each per AZ, ~24× the NAT instance). The "endpoints instead of NAT" heuristic is correct at production volume and inverts here | — Pending |
 | EKS Pod Identity throughout, IRSA as a one-off exercise | Beyond AWS's current recommendation: IRSA trust policies embed the cluster's OIDC provider ID, which changes on every rebuild, making IRSA actively hostile to a daily-teardown workflow. `terraform-aws-modules/eks` v21 also removed the Karpenter IRSA path entirely | — Pending |
 | SSM Parameter Store over Secrets Manager | Secrets Manager costs $0.40/secret/month — ten secrets would consume the entire idle budget. The External Secrets Operator learning is identical either way | — Pending |
-| Pin EKS to Kubernetes 1.34 | Chosen over 1.36 for rebuild reliability — 1.36 permanently disables `gitRepo` volumes and enables `StrictIPCIDRValidation`, which rejects CIDRs some third-party charts still ship. Extended support costs $0.60/hr, a 6× increase, so the 14-month window must be watched | — Pending |
+| Pin EKS to Kubernetes 1.37 | Updated by operator on 2026-10-27 from 1.34; 1.37 is available in EKS standard support. Revalidate chart compatibility with the `gitRepo` removal and `StrictIPCIDRValidation` behavior before deploying workloads. | — Pending |
 | Trim Milestone 1 to 6 containerized services + 1 Lambda | Ten Spring Boot services is a lot of boilerplate before reaching the AWS work; the trimmed set still preserves the full saga and every infrastructure concern. Research strengthened this: the well-known reference implementations (Online Boutique, Sock Shop, Robot Shop) have no real saga at all, so depth of failure surface — not service count — is the differentiator | — Pending |
 | Cognito validated at the API gateway rather than a dedicated auth service | Removes one service from M1 while still practising OIDC and JWT validation | — Pending |
 | Deliberate chaos scenarios with hand-written runbooks | Highest-value component for someone holding certifications but lacking operational scar tissue; runbooks must be written by debugging, not by describing. A runbook documenting a *wrong* hypothesis is the highest-signal artifact in the repo | — Pending |

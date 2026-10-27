@@ -4,7 +4,7 @@ This per-session Terraform layer owns the AWS network, EKS cluster, managed node
 
 ## Operator Access
 
-Set `OPERATOR_CIDR` when running `make up`. The value must be a valid trusted public IPv4 CIDR containing the workstation's current public IPv4 address. The preflight checks reachability before Terraform initialization; a missing, invalid, world-open, or unreachable CIDR stops the operation before apply. The EKS public API endpoint is restricted to this CIDR, and private endpoint access remains enabled inside the VPC.
+Set `OPERATOR_CIDRS` when running `make up` to a comma-separated list of trusted public IPv4 CIDRs. Each CIDR must be unique, valid, and not world-open; the list must include the workstation's current public IPv4 address. The preflight checks reachability before Terraform initialization; a missing, invalid, or unreachable list stops the operation before apply. The EKS public API endpoint is restricted to exactly this list, and private endpoint access remains enabled inside the VPC.
 
 The AWS identity running Terraform receives the EKS cluster creator administrator access entry. After provisioning, configure `kubectl` for the project cluster with:
 
@@ -18,7 +18,7 @@ The operator still needs valid AWS credentials and the permissions required by t
 
 ### Teardown sequence and acceptance gate
 
-`make down` applies one fixed, non-overridable 900-second monotonic deadline from preflight
+`make down` applies one fixed, non-overridable 1500-second monotonic deadline from preflight
 through final verification. It runs these eight numbered actions in order:
 
 1. Disable Argo auto-sync when the root application exists; a confirmed absent application is skipped.
@@ -37,13 +37,13 @@ Successful drains proceed directly to the next action. Any unresolved drain stop
 first destroy; remediate the reported resource/access issue and start a fresh `make down` from
 action 1. Do not extend or reset the deadline for an individual run.
 
-Before application code begins, complete two consecutive empty-cluster `make up` -> `make down`
-round-trips with verifier exit `0` both times. This is a hard Phase 2 gate, not a target inferred
+Before application code begins, complete one empty-cluster `make up` -> `make down`
+round-trip with verifier exit `0`. This is a hard Phase 2 gate, not a target inferred
 from local tests or timing estimates.
 
-Lifecycle commands require the exact `kubectl` pin in `VERSIONS.md`; `make doctor` rejects a different client before draining. Kubernetes supports kubectl within one minor version of the API server; this project pins a matching 1.34 patch for the EKS 1.34 control plane.
+Lifecycle commands require the exact `kubectl` pin in `VERSIONS.md`; `make doctor` rejects a different client before draining. Kubernetes supports kubectl within one minor version of the API server; the current pin (v1.37.1) matches the EKS 1.37 control plane.
 
-The approved operator API path is the public EKS endpoint restricted to the explicit trusted IPv4 CIDR passed as `OPERATOR_CIDR` to `make up`. Never use `0.0.0.0/0`. If the workstation's public address changes or the API becomes unreachable, restore access from the trusted operator network and update the endpoint allowlist through the normal Terraform-owned `make up` path; do not widen access. After access is restored, rerun `make down` from its first step.
+The approved operator API path is the public EKS endpoint restricted to the explicit trusted IPv4 CIDRs passed as `OPERATOR_CIDRS` to `make up`. Never use `0.0.0.0/0`. Multiple exact `/32` entries may be used for known, trusted egress addresses, but do not add a broad range to accommodate rotating WARP egress. If the workstation's public address changes outside the configured list or the API becomes unreachable, restore access from a trusted operator network and update the endpoint allowlist through the normal Terraform-owned `make up` path; do not widen access. After access is restored, rerun `make down` from its first step.
 
 Drain recovery treats EKS states as follows:
 
@@ -76,6 +76,8 @@ Interface endpoints are controlled by `enable_interface_endpoints`, which defaul
 
 ## EKS And Controller Placement
 
-The EKS cluster is pinned to Kubernetes `1.34`. The on-demand `t4g.medium` system managed node group has two nodes, the stable label `workload=system`, and the taint `CriticalAddonsOnly=true:NoSchedule`. Platform pods placed on this group must select `workload=system` and tolerate that taint. The four managed add-ons are version-pinned in Terraform and `VERSIONS.md`; EBS CSI is intentionally not installed.
+The EKS cluster is pinned to Kubernetes `1.37`. The on-demand `t4g.medium` system managed node group has two nodes, the stable label `workload=system`, and the taint `CriticalAddonsOnly=true:NoSchedule`. Platform pods placed on this group must select `workload=system` and tolerate that taint. The four managed add-ons are version-pinned in Terraform and `VERSIONS.md`; EBS CSI is intentionally not installed.
 
 Phase 2 creates Karpenter's AWS-side IAM roles, Pod Identity association, node instance profile, interruption queue, and EventBridge rules in Terraform. The Phase 2 system-node hosting contract is the boundary for the Phase 4 GitOps seam: the Karpenter controller, AWS Load Balancer Controller, and other in-cluster charts/CRs are not installed by this layer. Later GitOps work owns those Kubernetes resources. No Kubernetes or Helm Terraform provider is used in L1.
+
+The Karpenter controller policy uses the module's inline-policy mode to stay within AWS's 6,144-character managed-policy limit; this changes the policy attachment type, not its permissions.
